@@ -113,9 +113,58 @@ local function urlProcessor(text)
 end
 
 ---
+-- Short channel names: [1. General - Zone] -> [1], [Party Leader] -> [PL], ...
+-- Group channels are recognised by their link data, which doesn't change with
+-- the game language. Leader variants are told apart by the game's own strings.
+local SHORT_CHANNELS = {
+  PARTY = { "P", "PL" },
+  RAID = { "R", "RL" },
+  INSTANCE_CHAT = { "I", "IL" },
+  GUILD = { "G" },
+  OFFICER = { "O" },
+}
+
+local function shortChannelName(data, name)
+  -- Numbered channels: keep only the number
+  local number = name:match("^(%d+)%.")
+  if number then return number end
+
+  local kind = data:match("^channel:(%u[%u_]*)$")
+  local short = kind and SHORT_CHANNELS[kind]
+  if not short then return nil end
+
+  local leaderName = _G["CHAT_MSG_"..kind.."_LEADER"]
+  if short[2] and leaderName and name == leaderName then
+    return short[2]
+  end
+  return short[1]
+end
+
+local function channelProcessor(text)
+  if not Core.db.profile.shortChannelNames then return text end
+
+  text = text:gsub("|H(channel:.-)|h%[(.-)%]|h", function (data, name)
+    local short = shortChannelName(data, name)
+    if short then
+      return "|H"..data.."|h["..short.."]|h"
+    end
+  end)
+
+  -- Raid warnings are not links, only text at the start of the message
+  local raidWarning = _G.CHAT_MSG_RAID_WARNING
+  if raidWarning then
+    local escaped = raidWarning:gsub("%p", "%%%0")
+    text = text:gsub("^%["..escaped.."%]", "[RW]")
+  end
+
+  return text
+end
+
+---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {
   textureProcessor,
+  channelProcessor,
   urlProcessor,
   pratTimestampProcessor
 }

@@ -74,6 +74,7 @@ Core.defaults = {
     chatSlideInDuration = 0.3,
 
     indentWordWrap = true,
+    shortChannelNames = false,
     mouseOverTooltips = true,
     iconTextureYOffset = 4,
   }

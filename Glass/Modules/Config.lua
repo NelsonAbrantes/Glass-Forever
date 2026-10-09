@@ -505,6 +505,18 @@ function C:OnEnable()
                     Core:Dispatch(UpdateConfig("indentWordWrap"))
                   end,
                 },
+                shortChannelNames = {
+                  name = "Short channel names",
+                  desc = "Shows [1] instead of [1. General], [P] instead of [Party], [G] instead of [Guild], and so on. Applies to new messages.",
+                  type = "toggle",
+                  order = 3.15,
+                  get = function ()
+                    return Core.db.profile.shortChannelNames
+                  end,
+                  set = function (info, input)
+                    Core.db.profile.shortChannelNames = input
+                  end,
+                },
                 mouseOverTooltips = {
                   name = "Mouse over tooltips",
                   desc = "Should tooltips appear when hovering over chat links.",

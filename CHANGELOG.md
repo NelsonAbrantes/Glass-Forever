@@ -8,6 +8,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Glass can be moved and configured in Blizzard's Edit Mode: width, height, font, font sizes, background opacity and fade out delay (`EditMode.lua`, using LibEditMode).
 - Web links in chat (`https://...`, `www....`) are clickable and open a window to copy them (`TextProcessing.lua`, `Hyperlinks.lua`, `Copy.lua`).
 - "Copy chat text" in the tab right-click menu shows the tab's messages as plain text, ready to copy (`Copy.lua`).
+- "Short channel names" option: `[1]` instead of `[1. General]`, `[P]` instead of `[Party]`, `[G]` instead of `[Guild]`, and so on (`TextProcessing.lua`).
 
 ### Changed
 - The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).
