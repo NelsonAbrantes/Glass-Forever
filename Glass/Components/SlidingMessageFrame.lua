@@ -4,6 +4,7 @@ local TP = Core:GetModule("TextProcessing")
 local AceHook = Core.Libs.AceHook
 
 local LibEasing = Core.Libs.LibEasing
+local LSM = Core.Libs.LSM
 local lodash = Core.Libs.lodash
 local drop, reduce, take = lodash.drop, lodash.reduce, lodash.take
 
@@ -66,6 +67,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     head = nil,
     tail = nil,
     isCombatLog = false,
+    detached = false,
     scrollAtBottom = true,
     unreadMessages = false,
   }
@@ -91,10 +93,6 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     end, true)
     return
   end
-
-  self:RawHook(chatFrame, "SetPoint", function ()
-    self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
-  end, true)
 
   -- Chat scroll frame
   self:SetHeight(self.config.height + self.config.overflowHeight)
@@ -212,16 +210,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   end, true)
 
   -- Hide the default chat frame and show the sliding message frame instead
-  self:RawHook(chatFrame, "Show", function ()
-    self:Show()
-  end, true)
-
-  self:RawHook(chatFrame, "Hide", function (f)
-    self.hooks[chatFrame].Hide(f)
-    self:Hide()
-  end, true)
-
-  chatFrame:Hide()
+  self:TakeOverChatFrame()
 
   -- Load any messages already in the chat frame to Glass
   if chatFrame == DEFAULT_CHAT_FRAME then
@@ -259,6 +248,11 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         end
       end),
       Core:Subscribe(UPDATE_CONFIG, function (key)
+        -- Separate windows follow the Glass font too
+        if key == "font" then
+          self:ApplyGlassFont()
+        end
+
         if self.state.isCombatLog == false then
           if (
             key == "font" or
@@ -305,6 +299,79 @@ function SlidingMessageFrameMixin:Init(chatFrame)
       end)
     }
   end
+end
+
+---
+-- Puts the default chat frame under Glass' control: hidden, kept in place
+-- inside the Glass container, and replaced by this frame on screen.
+function SlidingMessageFrameMixin:TakeOverChatFrame()
+  local chatFrame = self.chatFrame
+
+  _G[chatFrame:GetName().."ButtonFrame"]:Hide()
+  chatFrame:SetClampRectInsets(0,0,0,0)
+  chatFrame:SetClampedToScreen(false)
+  chatFrame:SetResizable(false)
+  chatFrame:SetParent(self:GetParent())
+  chatFrame:ClearAllPoints()
+
+  if not self:IsHooked(chatFrame, "SetPoint") then
+    self:RawHook(chatFrame, "SetPoint", function ()
+      self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
+    end, true)
+  end
+  chatFrame:SetPoint()
+
+  if not self:IsHooked(chatFrame, "Show") then
+    self:RawHook(chatFrame, "Show", function ()
+      self:Show()
+    end, true)
+  end
+
+  if not self:IsHooked(chatFrame, "Hide") then
+    self:RawHook(chatFrame, "Hide", function (f)
+      self.hooks[chatFrame].Hide(f)
+      self:Hide()
+    end, true)
+  end
+
+  chatFrame:Hide()
+  self.state.detached = false
+end
+
+---
+-- Gives the chat frame back to the game, as a normal chat window. Used when
+-- its tab is dragged out of the Glass dock. Messages keep arriving here, so
+-- they are still there when the tab is docked again (TakeOverChatFrame).
+function SlidingMessageFrameMixin:ReleaseChatFrame()
+  local chatFrame = self.chatFrame
+
+  self:Unhook(chatFrame, "SetPoint")
+  self:Unhook(chatFrame, "Show")
+  self:Unhook(chatFrame, "Hide")
+
+  chatFrame:SetParent(_G.UIParent)
+  chatFrame:SetClampedToScreen(true)
+  chatFrame:SetResizable(true)
+  _G[chatFrame:GetName().."ButtonFrame"]:Show()
+
+  self:Hide()
+  self.state.detached = true
+  self:ApplyGlassFont()
+end
+
+---
+-- Gives a separate chat window the Glass font and outline. The size stays the
+-- window's own, so it can still be changed from the tab menu (Font Size).
+function SlidingMessageFrameMixin:ApplyGlassFont()
+  if not self.state.detached then return end
+
+  local chatFrame = self.chatFrame
+  local _, size = chatFrame:GetFont()
+  chatFrame:SetFont(
+    LSM:Fetch(LSM.MediaType.FONT, Core.db.profile.font),
+    size or Core.db.profile.messageFontSize,
+    Core.db.profile.fontFlags
+  )
 end
 
 function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, blue, messageId, holdTime)

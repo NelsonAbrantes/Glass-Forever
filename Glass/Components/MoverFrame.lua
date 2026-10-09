@@ -9,6 +9,7 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 local MoverFrameMixin = {}
 
 -- luacheck: push ignore 113
+local C_XMLUtil = C_XMLUtil
 local CreateFrame = CreateFrame
 local Mixin = Mixin
 -- luacheck: pop
@@ -24,9 +25,10 @@ function MoverFrameMixin:Init()
   self:SetWidth(Core.db.profile.frameWidth)
   self:SetHeight(Core.db.profile.frameHeight + editBoxMargin)
 
-  self.bg = self:CreateTexture(nil, "BACKGROUND")
-  self.bg:SetColorTexture(0, 1, 0, 0.5)
-  self.bg:SetAllPoints()
+  -- Highlight shown while the frame is unlocked. Uses the Edit Mode selection
+  -- look (blue border with the name) when the game has it, otherwise the old
+  -- green box.
+  self.bg = self:CreateEditModeHighlight() or self:CreateGreenHighlight()
 
   self:Hide()
 
@@ -51,6 +53,11 @@ function MoverFrameMixin:Init()
         Core:Dispatch(SaveFramePosition(position))
       end),
       Core:Subscribe(UNLOCK_MOVER, function ()
+        self.bg:SetAlpha(1)
+        self.bg:Show()
+        if self.bg.ShowSelected then
+          pcall(self.bg.ShowSelected, self.bg, true)
+        end
         self:Show()
         self:EnableMouse(true)
         self:SetMovable(true)
@@ -75,6 +82,37 @@ function MoverFrameMixin:Init()
       end),
     }
   end
+end
+
+function MoverFrameMixin:CreateEditModeHighlight()
+  if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("EditModeSystemSelectionTemplate")) then
+    return nil
+  end
+
+  local ok, highlight = pcall(CreateFrame, "Frame", nil, self, "EditModeSystemSelectionTemplate")
+  if not ok or not highlight then return nil end
+
+  -- Only the look is wanted: the mover frame itself handles dragging
+  highlight.system = { GetSystemName = function () return "Glass" end }
+  highlight:SetScript("OnMouseDown", nil)
+  highlight:SetScript("OnMouseUp", nil)
+  highlight:SetScript("OnDragStart", nil)
+  highlight:SetScript("OnDragStop", nil)
+  highlight:EnableMouse(false)
+  highlight:SetAllPoints()
+
+  if not pcall(highlight.ShowSelected, highlight, true) then
+    pcall(highlight.ShowHighlighted, highlight)
+  end
+
+  return highlight
+end
+
+function MoverFrameMixin:CreateGreenHighlight()
+  local bg = self:CreateTexture(nil, "BACKGROUND")
+  bg:SetColorTexture(0, 1, 0, 0.5)
+  bg:SetAllPoints()
+  return bg
 end
 
 Core.Components.CreateMoverFrame = function (name, parent)

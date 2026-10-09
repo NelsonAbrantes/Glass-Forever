@@ -12,10 +12,12 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Chat history: the last 50 messages of each tab are saved per character and shown again when you log back in. Can be turned off with "Keep chat history" (`History.lua`).
 - More settings in Edit Mode: fade in, fade out and slide in durations, show on mouse over, short channel names, edit box position and edit box opacity (`EditMode.lua`).
 - Glass options are in the game's Options window (Options > AddOns > Glass Forever), built with the game's own controls. `/glass` opens them (`OptionsPanel.lua`).
+- Tabs (including whispers) can be dragged out of the dock to become separate chat windows, and dragged back to join Glass again, as in the default chat. Separate windows use the Glass font and keep their place after logging out (`UIManager.lua`, `SlidingMessageFrame.lua`, `ChatDock.lua`).
 
 ### Changed
 - The Copy window, the "unlocked" dialog and the option buttons use the current game style (bronze border, red buttons) instead of the old Classic look (`Copy.lua`, `MoverDialog.lua`, `Button.lua`).
 - The chat position (X/Y offset, anchor) is no longer in the options; move the chat in Edit Mode or with "Unlock frame".
+- "Unlock frame" highlights the chat with the Edit Mode look (blue border) instead of a green box (`MoverFrame.lua`).
 - The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).
 
 ### Fixed

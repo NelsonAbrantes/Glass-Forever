@@ -10,13 +10,7 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
 local Mixin = Mixin
-local FCFDock_GetInsertIndex = FCFDock_GetInsertIndex
-local FCFDock_HideInsertHighlight = FCFDock_HideInsertHighlight
-local FCF_DockFrame = FCF_DockFrame
-local GENERAL_CHAT_DOCK = GENERAL_CHAT_DOCK
 local GeneralDockManager = GeneralDockManager
-local GetCursorPosition = GetCursorPosition
-local UIParent = UIParent
 -- luacheck: pop
 
 local ChatDockMixin = {}
@@ -41,18 +35,8 @@ function ChatDockMixin:Init(parent)
   local opacity = 0.4
   self:SetGradientBackground(50, 250, Colors.black, opacity)
 
-  -- Override drag behaviour
-  -- Disable undocking frames
-  self:RawHook("FCF_StopDragging", function (chatFrame)
-    chatFrame:StopMovingOrSizing();
-    _G[chatFrame:GetName().."Tab"]:UnlockHighlight();
-
-    FCFDock_HideInsertHighlight(GENERAL_CHAT_DOCK);
-
-    local mouseX, mouseY = GetCursorPosition();
-    mouseX, mouseY = mouseX / UIParent:GetScale(), mouseY / UIParent:GetScale();
-    FCF_DockFrame(chatFrame, FCFDock_GetInsertIndex(GENERAL_CHAT_DOCK, chatFrame, mouseX, mouseY), true);
-  end, true)
+  -- Tabs can be dragged out of the dock to become separate chat windows, as in
+  -- the default chat (see UIManager)
 
   self:QuickHide()
 

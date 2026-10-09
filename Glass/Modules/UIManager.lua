@@ -15,6 +15,10 @@ local ChatAlertFrame = ChatAlertFrame
 local ChatFrameChannelButton = ChatFrameChannelButton
 local ChatFrameMenuButton = ChatFrameMenuButton
 local CreateFrame = CreateFrame
+local FCFDock_GetSelectedWindow = FCFDock_GetSelectedWindow
+local FCF_RestorePositionAndDimensions = FCF_RestorePositionAndDimensions
+local GENERAL_CHAT_DOCK = GENERAL_CHAT_DOCK
+local GetChatWindowInfo = GetChatWindowInfo
 local GetCVar = C_CVar and C_CVar.GetCVar or GetCVar
 local NUM_CHAT_WINDOWS = NUM_CHAT_WINDOWS
 local QuickJoinToastButton = QuickJoinToastButton
@@ -64,6 +68,70 @@ function UIManager:OnEnable()
     local main = self.state.frames[1]
     if main then
       main:Show()
+    end
+
+    -- Windows left undocked last time stay separate normal chat windows
+    for i, smf in ipairs(self.state.frames) do
+      local chatFrame = smf.chatFrame
+      local shown = select(7, GetChatWindowInfo(i))
+      if shown and not chatFrame.isDocked and smf.state and not smf.state.isCombatLog then
+        smf:ReleaseChatFrame()
+        if FCF_RestorePositionAndDimensions then
+          FCF_RestorePositionAndDimensions(chatFrame)
+        end
+        chatFrame:Show()
+      end
+    end
+  end)
+
+  -- Dragging a tab out of the dock makes it a normal chat window; dragging it
+  -- back gives it to Glass again
+  local function FindFrame(chatFrame)
+    if not chatFrame then return nil end
+    for _, smf in ipairs(self.state.frames) do
+      if smf.chatFrame == chatFrame then return smf end
+    end
+    -- Temporary windows (whispers)
+    local name = chatFrame.GetName and chatFrame:GetName()
+    return name and self.state.temporaryFrames[name]
+  end
+
+  -- True if the window is still in use and meant to be visible, i.e. it was
+  -- undocked rather than closed (closing a window also undocks it)
+  local function StillOpen(smf, chatFrame)
+    if chatFrame.isDocked or not smf.state.detached then return false end
+    if chatFrame.isTemporary then
+      return self.state.temporaryFrames[chatFrame:GetName()] == smf
+    end
+    return select(7, GetChatWindowInfo(chatFrame:GetID())) and true or false
+  end
+
+  self:SecureHook("FCF_UnDockFrame", function (chatFrame)
+    local smf = FindFrame(chatFrame)
+    if not smf or not smf.state or smf.state.isCombatLog or smf.state.detached then return end
+
+    smf:ReleaseChatFrame()
+
+    -- Wait a moment: if the game is closing the window, it's gone by then
+    C_Timer.After(0, function ()
+      if StillOpen(smf, chatFrame) then
+        chatFrame:Show()
+      end
+    end)
+  end)
+
+  -- Changing the font size from the tab menu resets the font, put Glass' back
+  if _G.FCF_SetChatWindowFontSize then
+    self:SecureHook("FCF_SetChatWindowFontSize", function (_, chatFrame)
+      local smf = FindFrame(chatFrame or _G.FCF_GetCurrentChatFrame and _G.FCF_GetCurrentChatFrame())
+      if smf then smf:ApplyGlassFont() end
+    end)
+  end
+
+  self:SecureHook("FCF_DockFrame", function (chatFrame)
+    local smf = FindFrame(chatFrame)
+    if smf and smf.state and smf.state.detached then
+      smf:TakeOverChatFrame()
     end
   end)
 
@@ -195,6 +263,7 @@ function UIManager:OnEnable()
   -- panel itself is not hidden.
   local function HideBlizzardFrame(smf)
     local chatFrame = smf.chatFrame
+    if smf.state and smf.state.detached then return end -- a separate window, leave it
     if chatFrame and chatFrame:IsShown() then
       local hooks = smf.hooks and smf.hooks[chatFrame]
       if hooks and hooks.Hide then
@@ -215,11 +284,16 @@ function UIManager:OnEnable()
       HideBlizzardFrame(smf)
     end
 
-    -- Show the panel of the selected tab and hide all the others
+    -- Show the panel of the selected tab and hide all the others. Use the tab
+    -- selected in the Glass dock: clicking a separate window changes
+    -- SELECTED_CHAT_FRAME but shouldn't empty Glass.
     local selected = _G.SELECTED_CHAT_FRAME
+    if FCFDock_GetSelectedWindow and GENERAL_CHAT_DOCK then
+      selected = FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK) or selected
+    end
     if selected then
       for _, smf in pairs(self.state.frames) do
-        if smf.chatFrame and smf.state and not smf.state.isCombatLog then
+        if smf.chatFrame and smf.state and not smf.state.isCombatLog and not smf.state.detached then
           if smf.chatFrame == selected then
             if not smf:IsShown() then smf:Show() end
           elseif smf:IsShown() then
@@ -228,7 +302,9 @@ function UIManager:OnEnable()
         end
       end
       for _, smf in pairs(self.state.temporaryFrames) do
-        if smf.chatFrame == selected then
+        if smf.state and smf.state.detached then
+          -- A separate window, the game shows it
+        elseif smf.chatFrame == selected then
           if not smf:IsShown() then smf:Show() end
         elseif smf:IsShown() then
           smf:Hide()
