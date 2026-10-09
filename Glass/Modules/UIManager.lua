@@ -187,9 +187,32 @@ function UIManager:OnEnable()
     end
   end)
 
+  -- Keep the default Blizzard chat frame hidden behind Glass. Some code paths
+  -- (e.g. creating a new tab) show it without going through our Show hook,
+  -- which made messages appear twice. Uses the original Hide so the Glass
+  -- panel itself is not hidden.
+  local function HideBlizzardFrame(smf)
+    local chatFrame = smf.chatFrame
+    if chatFrame and chatFrame:IsShown() then
+      local hooks = smf.hooks and smf.hooks[chatFrame]
+      if hooks and hooks.Hide then
+        hooks.Hide(chatFrame)
+      end
+    end
+  end
+
   -- Start rendering
   self.timeElapsed = 0
   self.tickerFrame:SetScript("OnUpdate", function (_, elapsed)
+    for _, smf in pairs(self.state.frames) do
+      if smf.state and not smf.state.isCombatLog then
+        HideBlizzardFrame(smf)
+      end
+    end
+    for _, smf in pairs(self.state.temporaryFrames) do
+      HideBlizzardFrame(smf)
+    end
+
     -- Show the panel of the selected tab and hide all the others
     local selected = _G.SELECTED_CHAT_FRAME
     if selected then
