@@ -1,14 +1,12 @@
 ## Interface: 120100, 16001
-## Plain Title: Glass
-## Author: mixxorz
-## Version: @project-version@
+## Plain Title: Glass Forever
+## Author: mixxorz (original), Rethz (fork)
+## Version: 1.9.0-alpha1
 
-## Title: |c00DFBA69Glass|r
-## Notes: Immersive and minimalistic chat UI.
+## Title: |c00DFBA69Glass Forever|r
+## Notes: Immersive and minimalistic chat UI. Fork of Glass for WoW: Forever (beta).
 
 ## SavedVariables: GlassDB
-
-## X-Curse-Project-ID: 403607
 
 # Libs
 libs\LibStub\LibStub.lua
