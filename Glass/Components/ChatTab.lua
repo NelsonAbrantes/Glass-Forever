@@ -10,7 +10,9 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
+local ChatTypeInfo = ChatTypeInfo
 local FCF_StopAlertFlash = FCF_StopAlertFlash
+local GetPhysicalScreenSize = GetPhysicalScreenSize
 local IsCombatLog = IsCombatLog
 local Mixin = Mixin
 local UNLOCK_WINDOW = UNLOCK_WINDOW
@@ -67,6 +69,28 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self:RawHook(self.glow, "Show", function ()
       if not slidingMessageFrame:IsVisible() then
         self.hooks[self.glow].Show(self.glow)
+
+        -- Tint the glow with the color of the chat type that triggered it.
+        -- Desaturate first, otherwise the texture's own tint mixes with the color.
+        local color = self.glowColor
+        if color then
+          self.glow:SetDesaturated(true)
+          self.glow:SetVertexColor(color.r, color.g, color.b)
+        else
+          self.glow:SetDesaturated(false)
+        end
+      end
+    end, true)
+  end
+
+  -- Keep the glow in the chat type color even if Blizzard resets it
+  if not self:IsHooked(self.glow, "SetVertexColor") then
+    self:RawHook(self.glow, "SetVertexColor", function (_, r, g, b, a)
+      local color = self.glowColor
+      if color then
+        self.hooks[self.glow].SetVertexColor(self.glow, color.r, color.g, color.b)
+      else
+        self.hooks[self.glow].SetVertexColor(self.glow, r, g, b, a)
       end
     end, true)
   end
@@ -93,6 +117,16 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end)
   end
 
+  -- Thin line above the tab, shown only while this tab is selected.
+  -- Size and thickness are set in UpdateSelected.
+  if self.selectedLine == nil then
+    self.selectedLine = self:CreateTexture(nil, "OVERLAY")
+    self.selectedLine:SetColorTexture(Colors.apache.r, Colors.apache.g, Colors.apache.b, 1)
+    self.selectedLine:SetPoint("TOP", self, "TOP", 0, 0)
+    self.selectedLine:SetSize(1, 1)
+    self.selectedLine:Hide()
+  end
+
   -- Listeners
   if self.subscriptions == nil then
     self.subscriptions = {
@@ -102,6 +136,30 @@ function ChatTabMixin:Init(slidingMessageFrame)
         end
       end)
     }
+  end
+end
+
+local LINE_THICKNESS_PIXELS = 2 -- thickness of the selected-tab line, in real screen pixels
+local LINE_WIDTH_RATIO = 0.5    -- fraction of the tab width
+
+function ChatTabMixin:UpdateSelected(selected)
+  local line = self.selectedLine
+  if line == nil then return end
+
+  local isSelected = (self.chatFrame == selected)
+
+  if isSelected then
+    -- Convert real pixels to this tab's own units, so every tab gets the same thickness
+    local _, screenHeight = GetPhysicalScreenSize()
+    local scale = self:GetEffectiveScale()
+    if screenHeight and screenHeight > 0 and scale and scale > 0 then
+      line:SetHeight(LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale)
+    end
+    line:SetWidth(self:GetWidth() * LINE_WIDTH_RATIO)
+  end
+
+  if line:IsShown() ~= isSelected then
+    line:SetShown(isSelected)
   end
 end
 

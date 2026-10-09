@@ -20,11 +20,11 @@ function MainContainerFrameMixin:Init()
   self:SetWidth(Core.db.profile.frameWidth)
   self:SetHeight(Core.db.profile.frameHeight)
 
-  --@debug@
+  --[==[@debug@
   self.bg = self:CreateTexture(nil, "BACKGROUND")
   self.bg:SetColorTexture(1, 0, 0, 0)
   self.bg:SetAllPoints()
-  --@end-debug@
+  --@end-debug@]==]
 
   Core:Subscribe(UPDATE_CONFIG, function (key)
     if key == "frameWidth" then

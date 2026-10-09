@@ -67,7 +67,19 @@ end
 -- Update height based on text height
 function MessageLineMixin:UpdateFrame()
   local Ypadding = self.text:GetLineHeight() * Core.db.profile.messageLinePadding
-  local messageLineHeight = (self.text:GetStringHeight() + Ypadding * 2)
+  local stringHeight = self.text:GetStringHeight()
+  -- Retail 12.x: GetStringHeight can return a "secret" value that addons cannot
+  -- do arithmetic on. Fall back to the line count, or to a single line.
+  if issecretvalue and issecretvalue(stringHeight) then
+    local lineHeight = self.text:GetLineHeight()
+    local numLines = self.text.GetNumLines and self.text:GetNumLines()
+    if numLines and not issecretvalue(numLines) and numLines > 0 then
+      stringHeight = lineHeight * numLines
+    else
+      stringHeight = lineHeight
+    end
+  end
+  local messageLineHeight = (stringHeight + Ypadding * 2)
   self:SetHeight(messageLineHeight)
 
   self:SetWidth(Core.db.profile.frameWidth)

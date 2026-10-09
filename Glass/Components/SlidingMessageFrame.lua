@@ -21,6 +21,29 @@ local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local Mixin = Mixin
 -- luacheck: pop
 
+-- Retail 12.x can return "secret" numbers from scroll frame getters, which
+-- addons cannot do arithmetic on. Fall back to values we control ourselves.
+local function GetScrollRange(frame)
+  local range = frame:GetVerticalScrollRange()
+  if issecretvalue and issecretvalue(range) then
+    local sliderHeight = frame.slider and frame.slider:GetHeight() or 0
+    local frameHeight = frame:GetHeight()
+    if (issecretvalue(sliderHeight)) or (issecretvalue(frameHeight)) then
+      return 0
+    end
+    range = math.max(sliderHeight - frameHeight, 0)
+  end
+  return range
+end
+
+local function GetScroll(frame)
+  local scroll = frame:GetVerticalScroll()
+  if issecretvalue and issecretvalue(scroll) then
+    return GetScrollRange(frame)
+  end
+  return scroll
+end
+
 ----
 -- SlidingMessageFrameMixin
 --
@@ -60,9 +83,11 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   -- Skip combat log
   if chatFrame == _G.ChatFrame2 then
     self.state.isCombatLog = true
+    -- Inset the combat log by the same margin the other tabs use,
+    -- so the text isn't cut off at the edge of the container.
     self:RawHook(chatFrame, "SetPoint", function ()
-      self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
-      self.hooks[chatFrame].SetPoint(chatFrame, "BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", 0, 0)
+      self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", Constants.TEXT_XPADDING, -45)
+      self.hooks[chatFrame].SetPoint(chatFrame, "BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -Constants.TEXT_XPADDING, 0)
     end, true)
     return
   end
@@ -92,10 +117,10 @@ function SlidingMessageFrameMixin:Init(chatFrame)
       self.overlay:HideNewMessageAlert()
 
       local startOffset = math.max(
-        self:GetVerticalScrollRange() - self.config.height * 2,
-        self:GetVerticalScroll()
+        GetScrollRange(self) - self.config.height * 2,
+        GetScroll(self)
       )
-      local endOffset = self:GetVerticalScrollRange()
+      local endOffset = GetScrollRange(self)
 
       LibEasing:Ease(
         function (offset) self:SetVerticalScroll(offset) end,
@@ -114,18 +139,18 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   self:SetScript("OnMouseWheel", function (frame, delta)
     local maxScroll = (
       self.state.scrollAtBottom and
-      self:GetVerticalScrollRange() + self.config.overflowHeight
-      or self:GetVerticalScrollRange()
+      GetScrollRange(self) + self.config.overflowHeight
+      or GetScrollRange(self)
     )
     local minScroll = self.config.height + self.config.overflowHeight
     local scrollValue
 
     if delta < 0 then
       -- Scroll down
-      scrollValue = math.min(self:GetVerticalScroll() + 20, maxScroll)
+      scrollValue = math.min(GetScroll(self) + 20, maxScroll)
     else
       -- Scroll up
-      scrollValue = math.max(self:GetVerticalScroll() - 20, math.min(minScroll, maxScroll))
+      scrollValue = math.max(GetScroll(self) - 20, math.min(minScroll, maxScroll))
     end
 
     self:UpdateScrollChildRect()
@@ -264,7 +289,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             self.state.scrollAtBottom = true
             self.state.unreadMessages = false
             self:UpdateScrollChildRect()
-            self:SetVerticalScroll(self:GetVerticalScrollRange() + self.config.overflowHeight)
+            self:SetVerticalScroll(GetScrollRange(self) + self.config.overflowHeight)
             self.overlay:Hide()
             self.overlay:HideNewMessageAlert()
           end
@@ -380,7 +405,7 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
       LibEasing:StopEasing(self.state.prevEasingHandle)
     end
 
-    local startOffset = self:GetVerticalScroll()
+    local startOffset = GetScroll(self)
     local endOffset = newHeight - self:GetHeight() + self.config.overflowHeight
 
     if Core.db.profile.chatSlideInDuration > 0 then
@@ -452,6 +477,11 @@ local function CreateSlidingMessageFramePool(parent)
         smf:Unhook(smf.chatFrame, "AddMessage")
         smf:Unhook(smf.chatFrame, "Show")
         smf:Unhook(smf.chatFrame, "Hide")
+        -- Remove the historyBuffer hook too, so a reused chat window (e.g. a
+        -- whisper tab) can be initialized again without "rehook" errors.
+        if smf.chatFrame.historyBuffer then
+          smf:Unhook(smf.chatFrame.historyBuffer, "PushBack")
+        end
       end
 
       if smf.state ~= nil then

@@ -59,6 +59,14 @@ function UIManager:OnEnable()
     self.state.tabs[i] = CreateChatTab(smf)
   end
 
+  -- Show the main chat panel on login (after the game has finished loading)
+  C_Timer.After(1, function()
+    local main = self.state.frames[1]
+    if main then
+      main:Show()
+    end
+  end)
+
   -- Edit box
   self.editBox = CreateEditBox(self.container)
 
@@ -78,12 +86,12 @@ function UIManager:OnEnable()
   ChatFrameMenuButton:Hide()
 
   -- New version alert
-  --[===[@non-debug@
+  --@non-debug@
   if Core.db.global.version == nil or Utils.versionGreaterThan(Core.Version, Core.db.global.version) then
     Utils.notify('Glass has just been updated. |cFFFFFF00|Hgarrmission:Glass:opennews|h[See what’s new]|h|r')
     Core.db.global.version = Core.Version
   end
-  --@end-non-debug@]===]--
+  --@end-non-debug@--
 
   -- Force classic chat style
   if GetCVar("chatStyle") ~= "classic" then
@@ -107,17 +115,110 @@ function UIManager:OnEnable()
   end, true)
 
   -- Close window
-  self:RawHook("FCF_Close", function (chatFrame)
-    self.hooks["FCF_Close"](chatFrame)
+  self:RawHook("FCF_Close", function (chatFrame, ...)
+    self.hooks["FCF_Close"](chatFrame, ...)
 
-    self.slidingMessageFramePool:Release(self.state.temporaryFrames[chatFrame:GetName()])
-    self.state.temporaryFrames[chatFrame:GetName()] = nil
-    self.state.temporaryTabs[chatFrame:GetName()] = nil
+    local name = chatFrame and chatFrame:GetName()
+    local smf = name and self.state.temporaryFrames[name]
+    if smf then
+      self.slidingMessageFramePool:Release(smf)
+      self.state.temporaryFrames[name] = nil
+      self.state.temporaryTabs[name] = nil
+    end
   end, true)
+
+  -- Light up a tab when a message of one of its chat types arrives and the tab
+  -- is not selected. The glow takes the color of the chat type (guild green,
+  -- party blue, etc). Blizzard only flashes tabs for whispers by default.
+  -- The color itself is applied in ChatTab.lua through tab.glowColor.
+  local ALERT_SECONDS = 10 -- how long the dock stays visible after a message
+  local ALERT_EVENTS = {
+    CHAT_MSG_SAY = "SAY",
+    CHAT_MSG_YELL = "YELL",
+    CHAT_MSG_EMOTE = "EMOTE",
+    CHAT_MSG_GUILD = "GUILD",
+    CHAT_MSG_OFFICER = "OFFICER",
+    CHAT_MSG_PARTY = "PARTY",
+    CHAT_MSG_PARTY_LEADER = "PARTY",
+    CHAT_MSG_RAID = "RAID",
+    CHAT_MSG_RAID_LEADER = "RAID",
+    CHAT_MSG_RAID_WARNING = "RAID_WARNING",
+    CHAT_MSG_INSTANCE_CHAT = "INSTANCE_CHAT",
+    CHAT_MSG_INSTANCE_CHAT_LEADER = "INSTANCE_CHAT",
+  }
+
+  local function TabHasGroup(chatFrame, group)
+    for _, g in ipairs(chatFrame.messageTypeList or {}) do
+      if g == group then return true end
+    end
+    return false
+  end
+
+  local alertFrame = CreateFrame("Frame")
+  for event in pairs(ALERT_EVENTS) do
+    alertFrame:RegisterEvent(event)
+  end
+  alertFrame:SetScript("OnEvent", function (_, event)
+    local group = ALERT_EVENTS[event]
+    -- Color of the specific type (e.g. PARTY_LEADER), falling back to the group
+    local info = ChatTypeInfo and (ChatTypeInfo[strsub(event, 10)] or ChatTypeInfo[group])
+    if not info then return end
+
+    local alerted = false
+    -- Skip ChatFrame1 (General, receives everything) and ChatFrame2 (combat log)
+    for i = 3, NUM_CHAT_WINDOWS do
+      local chatFrame = _G["ChatFrame"..i]
+      local tab = _G["ChatFrame"..i.."Tab"]
+      if chatFrame and tab and tab.glow
+        and not chatFrame.isTemporary
+        and chatFrame ~= _G.SELECTED_CHAT_FRAME
+        and TabHasGroup(chatFrame, group) then
+        tab.glowColor = info
+        tab.glow:Show()
+        alerted = true
+      end
+    end
+
+    -- Also reveal the dock (the tab bar) so the glow is visible,
+    -- then let it fade out again after a few seconds.
+    if alerted and self.dock and not self.container.state.mouseOver then
+      self.dock:Show()
+      self.dock:HideDelay(ALERT_SECONDS)
+    end
+  end)
 
   -- Start rendering
   self.timeElapsed = 0
   self.tickerFrame:SetScript("OnUpdate", function (_, elapsed)
+    -- Show the panel of the selected tab and hide all the others
+    local selected = _G.SELECTED_CHAT_FRAME
+    if selected then
+      for _, smf in pairs(self.state.frames) do
+        if smf.chatFrame and smf.state and not smf.state.isCombatLog then
+          if smf.chatFrame == selected then
+            if not smf:IsShown() then smf:Show() end
+          elseif smf:IsShown() then
+            smf:Hide()
+          end
+        end
+      end
+      for _, smf in pairs(self.state.temporaryFrames) do
+        if smf.chatFrame == selected then
+          if not smf:IsShown() then smf:Show() end
+        elseif smf:IsShown() then
+          smf:Hide()
+        end
+      end
+
+      -- Draw the "selected" line above the active tab
+      for _, tab in pairs(self.state.tabs) do
+        if tab.UpdateSelected then tab:UpdateSelected(selected) end
+      end
+      for _, tab in pairs(self.state.temporaryTabs) do
+        if tab.UpdateSelected then tab:UpdateSelected(selected) end
+      end
+    end
+
     self.timeElapsed = self.timeElapsed + elapsed
 
     while (self.timeElapsed > 0.01) do
