@@ -140,8 +140,30 @@ local function shortChannelName(data, name)
   return short[1]
 end
 
+-- Channel notices ("Changed Channel: [1. General - City]", "Joined Channel:
+-- ...") keep the full name, so you can see which channel a number is. They're
+-- recognised by the game's own texts, which follow the game language.
+local CHANNEL_NOTICES = {
+  "CHAT_YOU_CHANGED_NOTICE", "CHAT_YOU_JOINED_NOTICE", "CHAT_YOU_LEFT_NOTICE",
+  "CHAT_SUSPENDED_NOTICE", "CHAT_YOU_CHANGED_NOTICE_BN", "CHAT_YOU_JOINED_NOTICE_BN",
+  "CHAT_YOU_LEFT_NOTICE_BN", "CHAT_SUSPENDED_NOTICE_BN",
+}
+
+local function isChannelNotice(text)
+  for _, key in ipairs(CHANNEL_NOTICES) do
+    local format = _G[key]
+    -- The part before the channel link, e.g. "Changed Channel: "
+    local prefix = type(format) == "string" and format:match("^(.-)|H")
+    if prefix and prefix ~= "" and strfind(text, prefix, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
 local function channelProcessor(text)
   if not Core.db.profile.shortChannelNames then return text end
+  if isChannelNotice(text) then return text end
 
   text = text:gsub("|H(channel:.-)|h%[(.-)%]|h", function (data, name)
     local short = shortChannelName(data, name)
