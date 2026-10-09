@@ -67,7 +67,9 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Don't highlight when frame is already visible
   if not self:IsHooked(self.glow, "Show") then
     self:RawHook(self.glow, "Show", function ()
-      if not slidingMessageFrame:IsVisible() then
+      -- self.slidingMessageFrame, not the Init argument: temporary tabs are
+      -- reused for new whispers with a different frame
+      if not self.slidingMessageFrame:IsVisible() then
         self.hooks[self.glow].Show(self.glow)
 
         -- Tint the glow with the color of the chat type that triggered it.
@@ -80,6 +82,17 @@ function ChatTabMixin:Init(slidingMessageFrame)
           self.glow:SetDesaturated(false)
         end
       end
+    end, true)
+  end
+
+  -- Keep the glow fully visible while it's lit with a chat type color. The game
+  -- animates whisper alerts by fading the glow, which ended up invisible.
+  if not self:IsHooked(self.glow, "SetAlpha") then
+    self:RawHook(self.glow, "SetAlpha", function (glow, alpha)
+      if self.glowColor and glow:IsShown() then
+        alpha = 1
+      end
+      self.hooks[self.glow].SetAlpha(glow, alpha)
     end, true)
   end
 
@@ -137,6 +150,26 @@ function ChatTabMixin:Init(slidingMessageFrame)
       end)
     }
   end
+end
+
+---
+-- Lights the glow steadily in the given chat type color (no flashing)
+function ChatTabMixin:ShowSteadyGlow(color)
+  local glow = self.glow
+  self.glowColor = color
+
+  -- Stop any flash the game started on it
+  if _G.UIFrameFlashStop then
+    _G.UIFrameFlashStop(glow)
+  end
+  if glow.GetAnimationGroups then
+    for _, group in ipairs({ glow:GetAnimationGroups() }) do
+      group:Stop()
+    end
+  end
+
+  glow:Show()
+  glow:SetAlpha(1)
 end
 
 local LINE_THICKNESS_PIXELS = 2 -- thickness of the selected-tab line, in real screen pixels

@@ -199,7 +199,8 @@ function UIManager:OnEnable()
 
   -- Light up a tab when a message of one of its chat types arrives and the tab
   -- is not selected. The glow takes the color of the chat type (guild green,
-  -- party blue, etc). Blizzard only flashes tabs for whispers by default.
+  -- party blue, etc). Blizzard only flashes tabs for whispers by default, see
+  -- the FCF_StartAlertFlash hook below for those.
   -- The color itself is applied in ChatTab.lua through tab.glowColor.
   local ALERT_SECONDS = 10 -- how long the dock stays visible after a message
   local ALERT_EVENTS = {
@@ -216,6 +217,15 @@ function UIManager:OnEnable()
     CHAT_MSG_INSTANCE_CHAT = "INSTANCE_CHAT",
     CHAT_MSG_INSTANCE_CHAT_LEADER = "INSTANCE_CHAT",
   }
+
+  -- Reveal the dock (the tab bar) so a glowing tab is visible, then let it
+  -- fade out again after a few seconds
+  local function RevealDock()
+    if self.dock and not self.container.state.mouseOver then
+      self.dock:Show()
+      self.dock:HideDelay(ALERT_SECONDS)
+    end
+  end
 
   local function TabHasGroup(chatFrame, group)
     for _, g in ipairs(chatFrame.messageTypeList or {}) do
@@ -249,13 +259,34 @@ function UIManager:OnEnable()
       end
     end
 
-    -- Also reveal the dock (the tab bar) so the glow is visible,
-    -- then let it fade out again after a few seconds.
-    if alerted and self.dock and not self.container.state.mouseOver then
-      self.dock:Show()
-      self.dock:HideDelay(ALERT_SECONDS)
+    if alerted then
+      RevealDock()
     end
   end)
+
+  -- Whispers: the game itself flashes the right tab (the whisper tab of that
+  -- person, or a tab that shows whispers). Give that glow the whisper color and
+  -- reveal the dock, like the other chat types above.
+  if _G.FCF_StartAlertFlash then
+    self:SecureHook("FCF_StartAlertFlash", function (chatFrame)
+      if not chatFrame or not chatFrame.isDocked then return end
+
+      -- Glass hides the game's chat frames, so the game flashes even the tab
+      -- being shown. Skip that one.
+      local smf = FindFrame(chatFrame)
+      if smf and smf:IsVisible() then return end
+
+      local tab = _G[chatFrame:GetName().."Tab"]
+      local info = ChatTypeInfo and (ChatTypeInfo[chatFrame.chatType or "WHISPER"] or ChatTypeInfo.WHISPER)
+      -- The game makes the glow flash, which ends up invisible here. Use a
+      -- steady glow instead, the same as for the other chat types.
+      if tab and info and tab.glow and tab.ShowSteadyGlow then
+        tab:ShowSteadyGlow(info)
+      end
+
+      RevealDock()
+    end)
+  end
 
   -- Keep the default Blizzard chat frame hidden behind Glass. Some code paths
   -- (e.g. creating a new tab) show it without going through our Show hook,
