@@ -206,6 +206,8 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   end, true)
 
   self:Hook(chatFrame.historyBuffer, "PushBack", function (_, message)
+    -- The game restored old messages itself (History won't add its own)
+    self.state.didBackfill = true
     self:BackFillMessage(nil, message.message, message.r, message.g, message.b)
   end, true)
 
@@ -311,6 +313,9 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
   blue = blue or 1
 
   local message = self.messageFramePool:Acquire()
+
+  -- Original text and color, kept so the History module can save them
+  message.raw = { text = text, r = red, g = green, b = blue }
 
   message.text:SetTextColor(red, green, blue, 1)
   message.text:SetText(TP:ProcessText(text))

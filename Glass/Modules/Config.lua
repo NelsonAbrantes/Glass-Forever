@@ -517,6 +517,18 @@ function C:OnEnable()
                     Core.db.profile.shortChannelNames = input
                   end,
                 },
+                keepHistory = {
+                  name = "Keep chat history",
+                  desc = "Saves the last 50 messages of each tab and shows them again when you log back in.",
+                  type = "toggle",
+                  order = 3.17,
+                  get = function ()
+                    return Core.db.profile.keepHistory
+                  end,
+                  set = function (info, input)
+                    Core.db.profile.keepHistory = input
+                  end,
+                },
                 mouseOverTooltips = {
                   name = "Mouse over tooltips",
                   desc = "Should tooltips appear when hovering over chat links.",

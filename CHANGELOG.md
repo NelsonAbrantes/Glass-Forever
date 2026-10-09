@@ -9,6 +9,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Web links in chat (`https://...`, `www....`) are clickable and open a window to copy them (`TextProcessing.lua`, `Hyperlinks.lua`, `Copy.lua`).
 - "Copy chat text" in the tab right-click menu shows the tab's messages as plain text, ready to copy (`Copy.lua`).
 - "Short channel names" option: `[1]` instead of `[1. General]`, `[P]` instead of `[Party]`, `[G]` instead of `[Guild]`, and so on (`TextProcessing.lua`).
+- Chat history: the last 50 messages of each tab are saved per character and shown again when you log back in. Can be turned off with "Keep chat history" (`History.lua`).
+- More settings in Edit Mode: fade in, fade out and slide in durations, show on mouse over, short channel names, edit box position and edit box opacity (`EditMode.lua`).
 
 ### Changed
 - The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).

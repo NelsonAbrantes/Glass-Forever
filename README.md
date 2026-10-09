@@ -21,7 +21,8 @@ Glass is a clean, fading chat replacement. The original addon is no longer maint
 - **Selected tab indicator.** A thin line above the active tab.
 - **Copy from chat.** Web links are clickable and open a window to copy them. Right-click a tab and choose "Copy chat text" to copy its messages.
 - **Short channel names** (optional, in `/glass` → Messages). `[1]` instead of `[1. General]`, `[P]` instead of `[Party]`, and so on.
-- **Edit Mode support.** Move Glass and change its size, font, font sizes, background opacity and fade out delay from Blizzard's Edit Mode.
+- **Chat history.** The last 50 messages of each tab are kept when you log out and shown again when you come back (per character, can be turned off in `/glass` → Messages).
+- **Edit Mode support.** Move Glass and change its size, fonts, opacity, animations and edit box position from Blizzard's Edit Mode.
 
 ## Known limitations
 

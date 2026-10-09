@@ -38,6 +38,7 @@ Core:NewModule("News")
 Core:NewModule("TextProcessing")
 Core:NewModule("UIManager", "AceHook-3.0")
 Core:NewModule("EditMode") -- after UIManager, it uses UIManager's mover frame
+Core:NewModule("History") -- after UIManager, it uses UIManager's frames
 
 -- Default settings
 Core.defaults = {
@@ -75,6 +76,7 @@ Core.defaults = {
 
     indentWordWrap = true,
     shortChannelNames = false,
+    keepHistory = true,
     mouseOverTooltips = true,
     iconTextureYOffset = 4,
   }
