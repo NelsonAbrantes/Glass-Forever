@@ -144,7 +144,7 @@ local function FontDropdown(layout)
 
   function Initializer:Init()
     _G.ScrollBoxFactoryInitializerMixin.Init(self, "SettingsListElementTemplate")
-    self.data = { name = "Font", tooltip = "Font used throughout Glass" }
+    self.data = { name = "Font", tooltip = "Font used throughout Glass Forever" }
     self:AddSearchTags("Font")
   end
 

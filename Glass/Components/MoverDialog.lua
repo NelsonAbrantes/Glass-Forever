@@ -30,7 +30,7 @@ function MoverDialogMixin:Init()
 
   -- Game panel look (bronze border), same as the Copy window
   if self.SetTitle then
-    self:SetTitle("Glass")
+    self:SetTitle("Glass Forever")
   end
 
   self.bg = self:CreateTexture(nil, "BACKGROUND")

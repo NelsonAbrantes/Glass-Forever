@@ -93,7 +93,7 @@ function MoverFrameMixin:CreateEditModeHighlight()
   if not ok or not highlight then return nil end
 
   -- Only the look is wanted: the mover frame itself handles dragging
-  highlight.system = { GetSystemName = function () return "Glass" end }
+  highlight.system = { GetSystemName = function () return "Glass Forever" end }
   highlight:SetScript("OnMouseDown", nil)
   highlight:SetScript("OnMouseUp", nil)
   highlight:SetScript("OnDragStart", nil)

@@ -53,7 +53,7 @@ function EditMode:OnEnable()
     if AceConfigRegistry then
       AceConfigRegistry:NotifyChange("Glass")
     end
-  end, { point = defaultAnchor.point, x = defaultAnchor.xOfs, y = defaultAnchor.yOfs }, "Glass")
+  end, { point = defaultAnchor.point, x = defaultAnchor.xOfs, y = defaultAnchor.yOfs }, "Glass Forever")
 
   -- Settings shown in the Edit Mode dialog
   LEM:AddFrameSettings(moverFrame, {

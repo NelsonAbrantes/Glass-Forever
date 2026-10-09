@@ -30,7 +30,7 @@ local FLAGS = { [""] = "None", ["OUTLINE"] = "Outline", ["OUTLINE, MONOCHROME"] 
 
 function C:OnEnable()
   local options = {
-      name = "Glass",
+      name = "Glass Forever",
       handler = C,
       type = "group",
       args = {
@@ -62,7 +62,7 @@ function C:OnEnable()
                 },
                 slashCmd = {
                   name = "|c00DFBA69/glass|r  |cff808080...............|r  Open config window\n"..
-                         "|c00DFBA69/glass lock|r  |cff808080.......|r  Unlock Glass frame\n",
+                         "|c00DFBA69/glass lock|r  |cff808080.......|r  Unlock Glass Forever frame\n",
                   type = "description",
                   width = "double",
                   order = 2.3,
@@ -85,7 +85,7 @@ function C:OnEnable()
               args = {
                 font = {
                   name = "Font",
-                  desc = "Font to use throughout Glass",
+                  desc = "Font to use throughout Glass Forever",
                   type = "select",
                   order = 3.1,
                   dialogControl = "LSM30_Font",

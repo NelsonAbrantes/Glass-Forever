@@ -25,7 +25,7 @@ end
 ---
 -- Prints Glass' notification messages
 Utils.notify = function (message)
-  print("|c00DFBA69Glass|r: ", message)
+  print("|c00DFBA69Glass Forever|r: ", message)
 end
 
 ---

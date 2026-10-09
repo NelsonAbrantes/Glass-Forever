@@ -119,7 +119,7 @@ function Copy:OnEnable()
       end
 
       Core:Dispatch(OpenCopy({
-        title = "Glass: Copy chat text",
+        title = "Glass Forever: Copy chat text",
         text = table.concat(lines, "\n"),
       }))
     end)

@@ -51,7 +51,7 @@ function Hyperlinks:OnEnable()
     -- Web links made by Glass: open the copy window, the game can't open them
     local url = strmatch(link, "^glassurl:(.+)$")
     if url then
-      Core:Dispatch(OpenCopy({ title = "Glass: Copy link", text = url, height = 140 }))
+      Core:Dispatch(OpenCopy({ title = "Glass Forever: Copy link", text = url, height = 140 }))
       return
     end
 

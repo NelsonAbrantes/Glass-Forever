@@ -18,11 +18,15 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - The Copy window, the "unlocked" dialog and the option buttons use the current game style (bronze border, red buttons) instead of the old Classic look (`Copy.lua`, `MoverDialog.lua`, `Button.lua`).
 - The chat position (X/Y offset, anchor) is no longer in the options; move the chat in Edit Mode or with "Unlock frame".
 - "Unlock frame" highlights the chat with the Edit Mode look (blue border) instead of a green box (`MoverFrame.lua`).
+- The "What's new" window shows the Glass Forever versions, in the current game style (`News.lua`).
+- Windows, messages and the Edit Mode entry say "Glass Forever" instead of "Glass".
 - The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).
 
 ### Fixed
 - Messages appeared twice after creating a new chat tab, because the default chat frame became visible behind Glass (`UIManager.lua`).
 - Long messages that wrap onto several lines no longer overlap the next message when the game hides their height. Glass now counts the lines itself (`MessageLine.lua`).
+- "Attempt to perform string conversion on a secret string value (execution tainted by 'Glass')" errors. Glass replaced some of the game's chat functions, which tainted the game's code and broke it on protected ("secret") messages. It now uses secure hooks that run after the game's code (`SlidingMessageFrame.lua`, `ChatTab.lua`, `UIManager.lua`).
+- The background of the "jump to the newest messages" button used a wrong image path (`ScrollOverlayFrame.lua`).
 - Whispers didn't reveal the tab bar and their tab glow was invisible. Whisper tabs now glow steadily in the whisper color and the tab bar appears, like the other chat types (`UIManager.lua`, `ChatTab.lua`).
 
 ## 1.9.0-forever1 (beta)
