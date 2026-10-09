@@ -31,6 +31,7 @@ Glass\constants.lua
 Glass\utils.lua
 
 # Components
+Glass\Components\Button.lua
 Glass\Components\ChatDock.lua
 Glass\Components\ChatTab.lua
 Glass\Components\EditBox.lua
@@ -51,6 +52,7 @@ Glass\Modules\Fonts.lua
 Glass\Modules\History.lua
 Glass\Modules\Hyperlinks.lua
 Glass\Modules\News.lua
+Glass\Modules\OptionsPanel.lua
 Glass\Modules\TextProcessing.lua
 Glass\Modules\UIManager.lua
 Glass\Modules\EditMode.lua

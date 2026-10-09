@@ -11,8 +11,11 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - "Short channel names" option: `[1]` instead of `[1. General]`, `[P]` instead of `[Party]`, `[G]` instead of `[Guild]`, and so on (`TextProcessing.lua`).
 - Chat history: the last 50 messages of each tab are saved per character and shown again when you log back in. Can be turned off with "Keep chat history" (`History.lua`).
 - More settings in Edit Mode: fade in, fade out and slide in durations, show on mouse over, short channel names, edit box position and edit box opacity (`EditMode.lua`).
+- Glass options are in the game's Options window (Options > AddOns > Glass Forever), built with the game's own controls. `/glass` opens them (`OptionsPanel.lua`).
 
 ### Changed
+- The Copy window, the "unlocked" dialog and the option buttons use the current game style (bronze border, red buttons) instead of the old Classic look (`Copy.lua`, `MoverDialog.lua`, `Button.lua`).
+- The chat position (X/Y offset, anchor) is no longer in the options; move the chat in Edit Mode or with "Unlock frame".
 - The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).
 
 ### Fixed

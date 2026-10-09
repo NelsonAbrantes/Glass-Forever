@@ -8,7 +8,6 @@ local UNLOCK_MOVER = Constants.EVENTS.UNLOCK_MOVER
 local MoverDialogMixin = {}
 
 -- luacheck: push ignore 113
-local BackdropTemplateMixin = BackdropTemplateMixin
 local CreateFrame = CreateFrame
 local Mixin = Mixin
 local PlaySound = PlaySound
@@ -22,42 +21,32 @@ function MoverDialogMixin:Init()
   self:SetMovable(false)
   self:SetClampedToScreen(true)
   self:SetWidth(360)
-  self:SetHeight(110)
-  self:SetBackdrop{
-    bgFile="Interface\\DialogFrame\\UI-DialogBox-Background" ,
-    edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
-    tile = true,
-    insets = {left = 11, right = 12, top = 12, bottom = 11},
-    tileSize = 32,
-    edgeSize = 32,
-  }
+  self:SetHeight(120)
   self:SetPoint("TOP", 0, -50)
   self:Hide()
 
   self:SetScript("OnShow", function() PlaySound(SOUNDKIT.IG_MAINMENU_OPTION) end)
   self:SetScript("OnHide", function() PlaySound(SOUNDKIT.GS_TITLE_OPTION_EXIT) end)
 
-  self.header = self:CreateTexture(nil, "ARTWORK")
-  self.header:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-  self.header:SetWidth(256)
-  self.header:SetHeight(64)
-  self.header:SetPoint("TOP", 0, 12)
+  -- Game panel look (bronze border), same as the Copy window
+  if self.SetTitle then
+    self:SetTitle("Glass")
+  end
 
-  self.title = self:CreateFontString("ARTWORK")
-  self.title:SetFontObject("GameFontNormal")
-  self.title:SetPoint("TOP", self.header, "TOP", 0, -14)
-  self.title:SetText("Glass")
+  self.bg = self:CreateTexture(nil, "BACKGROUND")
+  self.bg:SetPoint("TOPLEFT", 7, -3)
+  self.bg:SetPoint("BOTTOMRIGHT", -3, 3)
+  self.bg:SetColorTexture(0.08, 0.08, 0.08, 1)
 
   self.desc = self:CreateFontString("ARTWORK")
   self.desc:SetFontObject("GameFontHighlight")
   self.desc:SetJustifyV("TOP")
   self.desc:SetJustifyH("LEFT")
-  self.desc:SetPoint("TOPLEFT", 18, -32)
+  self.desc:SetPoint("TOPLEFT", 18, -34)
   self.desc:SetPoint("BOTTOMRIGHT", -18, 48)
   self.desc:SetText("Chat frame unlocked. You can now drag the chat frame to reposition it.")
 
-  self.lockButton = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
-  self.lockButton:SetSize(80, 22)
+  self.lockButton = Core.Components.CreateButton(self)
   self.lockButton:SetText("Lock")
   self.lockButton:SetScript("OnClick", function()
     Core:Dispatch(LockMover())
@@ -74,9 +63,7 @@ function MoverDialogMixin:Init()
 end
 
 Core.Components.CreateMoverDialog = function (name, parent)
-  local frame = CreateFrame(
-    "Frame", name, parent, BackdropTemplateMixin and "BackdropTemplate" or nil
-  )
+  local frame = CreateFrame("Frame", name, parent, "DefaultPanelFlatTemplate")
   local object = Mixin(frame, MoverDialogMixin)
   object:Init()
   return object

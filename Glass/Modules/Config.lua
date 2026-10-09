@@ -1,5 +1,6 @@
 local Core, Constants = unpack(select(2, ...))
 local C = Core:GetModule("Config")
+local OptionsPanel = Core:GetModule("OptionsPanel")
 
 local AceConfig = Core.Libs.AceConfig
 local AceConfigDialog = Core.Libs.AceConfigDialog
@@ -571,6 +572,22 @@ function C:OnEnable()
   AceConfig:RegisterOptionsTable("Glass", options)
   AceConfigDialog:SetDefaultSize("Glass", 780, 500)
 
+  -- Show the options in the game's Options window (Options > AddOns), with
+  -- a page for each section, like other addons. Built with the game's own
+  -- controls (OptionsPanel.lua); if that fails, use the AceConfig pages.
+  local built, categoryID = pcall(OptionsPanel.Build, OptionsPanel)
+  if built then
+    self.categoryID = categoryID
+  else
+    local ok, _, aceCategoryID = pcall(AceConfigDialog.AddToBlizOptions, AceConfigDialog, "Glass", "Glass Forever", nil, "general")
+    if ok then
+      self.categoryID = aceCategoryID
+      AceConfigDialog:AddToBlizOptions("Glass", "Edit box", "Glass Forever", "editBox")
+      AceConfigDialog:AddToBlizOptions("Glass", "Messages", "Glass Forever", "messages")
+      AceConfigDialog:AddToBlizOptions("Glass", "Profiles", "Glass Forever", "profile")
+    end
+  end
+
   self:RegisterChatCommand("glass", "OnSlashCommand")
 
   Core.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
@@ -585,9 +602,18 @@ end
 function C:OnSlashCommand(input)
   if input == "lock" then
     Core:Dispatch(UnlockMover())
-  else
-    AceConfigDialog:Open("Glass")
+    return
   end
+
+  -- Open the Glass page in the game's Options window. The game doesn't allow
+  -- that in combat, so use Glass' own window there (or if anything fails).
+  local Settings = _G.Settings
+  if self.categoryID and Settings and Settings.OpenToCategory and not _G.InCombatLockdown() then
+    if pcall(Settings.OpenToCategory, self.categoryID) then
+      return
+    end
+  end
+  AceConfigDialog:Open("Glass")
 end
 
 function C:RefreshConfig()
