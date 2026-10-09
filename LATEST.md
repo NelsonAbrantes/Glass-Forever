@@ -1,7 +1,11 @@
-# 1.9.0-alpha1 (2026-09-26)
+# 1.9.0-forever1 (beta) (2026-10-09)
+
+First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1.
 
 What's new
 
-- Updated Glass for WoW Forever (1.60) and Midnight (12.1).
-- Adapted chat tabs, gradients, fonts, mover controls, and hover behavior to current UI APIs.
-- This is an alpha release. WoW Forever has been tested in-game; Midnight has not.
+- Fixed "secret number" errors when sizing message lines and scrolling.
+- Fixed blank chat after login, blank or overlapping tabs after switching, and whisper tab errors.
+- Fixed Combat Log text being cut off on the left edge.
+- Added a tab glow in the color of the chat type, a tab bar reveal on new messages, and a selected tab indicator.
+- This is a beta release, tested on WoW: Forever only. Multi-line messages may overlap.

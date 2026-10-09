@@ -1,6 +1,6 @@
 # Glass Forever (beta)
 
-A fork of [Glass](https://github.com/) by Mitchel Cabuloy (replace with the link to the original repository), adapted to work on **WoW: Forever**.
+A fork of [Glass](https://github.com/mixxorz/Glass) by Mitchel Cabuloy, adapted to work on **WoW: Forever**.
 
 Glass is a clean, fading chat replacement. The original addon is no longer maintained, and recent changes to the WoW addon API broke it. This fork fixes those problems and adds a few quality-of-life features.
 
@@ -34,6 +34,6 @@ Glass is a clean, fading chat replacement. The original addon is no longer maint
 ## Credits and license
 
 Original addon: **Glass** by Mitchel Cabuloy, MIT license.
-Fork changes: [YOUR NAME], 2026.
+Fork changes: Nelson Abrantes, 2026.
 
 Released under the MIT license. See `LICENSE`. Bundled libraries (AceHook, LibEasing, lodash, etc.) keep their own licenses.

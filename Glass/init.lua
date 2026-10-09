@@ -24,10 +24,10 @@ Core.Libs = {
   lodash = _G.LibStub("lodash.wow")
 }
 Core.Components = {}
-Core.Version = "@project-version@"
---@debug@--
+Core.Version = "1.9.0-forever1"
+--[==[@debug@--
 Core.Version = "DEBUG"
---@end-debug@--
+--@end-debug@]==]--
 
 -- Modules
 Core:NewModule("Config", "AceConsole-3.0")
@@ -107,9 +107,9 @@ function Core:Subscribe(messageType, listener)
 end
 
 function Core:Dispatch(messageType, payload)
-  --@debug@--
+  --[==[@debug@--
   Utils.print('E: '..messageType, payload)
-  --@end-debug@--
+  --@end-debug@]==]--
 
   local listeners = self.listeners[messageType] or {}
   for _, listener in ipairs(listeners) do
