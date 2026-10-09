@@ -87,10 +87,18 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     self.state.isCombatLog = true
     -- Inset the combat log by the same margin the other tabs use,
     -- so the text isn't cut off at the edge of the container.
-    self:RawHook(chatFrame, "SetPoint", function ()
-      self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", Constants.TEXT_XPADDING, -45)
-      self.hooks[chatFrame].SetPoint(chatFrame, "BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -Constants.TEXT_XPADDING, 0)
-    end, true)
+    -- Secure (after the fact) hook: replacing the game's functions taints its
+    -- chat code, which then can't handle "secret" messages
+    self:SecureHook(chatFrame, "SetPoint", function ()
+      if self.positioning then return end
+      self.positioning = true
+      pcall(function ()
+        chatFrame:ClearAllPoints()
+        chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", Constants.TEXT_XPADDING, -45)
+        chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -Constants.TEXT_XPADDING, 0)
+      end)
+      self.positioning = false
+    end)
     return
   end
 
@@ -199,15 +207,17 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     self.messageFramePool = CreateMessageLinePool(self.slider)
   end
 
-  self:Hook(chatFrame, "AddMessage", function (...)
+  -- Secure hooks run after the game's code instead of replacing it, so the
+  -- game can still handle "secret" messages (replacing taints its chat code)
+  self:SecureHook(chatFrame, "AddMessage", function (...)
     self:AddMessage(...)
-  end, true)
+  end)
 
-  self:Hook(chatFrame.historyBuffer, "PushBack", function (_, message)
+  self:SecureHook(chatFrame.historyBuffer, "PushBack", function (_, message)
     -- The game restored old messages itself (History won't add its own)
     self.state.didBackfill = true
     self:BackFillMessage(nil, message.message, message.r, message.g, message.b)
-  end, true)
+  end)
 
   -- Hide the default chat frame and show the sliding message frame instead
   self:TakeOverChatFrame()
@@ -306,36 +316,63 @@ end
 -- inside the Glass container, and replaced by this frame on screen.
 function SlidingMessageFrameMixin:TakeOverChatFrame()
   local chatFrame = self.chatFrame
+  self.state.detached = false
 
   _G[chatFrame:GetName().."ButtonFrame"]:Hide()
   chatFrame:SetClampRectInsets(0,0,0,0)
   chatFrame:SetClampedToScreen(false)
   chatFrame:SetResizable(false)
   chatFrame:SetParent(self:GetParent())
-  chatFrame:ClearAllPoints()
 
+  -- All hooks here are secure: they run after the game's code and undo what it
+  -- did, instead of replacing its functions. Replacing taints the game's chat
+  -- code, which then fails on "secret" messages. While the window is separate
+  -- (detached), they do nothing.
   if not self:IsHooked(chatFrame, "SetPoint") then
-    self:RawHook(chatFrame, "SetPoint", function ()
-      self.hooks[chatFrame].SetPoint(chatFrame, "TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
-    end, true)
+    self:SecureHook(chatFrame, "SetPoint", function ()
+      if not self.state.detached then
+        self:PlaceChatFrame()
+      end
+    end)
   end
-  chatFrame:SetPoint()
+  self:PlaceChatFrame()
 
   if not self:IsHooked(chatFrame, "Show") then
-    self:RawHook(chatFrame, "Show", function ()
+    self:SecureHook(chatFrame, "Show", function ()
+      if self.state.detached then return end
+      self:HideChatFrame()
       self:Show()
-    end, true)
+    end)
   end
 
   if not self:IsHooked(chatFrame, "Hide") then
-    self:RawHook(chatFrame, "Hide", function (f)
-      self.hooks[chatFrame].Hide(f)
+    self:SecureHook(chatFrame, "Hide", function ()
+      if self.state.detached or self.hidingChatFrame then return end
       self:Hide()
-    end, true)
+    end)
   end
 
   chatFrame:Hide()
-  self.state.detached = false
+end
+
+---
+-- Keeps the (hidden) default chat frame at its place in the Glass container
+function SlidingMessageFrameMixin:PlaceChatFrame()
+  if self.positioning then return end
+  self.positioning = true
+  pcall(function ()
+    self.chatFrame:ClearAllPoints()
+    self.chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
+  end)
+  self.positioning = false
+end
+
+---
+-- Hides the default chat frame without hiding this frame
+function SlidingMessageFrameMixin:HideChatFrame()
+  self.hidingChatFrame = true
+  pcall(self.chatFrame.Hide, self.chatFrame)
+  self.hidingChatFrame = false
 end
 
 ---
@@ -345,9 +382,8 @@ end
 function SlidingMessageFrameMixin:ReleaseChatFrame()
   local chatFrame = self.chatFrame
 
-  self:Unhook(chatFrame, "SetPoint")
-  self:Unhook(chatFrame, "Show")
-  self:Unhook(chatFrame, "Hide")
+  -- The hooks stay, but do nothing while detached
+  self.state.detached = true
 
   chatFrame:SetParent(_G.UIParent)
   chatFrame:SetClampedToScreen(true)
@@ -355,7 +391,6 @@ function SlidingMessageFrameMixin:ReleaseChatFrame()
   _G[chatFrame:GetName().."ButtonFrame"]:Show()
 
   self:Hide()
-  self.state.detached = true
   self:ApplyGlassFont()
 end
 
