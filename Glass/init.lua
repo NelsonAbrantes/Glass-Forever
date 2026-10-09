@@ -31,6 +31,7 @@ Core.Version = "DEBUG"
 
 -- Modules
 Core:NewModule("Config", "AceConsole-3.0")
+Core:NewModule("Copy")
 Core:NewModule("Fonts")
 Core:NewModule("Hyperlinks")
 Core:NewModule("News")

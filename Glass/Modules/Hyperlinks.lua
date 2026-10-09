@@ -1,6 +1,7 @@
 local Core, Constants = unpack(select(2, ...))
 local Hyperlinks = Core:GetModule("Hyperlinks")
 
+local OpenCopy = Constants.ACTIONS.OpenCopy
 local OpenNews = Constants.ACTIONS.OpenNews
 
 local HYPERLINK_CLICK = Constants.EVENTS.HYPERLINK_CLICK
@@ -13,6 +14,7 @@ local BattlePetTooltip = BattlePetTooltip
 local GameTooltip = GameTooltip
 local ShowUIPanel = ShowUIPanel
 local UIParent = UIParent
+local strmatch = strmatch
 local strsplit = strsplit
 -- luacheck: pop
 
@@ -45,6 +47,14 @@ function Hyperlinks:OnEnable()
 
   Core:Subscribe(HYPERLINK_CLICK, function (payload)
     local link, text, button = unpack(payload)
+
+    -- Web links made by Glass: open the copy window, the game can't open them
+    local url = strmatch(link, "^glassurl:(.+)$")
+    if url then
+      Core:Dispatch(OpenCopy({ title = "Glass: Copy link", text = url, height = 140 }))
+      return
+    end
+
     -- Use global reference in case some addon has hooked into it for custom
     -- hyperlinks (e.g. Mythic Dungeon Tools, Prat)
     _G.SetItemRef(link, text, button)

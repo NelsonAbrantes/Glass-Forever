@@ -74,9 +74,49 @@ local function pratTimestampProcessor(text)
 end
 
 ---
+-- Turns web addresses into clickable links. Clicking one opens a window with
+-- the address selected, so it can be copied (see Hyperlinks and Copy).
+local URL_COLOR = "|cff6fb7ff"
+local URL_CHARS = "[%w%-%._~:/%?#%[%]@!%$&'%*%+,;=%%]"
+
+local function wrapUrl(match)
+  -- Leave trailing punctuation (end of a sentence) outside the link
+  local url, trail = match:match("^(.-)([%.,!%?;:'%]]*)$")
+  if url == "" then return match end
+  return URL_COLOR.."|Hglassurl:"..url.."|h["..url.."]|h|r"..trail
+end
+
+local function linkifySegment(segment)
+  segment = segment:gsub("https?://"..URL_CHARS.."+", wrapUrl)
+  -- "www." only at the start of a word, so it doesn't match inside links made above
+  segment = segment:gsub("%f[%S]www%."..URL_CHARS.."+", wrapUrl)
+  return segment
+end
+
+local function urlProcessor(text)
+  -- Only look at the text between existing links (items, players, etc.)
+  local parts = {}
+  local cursor = 1
+
+  while true do
+    local mStart, mEnd = strfind(text, "|H.-|h.-|h", cursor)
+    if not mStart then
+      table.insert(parts, linkifySegment(strsub(text, cursor)))
+      break
+    end
+    table.insert(parts, linkifySegment(strsub(text, cursor, mStart - 1)))
+    table.insert(parts, strsub(text, mStart, mEnd))
+    cursor = mEnd + 1
+  end
+
+  return table.concat(parts)
+end
+
+---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {
   textureProcessor,
+  urlProcessor,
   pratTimestampProcessor
 }
 

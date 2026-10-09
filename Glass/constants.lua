@@ -34,6 +34,7 @@ Constants.EVENTS = {
   LOCK_MOVER = "Glass/LOCK_MOVER",
   MOUSE_ENTER = "Glass/MOUSE_ENTER",
   MOUSE_LEAVE = "Glass/MOUSE_LEAVE",
+  OPEN_COPY = "Glass/OPEN_COPY",
   OPEN_NEWS = "Glass/OPEN_NEWS",
   REFRESH_CONFIG = "Glass/REFRESH_CONFIG",
   SAVE_FRAME_POSITION = "Glass/SAVE_FRAME_POSITION",
@@ -59,6 +60,9 @@ Constants.ACTIONS = {
   end,
   MouseLeave = function ()
     return Constants.EVENTS.MOUSE_LEAVE
+  end,
+  OpenCopy = function (payload)
+    return Constants.EVENTS.OPEN_COPY, payload
   end,
   OpenNews = function ()
     return Constants.EVENTS.OPEN_NEWS
