@@ -26,7 +26,7 @@ function ScrollOverlayFrame:Init()
     if self.mask == nil then
       self.mask = self:CreateMaskTexture()
     end
-    self.mask:SetTexture("Interface\\Addons\\Glass\\Assets\\overlayMask", "CLAMP", "CLAMPTOBLACKADDITIVE")
+    self.mask:SetTexture("Interface\\Addons\\Glass\\Glass\\Assets\\overlayMask", "CLAMP", "CLAMPTOBLACKADDITIVE")
     self.mask:SetSize(16, 64)
     self.mask:SetPoint("CENTER", 0, -32)
 
