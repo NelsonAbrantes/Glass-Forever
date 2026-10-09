@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Glass can be moved and configured in Blizzard's Edit Mode: width, height, font, font sizes, background opacity and fade out delay (`EditMode.lua`, using LibEditMode).
+
+### Fixed
+- Messages appeared twice after creating a new chat tab, because the default chat frame became visible behind Glass (`UIManager.lua`).
+
 ## 1.9.0-forever1 (beta)
 
 First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1.

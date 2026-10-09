@@ -17,7 +17,13 @@ local ANCHORS = {
   ["TOPLEFT"] = "Top left",
   ["TOPRIGHT"] = "Top right",
   ["BOTTOMLEFT"] = "Bottom left",
-  ["BOTTOMRIGHT"] = "Bottom right"
+  ["BOTTOMRIGHT"] = "Bottom right",
+  -- Edit Mode can also save these
+  ["TOP"] = "Top",
+  ["BOTTOM"] = "Bottom",
+  ["LEFT"] = "Left",
+  ["RIGHT"] = "Right",
+  ["CENTER"] = "Center",
 }
 local FLAGS = { [""] = "None", ["OUTLINE"] = "Outline", ["OUTLINE, MONOCHROME"] = "Outline Monochrome" }
 

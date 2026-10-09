@@ -23,6 +23,7 @@ libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 libs\AceHook-3.0\AceHook-3.0.xml
 libs\lodash.wow\lodash.wow.xml
 libs\LibEasing\LibEasing.lua
+libs\LibEditMode\embed.xml
 
 # Glass
 Glass\init.lua
@@ -50,3 +51,4 @@ Glass\Modules\Hyperlinks.lua
 Glass\Modules\News.lua
 Glass\Modules\TextProcessing.lua
 Glass\Modules\UIManager.lua
+Glass\Modules\EditMode.lua

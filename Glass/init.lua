@@ -36,6 +36,7 @@ Core:NewModule("Hyperlinks")
 Core:NewModule("News")
 Core:NewModule("TextProcessing")
 Core:NewModule("UIManager", "AceHook-3.0")
+Core:NewModule("EditMode") -- after UIManager, it uses UIManager's mover frame
 
 -- Default settings
 Core.defaults = {
