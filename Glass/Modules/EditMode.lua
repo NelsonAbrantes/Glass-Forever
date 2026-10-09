@@ -136,6 +136,93 @@ function EditMode:OnEnable()
       get = function () return profile().chatHoldTime end,
       set = function (_, value) Set("chatHoldTime", value) end,
     },
+    {
+      name = "Fade in duration",
+      desc = "Seconds a new message takes to appear",
+      kind = LEM.SettingType.Slider,
+      default = defaults.chatFadeInDuration,
+      minValue = 0,
+      maxValue = 5,
+      valueStep = 0.05,
+      formatter = RoundTo2,
+      get = function () return profile().chatFadeInDuration end,
+      set = function (_, value)
+        Set("chatFadeInDuration", RoundTo2(value), "chatFadeInDuration")
+      end,
+    },
+    {
+      name = "Fade out duration",
+      desc = "Seconds a message takes to disappear",
+      kind = LEM.SettingType.Slider,
+      default = defaults.chatFadeOutDuration,
+      minValue = 0,
+      maxValue = 5,
+      valueStep = 0.05,
+      formatter = RoundTo2,
+      get = function () return profile().chatFadeOutDuration end,
+      set = function (_, value)
+        Set("chatFadeOutDuration", RoundTo2(value), "chatFadeOutDuration")
+      end,
+    },
+    {
+      name = "Slide in duration",
+      desc = "Seconds a new message takes to slide up. 0 turns the animation off",
+      kind = LEM.SettingType.Slider,
+      default = defaults.chatSlideInDuration,
+      minValue = 0,
+      maxValue = 2,
+      valueStep = 0.05,
+      formatter = RoundTo2,
+      get = function () return profile().chatSlideInDuration end,
+      set = function (_, value) Set("chatSlideInDuration", RoundTo2(value)) end,
+    },
+    {
+      name = "Show on mouse over",
+      desc = "Show faded messages again while the mouse is over the chat",
+      kind = LEM.SettingType.Checkbox,
+      default = defaults.chatShowOnMouseOver,
+      get = function () return profile().chatShowOnMouseOver end,
+      set = function (_, value) Set("chatShowOnMouseOver", value) end,
+    },
+    {
+      name = "Short channel names",
+      desc = "[1] instead of [1. General], [P] instead of [Party], and so on. Applies to new messages",
+      kind = LEM.SettingType.Checkbox,
+      default = defaults.shortChannelNames,
+      get = function () return profile().shortChannelNames end,
+      set = function (_, value) Set("shortChannelNames", value) end,
+    },
+    {
+      name = "Edit box position",
+      desc = "Where the box you type in appears",
+      kind = LEM.SettingType.Dropdown,
+      default = defaults.editBoxAnchor.position,
+      values = {
+        { text = "Above the chat", value = "ABOVE" },
+        { text = "Below the chat", value = "BELOW" },
+      },
+      get = function () return profile().editBoxAnchor.position end,
+      set = function (_, value)
+        local anchor = profile().editBoxAnchor
+        anchor.position = value
+        anchor.yOfs = value == "ABOVE" and 5 or -5
+        Set("editBoxAnchor", anchor, "editBoxAnchor")
+      end,
+    },
+    {
+      name = "Edit box opacity",
+      desc = "Background opacity of the box you type in",
+      kind = LEM.SettingType.Slider,
+      default = defaults.editBoxBackgroundOpacity,
+      minValue = 0,
+      maxValue = 1,
+      valueStep = 0.05,
+      formatter = RoundTo2,
+      get = function () return profile().editBoxBackgroundOpacity end,
+      set = function (_, value)
+        Set("editBoxBackgroundOpacity", RoundTo2(value), "editBoxBackgroundOpacity")
+      end,
+    },
   })
 
   -- The mover frame is normally hidden; show it (without its green
