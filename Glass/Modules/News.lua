@@ -1,197 +1,139 @@
 local Core, Constants = unpack(select(2, ...))
 local News = Core:GetModule("News")
 
-local AceGUI = Core.Libs.AceGUI
+-- luacheck: push ignore 113
+local CreateFrame = CreateFrame
+local UIParent = UIParent
+-- luacheck: pop
 
 local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 
+-- Version history shown in the "What's new" window. Newest first.
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
-    name = "1.8.0 (2020-10-14)",
+    name = "0.9.1-forever (beta)",
     items = {[[
 What's new
 
-- New: Updated for Shadowlands!
-    ]]}
-  },
-  {
-    name = "1.7.0 (2020-09-29)",
-    items = {[[
-What's new
-
-- New: Glass now indents lines that wrap past the first line. Super helpful for visually distinguishing lines that belong to a single message. Note: If you don't like this new behavior, you can turn it off in the settings.
-    ]]}
-  },
-  {
-    name = "1.6.0 (2020-09-23)",
-    items = {[[
-What's new
-
-- New: Glass now supports Prat's History module! As long as it's enabled, Glass now restores your chat message history.
+- Edit Mode: move Glass and change its size, fonts, opacity, animations and edit box position from Blizzard's Edit Mode.
+- Options are now in the game's Options window (Options > AddOns > Glass Forever), with the game's own look. /glass opens them.
+- Web links in chat are clickable and open a window to copy them.
+- Right-click a tab and choose "Copy chat text" to copy its messages.
+- Short channel names (optional): [1] instead of [1. General], [P] instead of [Party], and so on.
+- Chat history: the last 50 messages of each tab come back when you log in again (per character, can be turned off).
+- Drag a tab (including whispers) out of the chat to make it a separate window, and drag it back to join Glass again.
+- Glass windows and buttons use the current game style.
 
 Bug fixes
 
-- Fixed: There was an issue where messages that were received before Glass initialized were lost (e.g. Guild Message of the Day). This has now been fixed.
+- Messages no longer appear twice after creating a new tab.
+- Long messages no longer overlap the next message.
+- Whispers now light up their tab in the whisper color and show the tab bar.
+- Fixed errors with protected ("secret") chat messages, for example in combat or instances.
     ]]}
   },
   {
-    name = "1.5.0 (2020-09-14)",
+    name = "1.9.0-forever1 (beta)",
     items = {[[
-What's new
-
-- New: You can now stick the edit box to the top of the chat window! Very useful if you like chat flush to a bottom corner.
-- New: You no longer need a 16,000 DPI gaming mouse to move Glass to the perfect spot. Now you can use sliders for window positioning.
-- New: More control over the font, including leading, line padding, and outline.
-- New: New options for controlling animations. Now you can adjust how fast messages fade in, fade out, and slide in. You can even set these to zero to disable animations completely if that's not your cup of tea.
-- New: This thing! Glass is getting constant updates with new features and fixes added almost weekly. We thought it would be a good idea to write up changes and new stuff between each release. Watch this space!
+First release of Glass Forever, a fork of Glass by Mitchel Cabuloy (mixxorz), updated to work on WoW: Forever.
 
 Bug fixes
 
-- Fixed: Sometimes messages do not appear. This now happens... even less often!
-    ]]}
-  },
-  {
-    name = "1.4.2 (2020-09-09)",
-    items = {[[
-Bug fixes
+- Fixed "secret number" errors when sizing messages and scrolling.
+- Fixed blank chat after logging in.
+- Fixed tabs going blank or overlapping after switching between them.
+- Fixed whisper tabs failing or staying empty after being closed and re-opened.
+- Fixed Combat Log text cut off at the left edge.
 
-- Fixed: Icons in chat messages used to stutter as new messages come in. They now slide smoothly up along with the text. So smooth.
-- Fixed: Sometimes messages do not appear. This now happens... less often!
-- Fixed: Scrolling used to break just after resizing the chat window. This should no longer happen.
-    ]]}
-  },
-  {
-    name = "1.4.1 (2020-09-08)",
-    items = {[[
-Bug fixes
-
-- Fixed: There was an issue with how Glass saved the window position that was causing AceDB to throw a fit. This issue has been resolved.
-    ]]}
-  },
-  {
-    name = "1.4.0 (2020-09-07)",
-    items = {[[
 What's new
 
-- New: World of Waracraft Classic is now officially supported!
+- Colored tab glow: a tab glows in the color of the chat type (guild green, party blue, and so on) when a message arrives and you're not looking at it.
+- The tab bar appears for a few seconds when such a message arrives.
+- A thin line above the selected tab.
     ]]}
   },
-  {
-    name = "1.3.0 (2020-09-06)",
-    items = {[[
-What's new
-
-- New: Glass now supports Prat 3.0 URL links! This will now allow you click URL links in chat as long as you have Prat's UrlCopy module enabled.
-- New: Much better scrolling experience. The chat no longer snaps to the bottom when a new message arrives while you're scrolling through history. In addition, we've added a little arrow you can click to go back to your most recent messages. It even tells you when you have unread messages!
-
-Bug fixes
-
-- Fixed: Players have been experiencing issues with the edit box being visible even if it's not focused. This is caused by the chat style setting being set to "IM style". From now on, Glass will automatically set the chat style to "Classic" so that you don't have to do it yourself.
-    ]]}
-  },
-  {
-    name = "1.2.1 (2020-09-01)",
-    items = {[[
-Bug fixes
-
-- Fixed: There was a conflict with the ElvUI mover and Glass. This has been fixed.
-    ]]}
-  },
-  {
-    name = "1.2.0 (2020-08-31)",
-    items = {[[
-What's new
-
-- New: Glass now supports the "New tab" whisper mode! Other "temporary" chat windows are also now supported, including the Pet Battle tab.
-- New: Major architecture changes for Glass. You won't see any changes while using the addon, but rest well in knowing that we've given the engine a massive tune up.
-    ]]}
-  },
-  {
-    name = "1.1.1 (2020-08-26)",
-    items = {[[
-Bug fixes:
-
-- Fixed: You will find that animations are now 99% less jittery!
-- Fixed: Some players were experiencing issues when using Glass with other addons. These issues have been addressed and should no longer happen.
-    ]]}
-  },
-  {
-    name = "1.1.0 (2020-08-24)",
-    items = {[[
-What's new
-
-- New: Players have been having a hard time figuring out how to move Glass around. So we've added a new "Unlock Window" option when right-clicking the "General" tab. This is how the default chat UI unlocked its windows so hopefully this will be more obvious.
-- New: Glass now supports Prat Timestamps! If you're using Prat, you should find that timestamps are now displayed.
-    ]]}
-  },
-  {
-    name = "1.0.1 (2020-08-22)",
-    items = {[[
-Bug fixes
-
-- Fixed: The Battle.net toast used to be out of place. We've given it a nudge and it should now be where it belongs.
-- Fixed: Previously, some text icons become "squished". We've removed the Squisher Module so you should now see icons in their full, unsquished glory.
-    ]]}
-  },
-  {
-    name = "1.0.0 (2020-08-22)",
-    items = {[[
-What's new
-
-- New: Glass exists!
-    ]]}
-  }
 }
 -- luacheck: pop
 
--- Module
-function News:OnEnable()
-  local baseSize = 13
+-- Text of the whole version history, one release after the other
+local function HistoryText()
+  local parts = {}
+  for _, release in ipairs(CHANGELOG) do
+    table.insert(parts, "|c00DFBA69"..release.name.."|r\n")
+    for _, item in ipairs(release.items) do
+      table.insert(parts, item)
+    end
+    table.insert(parts, "\n")
+  end
+  return table.concat(parts, "\n")
+end
 
-  local frame = AceGUI:Create("Frame")
-  frame:SetTitle("Glass: Version history")
-  frame:SetWidth(600)
-  frame:SetHeight(400)
-  frame:SetStatusText("Version: "..Core.Version)
-  frame:SetCallback("OnClose", function(widget) frame:Hide() end)
-  frame:SetLayout("Fill")
+-- Window built with the game's own panel template (bronze border), like the
+-- other Glass windows
+local function CreateWindow()
+  local frame = CreateFrame("Frame", "GlassNewsFrame", UIParent, "DefaultPanelFlatTemplate")
+  frame:SetSize(600, 400)
+  frame:SetPoint("CENTER")
+  frame:SetFrameStrata("DIALOG")
+  frame:SetToplevel(true)
+  frame:SetClampedToScreen(true)
+  frame:EnableMouse(true)
+  frame:SetMovable(true)
+  frame:RegisterForDrag("LeftButton")
+  frame:SetScript("OnDragStart", frame.StartMoving)
+  frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+  frame:SetTitle("Glass Forever: Version history")
   frame:Hide()
 
-  local scrollFrame = AceGUI:Create("ScrollFrame")
-  scrollFrame:SetLayout("List")
-  frame:AddChild(scrollFrame)
+  -- Close with the Escape key, like other game windows
+  table.insert(_G.UISpecialFrames, "GlassNewsFrame")
 
-  for _, release in ipairs(CHANGELOG) do
-    local releaseLabel = AceGUI:Create("Label")
-    releaseLabel:SetFont('Fonts\\FRIZQT__.TTF', baseSize, "");
-    releaseLabel:SetRelativeWidth(1)
-    releaseLabel:SetText("|c00DFBA69"..release.name.."|r")
-    scrollFrame:AddChild(releaseLabel)
+  frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+  frame.bg:SetPoint("TOPLEFT", 7, -3)
+  frame.bg:SetPoint("BOTTOMRIGHT", -3, 3)
+  frame.bg:SetColorTexture(0.08, 0.08, 0.08, 1)
 
-    for i, item in ipairs(release.items) do
-      local itemLabel = AceGUI:Create("Label")
-      itemLabel:SetFont('Fonts\\FRIZQT__.TTF', baseSize, "");
-      itemLabel:SetRelativeWidth(1)
-      itemLabel.label:SetSpacing(3.2)
-      itemLabel.label:SetAlpha(0.95)
+  local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+  close:SetFrameLevel((frame.TitleContainer or frame):GetFrameLevel() + 10)
+  close:SetPoint("TOPRIGHT")
 
-      local prefix, suffix = "", ""
+  local version = frame:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+  version:SetPoint("BOTTOMLEFT", 16, 10)
+  version:SetText("Version: "..Core.Version)
 
-      if i == 1 then
-        prefix = "\n"
-      end
+  local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+  scroll:SetPoint("TOPLEFT", 16, -32)
+  scroll:SetPoint("BOTTOMRIGHT", -34, 28)
 
-      if i == #release.items then
-        suffix = "\n"
-      end
+  local content = CreateFrame("Frame", nil, scroll)
+  scroll:SetScrollChild(content)
 
-      itemLabel:SetText(prefix..item..suffix)
-      scrollFrame:AddChild(itemLabel)
-    end
+  local text = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  text:SetPoint("TOPLEFT")
+  text:SetJustifyH("LEFT")
+  text:SetJustifyV("TOP")
+  text:SetSpacing(3)
+  text:SetText(HistoryText())
+
+  -- Fit the text to the window width and let the scroll frame know its height
+  local function Layout(width)
+    content:SetWidth(width)
+    text:SetWidth(width)
+    content:SetHeight(text:GetStringHeight() + 10)
   end
+  scroll:SetScript("OnSizeChanged", function (_, width) Layout(width) end)
+  Layout(scroll:GetWidth())
+
+  return frame
+end
+
+-- Module
+function News:OnEnable()
+  local window
 
   Core:Subscribe(OPEN_NEWS, function ()
-    frame:Show()
+    window = window or CreateWindow()
+    window:Show()
   end)
 end
