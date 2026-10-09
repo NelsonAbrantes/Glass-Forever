@@ -16,6 +16,81 @@ local Mixin = Mixin
 
 local MessageLineMixin = {}
 
+----
+-- Line count estimation
+--
+-- Retail 12.x can hide the real height of a message ("secret" values). When
+-- that happens we count the lines ourselves: a hidden font string with the same
+-- font measures each word, and we simulate the word wrap.
+local measureString
+
+local function GetMeasureString()
+  if measureString == nil then
+    local frame = CreateFrame("Frame", nil, _G.UIParent)
+    frame:Hide()
+    measureString = frame:CreateFontString(nil, "ARTWORK", "GlassMessageFont")
+  end
+  return measureString
+end
+
+-- Width of a piece of text, or nil if the game hides it
+local function MeasureWidth(text)
+  local fs = GetMeasureString()
+  fs:SetText(text)
+  local width = fs:GetUnboundedStringWidth()
+  if issecretvalue and issecretvalue(width) then
+    return nil
+  end
+  return width
+end
+
+-- Removes formatting codes, keeping only the text that is drawn
+local function VisibleText(text)
+  text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
+  text = text:gsub("|cn.-:", "")
+  text = text:gsub("|r", "")
+  text = text:gsub("|H.-|h(.-)|h", "%1")
+  text = text:gsub("|T.-|t", "MM") -- inline icons take about two letters
+  text = text:gsub("|A.-|a", "MM")
+  text = text:gsub("||", "|")
+  return text
+end
+
+-- Number of lines the text needs at the given width, or nil if unknown
+local function EstimateNumLines(text, width)
+  if text == nil or width <= 0 then return nil end
+  if issecretvalue and issecretvalue(text) then return nil end
+
+  local visible = VisibleText(text)
+
+  local total = MeasureWidth(visible)
+  if total == nil then return nil end
+  if total <= width then return 1 end
+
+  local lines, lineWidth = 1, 0
+  for word in visible:gmatch("%S+%s*") do
+    -- The space after a word doesn't count when the word ends a line
+    local bareWidth = MeasureWidth(word:match("^%S+"))
+    local wordWidth = MeasureWidth(word)
+    if bareWidth == nil or wordWidth == nil then return nil end
+
+    if lineWidth > 0 and lineWidth + bareWidth > width then
+      lines = lines + 1
+      lineWidth = 0
+    end
+
+    -- A single word longer than the line is broken across lines
+    while wordWidth > width do
+      lines = lines + 1
+      wordWidth = wordWidth - width
+    end
+
+    lineWidth = lineWidth + wordWidth
+  end
+
+  return lines
+end
+
 function MessageLineMixin:Init()
   self:SetWidth(Core.db.profile.frameWidth)
   self:SetFadeInDuration(Core.db.profile.chatFadeInDuration)
@@ -69,15 +144,16 @@ function MessageLineMixin:UpdateFrame()
   local Ypadding = self.text:GetLineHeight() * Core.db.profile.messageLinePadding
   local stringHeight = self.text:GetStringHeight()
   -- Retail 12.x: GetStringHeight can return a "secret" value that addons cannot
-  -- do arithmetic on. Fall back to the line count, or to a single line.
+  -- do arithmetic on. Fall back to the line count: the game's own if it shares
+  -- it, otherwise our estimate, otherwise a single line.
   if issecretvalue and issecretvalue(stringHeight) then
     local lineHeight = self.text:GetLineHeight()
     local numLines = self.text.GetNumLines and self.text:GetNumLines()
-    if numLines and not issecretvalue(numLines) and numLines > 0 then
-      stringHeight = lineHeight * numLines
-    else
-      stringHeight = lineHeight
+    if not numLines or issecretvalue(numLines) or numLines < 1 then
+      local textWidth = Core.db.profile.frameWidth - Constants.TEXT_XPADDING * 2
+      numLines = EstimateNumLines(self.text:GetText(), textWidth) or 1
     end
+    stringHeight = lineHeight * numLines + Core.db.profile.messageLeading * (numLines - 1)
   end
   local messageLineHeight = (stringHeight + Ypadding * 2)
   self:SetHeight(messageLineHeight)

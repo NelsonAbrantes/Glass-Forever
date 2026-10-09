@@ -12,6 +12,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Fixed
 - Messages appeared twice after creating a new chat tab, because the default chat frame became visible behind Glass (`UIManager.lua`).
+- Long messages that wrap onto several lines no longer overlap the next message when the game hides their height. Glass now counts the lines itself (`MessageLine.lua`).
 
 ## 1.9.0-forever1 (beta)
 

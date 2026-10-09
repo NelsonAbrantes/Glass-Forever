@@ -19,10 +19,11 @@ Glass is a clean, fading chat replacement. The original addon is no longer maint
 - **Colored tab glow.** When a message arrives for a tab that isn't selected, the tab glows in the color of that chat type (guild green, party blue, and so on). This works by default for any tab you create, based on the message types the tab shows. General and Combat Log are excluded.
 - **Dock reveal.** The tab bar appears for a few seconds when such a message arrives, so you notice it even if the chat has faded out.
 - **Selected tab indicator.** A thin line above the active tab.
+- **Edit Mode support.** Move Glass and change its size, font, font sizes, background opacity and fade out delay from Blizzard's Edit Mode.
 
 ## Known limitations
 
-- Long messages that wrap onto several lines may overlap, because the game no longer exposes their exact height to addons.
+- The game no longer tells addons the exact height of a message. Glass counts the lines itself, but when the game also hides the message text (this can happen inside instances), a long message may still overlap the next one.
 - Only tested on WoW: Forever. It may not work on other clients.
 
 ## Installation
