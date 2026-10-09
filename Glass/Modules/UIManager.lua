@@ -158,7 +158,7 @@ function UIManager:OnEnable()
   -- Any change counts, not only a higher number: the fork restarted its
   -- numbering at 0.9.x after the first beta was released as 1.9.0-forever1.
   if Core.db.global.version ~= Core.Version then
-    Utils.notify('Glass has just been updated. |cFFFFFF00|Hgarrmission:Glass:opennews|h[See what’s new]|h|r')
+    Utils.notify('Glass Forever has just been updated. |cFFFFFF00|Hgarrmission:Glass:opennews|h[See what’s new]|h|r')
     Core.db.global.version = Core.Version
   end
   --@end-non-debug@--
@@ -174,20 +174,26 @@ function UIManager:OnEnable()
   end
 
   -- Handle temporary chat frames (whisper popout, pet battle)
-  self:RawHook("FCF_OpenTemporaryWindow", function (...)
-    local chatFrame = self.hooks["FCF_OpenTemporaryWindow"](...)
-    local smf = self.slidingMessageFramePool:Acquire()
-    smf:Init(chatFrame)
+  -- Secure hooks (run after the game's code): replacing these functions would
+  -- taint the game's chat code, which a new whisper runs through, and it then
+  -- fails on "secret" messages. A secure hook doesn't get the new window, so
+  -- look for open temporary windows Glass doesn't have yet.
+  self:SecureHook("FCF_OpenTemporaryWindow", function ()
+    for _, name in ipairs(_G.CHAT_FRAMES or {}) do
+      local chatFrame = _G[name]
+      if chatFrame and chatFrame.isTemporary and (chatFrame.isDocked or chatFrame.inUse)
+        and not self.state.temporaryFrames[name] then
+        local smf = self.slidingMessageFramePool:Acquire()
+        smf:Init(chatFrame)
 
-    self.state.temporaryFrames[chatFrame:GetName()] = smf
-    self.state.temporaryTabs[chatFrame:GetName()] = CreateChatTab(smf)
-    return chatFrame
-  end, true)
+        self.state.temporaryFrames[name] = smf
+        self.state.temporaryTabs[name] = CreateChatTab(smf)
+      end
+    end
+  end)
 
   -- Close window
-  self:RawHook("FCF_Close", function (chatFrame, ...)
-    self.hooks["FCF_Close"](chatFrame, ...)
-
+  self:SecureHook("FCF_Close", function (chatFrame)
     local name = chatFrame and chatFrame:GetName()
     local smf = name and self.state.temporaryFrames[name]
     if smf then
@@ -195,7 +201,7 @@ function UIManager:OnEnable()
       self.state.temporaryFrames[name] = nil
       self.state.temporaryTabs[name] = nil
     end
-  end, true)
+  end)
 
   -- Light up a tab when a message of one of its chat types arrives and the tab
   -- is not selected. The glow takes the color of the chat type (guild green,
@@ -290,16 +296,13 @@ function UIManager:OnEnable()
 
   -- Keep the default Blizzard chat frame hidden behind Glass. Some code paths
   -- (e.g. creating a new tab) show it without going through our Show hook,
-  -- which made messages appear twice. Uses the original Hide so the Glass
-  -- panel itself is not hidden.
+  -- which made messages appear twice. HideChatFrame leaves the Glass panel
+  -- itself alone.
   local function HideBlizzardFrame(smf)
     local chatFrame = smf.chatFrame
     if smf.state and smf.state.detached then return end -- a separate window, leave it
-    if chatFrame and chatFrame:IsShown() then
-      local hooks = smf.hooks and smf.hooks[chatFrame]
-      if hooks and hooks.Hide then
-        hooks.Hide(chatFrame)
-      end
+    if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
+      smf:HideChatFrame()
     end
   end
 
