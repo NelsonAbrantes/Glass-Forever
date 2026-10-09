@@ -1,16 +1,21 @@
 # Changelog
 
-## Unreleased
+Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
+
+## 0.9.1-forever (beta, unreleased)
 
 ### Added
 - Glass can be moved and configured in Blizzard's Edit Mode: width, height, font, font sizes, background opacity and fade out delay (`EditMode.lua`, using LibEditMode).
+
+### Changed
+- The "Glass has just been updated" message now appears whenever the version changes, not only when the number goes up (`UIManager.lua`).
 
 ### Fixed
 - Messages appeared twice after creating a new chat tab, because the default chat frame became visible behind Glass (`UIManager.lua`).
 
 ## 1.9.0-forever1 (beta)
 
-First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1.
+First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1. It was released with the original Glass version number; later releases restart at 0.9.x (see above).
 
 ### Fixed
 - Arithmetic on "secret number" values when sizing message lines (`MessageLine.lua`).
