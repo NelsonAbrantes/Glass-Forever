@@ -1,4 +1,4 @@
-# 0.9.1-forever (beta) (2026-10-10)
+# 0.10.0-forever (beta) (2026-10-10)
 
 What's new
 

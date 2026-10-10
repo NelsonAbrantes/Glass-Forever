@@ -1,7 +1,7 @@
 ## Interface: 120100, 16001
 ## Plain Title: Glass Forever
 ## Author: mixxorz (original), Rethz (fork)
-## Version: 0.9.1-forever
+## Version: 0.10.0-forever
 
 ## Title: |c00DFBA69Glass Forever|r
 ## Notes: Immersive and minimalistic chat UI. Fork of Glass for WoW: Forever (beta).

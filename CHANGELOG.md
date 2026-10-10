@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.9.1-forever (beta) (2026-10-10)
+## 0.10.0-forever (beta) (2026-10-10)
 
 ### Added
 - Glass can be moved and configured in Blizzard's Edit Mode: width, height, font, font sizes, background opacity and fade out delay (`EditMode.lua`, using LibEditMode).
@@ -34,7 +34,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ## 1.9.0-forever1 (beta)
 
-First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1. It was released with the original Glass version number; later releases restart at 0.9.x (see above).
+First release of the WoW: Forever fork, based on Glass 1.9.0-alpha1. It was released with the original Glass version number; later releases use their own numbering, starting at 0.10.0-forever (see above).
 
 ### Fixed
 - Arithmetic on "secret number" values when sizing message lines (`MessageLine.lua`).
