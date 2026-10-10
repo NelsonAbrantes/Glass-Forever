@@ -354,10 +354,14 @@ function UIManager:OnEnable()
       end
     end
 
+    -- At most once per frame (and at most 100 times a second). This used to
+    -- repeat to "catch up" after a slow frame, e.g. 30 times after a 0.3s
+    -- loading hitch, which made the hitch worse. OnFrame only handles queued
+    -- messages and mouse over, so once is enough.
     self.timeElapsed = self.timeElapsed + elapsed
 
-    while (self.timeElapsed > 0.01) do
-      self.timeElapsed = self.timeElapsed - 0.01
+    if self.timeElapsed >= 0.01 then
+      self.timeElapsed = 0
 
       self.container:OnFrame()
 

@@ -200,13 +200,22 @@ function ChatTabMixin:UpdateSelected(selected)
   local isSelected = (self.chatFrame == selected)
 
   if isSelected then
-    -- Convert real pixels to this tab's own units, so every tab gets the same thickness
+    -- Convert real pixels to this tab's own units, so every tab gets the same thickness.
+    -- This runs every frame, so only resize when something changed.
     local _, screenHeight = GetPhysicalScreenSize()
     local scale = self:GetEffectiveScale()
     if screenHeight and screenHeight > 0 and scale and scale > 0 then
-      line:SetHeight(LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale)
+      local height = LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale
+      if line.glassHeight ~= height then
+        line.glassHeight = height
+        line:SetHeight(height)
+      end
     end
-    line:SetWidth(self:GetWidth() * LINE_WIDTH_RATIO)
+    local width = self:GetWidth() * LINE_WIDTH_RATIO
+    if line.glassWidth ~= width then
+      line.glassWidth = width
+      line:SetWidth(width)
+    end
   end
 
   if line:IsShown() ~= isSelected then

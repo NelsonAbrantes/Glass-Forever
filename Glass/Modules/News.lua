@@ -31,6 +31,8 @@ Bug fixes
 - Long messages no longer overlap the next message.
 - Whispers now light up their tab in the whisper color and show the tab bar.
 - Fixed errors with protected ("secret") chat messages, for example in combat or instances.
+- Better performance: fixed frame rate spikes, especially when moving the mouse over the chat and in busy chats.
+- Channel notices ("Changed Channel: ...") show the full channel name with short channel names on.
     ]]}
   },
   {

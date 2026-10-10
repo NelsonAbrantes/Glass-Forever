@@ -6,7 +6,7 @@ local AceHook = Core.Libs.AceHook
 local LibEasing = Core.Libs.LibEasing
 local LSM = Core.Libs.LSM
 local lodash = Core.Libs.lodash
-local drop, reduce, take = lodash.drop, lodash.reduce, lodash.take
+local reduce = lodash.reduce
 
 local CreateMessageLinePool = Core.Components.CreateMessageLinePool
 local CreateScrollOverlayFrame = Core.Components.CreateScrollOverlayFrame
@@ -185,6 +185,22 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     end
   end)
 
+  -- When a tab is shown (e.g. clicked while the mouse is over the chat), bring
+  -- its messages up to date with the mouse, since hidden tabs skip the mouse
+  -- enter/leave handlers below
+  self:SetScript("OnShow", function ()
+    if self.state.mouseOver and Core.db.profile.chatShowOnMouseOver then
+      for _, message in ipairs(self.state.messages) do
+        message:Show()
+      end
+    elseif not self.state.mouseOver then
+      -- Messages that arrived while hidden never started fading out
+      for _, message in ipairs(self.state.messages) do
+        message:HideDelay(Core.db.profile.chatHoldTime)
+      end
+    end
+  end)
+
   -- Mouse clickthrough
   self:EnableMouse(false)
 
@@ -237,6 +253,11 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         -- Don't hide chats when mouse is over
         self.state.mouseOver = true
 
+        -- Only the tab being shown: doing this for every tab started up to
+        -- 128 animations per tab at once, a frame rate spike each time the
+        -- mouse entered the chat. Hidden tabs catch up in OnShow.
+        if not self:IsShown() then return end
+
         if not self.state.scrollAtBottom then
           self.overlay:Show()
         end
@@ -250,6 +271,8 @@ function SlidingMessageFrameMixin:Init(chatFrame)
       Core:Subscribe(MOUSE_LEAVE, function ()
         -- Hide chats when mouse leaves
         self.state.mouseOver = false
+
+        if not self:IsShown() then return end
 
         self.overlay:HideDelay(Core.db.profile.chatHoldTime)
 
@@ -549,15 +572,11 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
   end
 
   -- Release old messages
+  -- Removed in place: building new lists for every message made garbage the
+  -- game had to clean up now and then (a frame rate hitch in busy chats)
   local historyLimit = 128
-  if #self.state.messages > historyLimit then
-    local overflow = #self.state.messages - historyLimit
-    local oldMessages = take(self.state.messages, overflow)
-    self.state.messages = drop(self.state.messages, overflow)
-
-    for _, message in ipairs(oldMessages) do
-      self.messageFramePool:Release(message)
-    end
+  while #self.state.messages > historyLimit do
+    self.messageFramePool:Release(table.remove(self.state.messages, 1))
   end
 end
 

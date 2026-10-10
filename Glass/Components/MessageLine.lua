@@ -33,14 +33,32 @@ local function GetMeasureString()
   return measureString
 end
 
+-- Widths already measured, so busy chats don't measure the same words over
+-- and over. Emptied when the font changes, or when it gets large.
+local widthCache, cacheSize, cacheFont = {}, 0, nil
+local MAX_CACHE = 4000
+
 -- Width of a piece of text, or nil if the game hides it
 local function MeasureWidth(text)
   local fs = GetMeasureString()
+
+  local file, size, flags = fs:GetFont()
+  local font = tostring(file)..tostring(size)..tostring(flags)
+  if font ~= cacheFont or cacheSize > MAX_CACHE then
+    widthCache, cacheSize, cacheFont = {}, 0, font
+  end
+
+  local cached = widthCache[text]
+  if cached then return cached end
+
   fs:SetText(text)
   local width = fs:GetUnboundedStringWidth()
   if issecretvalue and issecretvalue(width) then
     return nil
   end
+
+  widthCache[text] = width
+  cacheSize = cacheSize + 1
   return width
 end
 

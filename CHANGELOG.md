@@ -28,6 +28,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - "Attempt to perform string conversion on a secret string value (execution tainted by 'Glass')" errors. Glass replaced some of the game's chat functions, which tainted the game's code and broke it on protected ("secret") messages. It now uses secure hooks that run after the game's code (`SlidingMessageFrame.lua`, `ChatTab.lua`, `UIManager.lua`).
 - The background of the "jump to the newest messages" button used a wrong image path (`ScrollOverlayFrame.lua`).
 - With short channel names on, channel notices ("Changed Channel: ...") showed only the number. They now keep the full channel name (`TextProcessing.lua`).
+- Frame rate spikes: moving the mouse over the chat animated the messages of every tab, including hidden ones; the update loop repeated itself after slow frames; the selected tab line was resized every frame; removing old messages created garbage; long messages measured the same words again and again. All fixed (`SlidingMessageFrame.lua`, `UIManager.lua`, `ChatTab.lua`, `MessageLine.lua`).
+- Messages that arrived in a hidden tab now fade out normally when the tab is opened (`SlidingMessageFrame.lua`).
 - Whispers didn't reveal the tab bar and their tab glow was invisible. Whisper tabs now glow steadily in the whisper color and the tab bar appears, like the other chat types (`UIManager.lua`, `ChatTab.lua`).
 
 ## 1.9.0-forever1 (beta)
