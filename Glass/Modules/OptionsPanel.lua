@@ -246,6 +246,13 @@ local function BuildGeneral(category, layout)
   Header(layout, "Frame")
   Slider(category, "frameWidth", "Width", 100, 2000, 1, "Width of the chat", "frameWidth")
   Slider(category, "frameHeight", "Height", 100, 1200, 1, "Height of the chat", "frameHeight")
+
+  Header(layout, "Chat buttons")
+  Checkbox(category, "chatButtons", "Show chat buttons", "Show the game's chat buttons (friends, channels and voice chat, emotes and languages) beside the chat. They appear and fade with the tab bar", "chatButtons")
+  local sideSetting = ProfileSetting(category, "chatButtonsSide", Settings.VarType.String, "Side", "chatButtonsSide")
+  Dropdown(category, sideSetting, function ()
+    return { { "left", "Left of the chat" }, { "right", "Right of the chat" } }
+  end, "Which side of the chat the buttons are on")
 end
 
 local function BuildEditBox(category, layout)

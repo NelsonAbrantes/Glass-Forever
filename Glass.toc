@@ -32,6 +32,7 @@ Glass\utils.lua
 
 # Components
 Glass\Components\Button.lua
+Glass\Components\ChatButtons.lua
 Glass\Components\ChatDock.lua
 Glass\Components\ChatTab.lua
 Glass\Components\EditBox.lua

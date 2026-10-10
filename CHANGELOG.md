@@ -6,6 +6,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Added
 - Tabs options (Options > AddOns > Glass Forever > Tabs): tab font and font size, tab bar height, spacing between tabs, tab bar background opacity, and an option to turn off the tab alerts (colored glow and tab bar reveal). Tab font size and tab bar height are also in Edit Mode (`OptionsPanel.lua`, `EditMode.lua`, `Fonts.lua`, `ChatDock.lua`, `ChatTab.lua`, `UIManager.lua`).
+- Chat buttons (Options > General > Chat buttons): the game's chat buttons (friends, channels and voice chat, mute and deafen, emotes and languages) can be shown beside the chat, on the left or right, with plain icons in the Glass color. They appear and fade with the tab bar. Off by default (`ChatButtons.lua`, `MainContainerFrame.lua`, `UIManager.lua`, `OptionsPanel.lua`).
 
 ### Fixed
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).

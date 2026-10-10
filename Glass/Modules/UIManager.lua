@@ -1,6 +1,7 @@
 local Core, Constants, Utils = unpack(select(2, ...))
 local UIManager = Core:GetModule("UIManager")
 
+local CreateChatButtons = Core.Components.CreateChatButtons
 local CreateChatDock = Core.Components.CreateChatDock
 local CreateChatTab = Core.Components.CreateChatTab
 local CreateEditBox = Core.Components.CreateEditBox
@@ -12,8 +13,6 @@ local CreateSlidingMessageFramePool = Core.Components.CreateSlidingMessageFrameP
 -- luacheck: push ignore 113
 local BNToastFrame = BNToastFrame
 local ChatAlertFrame = ChatAlertFrame
-local ChatFrameChannelButton = ChatFrameChannelButton
-local ChatFrameMenuButton = ChatFrameMenuButton
 local CreateFrame = CreateFrame
 local FCFDock_GetSelectedWindow = FCFDock_GetSelectedWindow
 local FCF_RestorePositionAndDimensions = FCF_RestorePositionAndDimensions
@@ -21,7 +20,6 @@ local GENERAL_CHAT_DOCK = GENERAL_CHAT_DOCK
 local GetChatWindowInfo = GetChatWindowInfo
 local GetCVar = C_CVar and C_CVar.GetCVar or GetCVar
 local NUM_CHAT_WINDOWS = NUM_CHAT_WINDOWS
-local QuickJoinToastButton = QuickJoinToastButton
 local SetCVar = C_CVar and C_CVar.SetCVar or SetCVar
 local UIParent = UIParent
 -- luacheck: pop
@@ -145,13 +143,10 @@ function UIManager:OnEnable()
   ChatAlertFrame:ClearAllPoints()
   ChatAlertFrame:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", 15, 10)
 
-  -- Hide other chat elements
-  if Constants.ENV == "retail" then
-    QuickJoinToastButton:Hide()
-  end
-
-  ChatFrameChannelButton:Hide()
-  ChatFrameMenuButton:Hide()
+  -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
+  -- the chat with the "Chat buttons" option
+  self.chatButtons = CreateChatButtons(self.container)
+  self.container.chatButtons = self.chatButtons
 
   -- New version alert
   --@non-debug@

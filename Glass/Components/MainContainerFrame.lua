@@ -38,8 +38,10 @@ function MainContainerFrameMixin:Init()
 end
 
 function MainContainerFrameMixin:OnFrame()
-  -- Mouse over tracking
-  if self.state.mouseOver ~= self:IsMouseOver() then
+  -- Mouse over tracking. The chat buttons beside the chat count as the chat.
+  local mouseOver = self:IsMouseOver()
+    or (self.chatButtons ~= nil and self.chatButtons:IsMouseOverButtons())
+  if self.state.mouseOver ~= mouseOver then
     if not self.state.mouseOver then
       Core:Dispatch(MouseEnter())
     else
