@@ -313,6 +313,10 @@ local function BuildTabs(category, layout)
   Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")
 
   Header(layout, "Tab bar")
+  local positionSetting = ProfileSetting(category, "tabBarPosition", _G.Settings.VarType.String, "Position", "tabBarPosition")
+  Dropdown(category, positionSetting, function ()
+    return { { "top", "Above the messages" }, { "bottom", "Below the messages" } }
+  end, "Where the tab bar sits")
   Slider(category, "tabBarHeight", "Height", 14, 48, 1, "Height of the tab bar", "tabBarHeight")
   Slider(category, "tabPadding", "Spacing", 2, 40, 1, "Space around each tab name. More space makes the tabs wider", "tabPadding")
   Slider(category, "tabBarOpacity", "Background opacity", 0, 1, 0.05, "Opacity of the tab bar background", "tabBarOpacity")

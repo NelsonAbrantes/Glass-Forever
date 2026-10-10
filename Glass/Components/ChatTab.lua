@@ -150,7 +150,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   if self.selectedLine == nil then
     self.selectedLine = self:CreateTexture(nil, "OVERLAY")
     self.selectedLine:SetColorTexture(Colors.apache.r, Colors.apache.g, Colors.apache.b, 1)
-    self.selectedLine:SetPoint("TOP", self, "TOP", 0, 0)
+    self:PlaceSelectedLine()
     self.selectedLine:SetSize(1, 1)
     self.selectedLine:Hide()
   end
@@ -160,7 +160,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self.subscriptions = {
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize"
-          or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding" then
+          or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding"
+          or key == "tabBarPosition" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
         end
@@ -177,6 +178,21 @@ function ChatTabMixin:UpdateLayout()
   self.Text:ClearAllPoints()
   self.Text:SetPoint("LEFT", padding, 0)
   self:SetWidth(self:FitText() + padding * 2)
+  self:PlaceSelectedLine()
+end
+
+---
+-- The selected line sits on the side facing the messages: above the tab, or
+-- below it when the tab bar is at the bottom
+function ChatTabMixin:PlaceSelectedLine()
+  local line = self.selectedLine
+  if line == nil then return end
+  line:ClearAllPoints()
+  if Utils.TabBarAtBottom() then
+    line:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+  else
+    line:SetPoint("TOP", self, "TOP", 0, 0)
+  end
 end
 
 ---

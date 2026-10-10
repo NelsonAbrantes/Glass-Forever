@@ -235,6 +235,18 @@ function EditMode:OnEnable()
       set = function (_, value) Set("tabFontSize", value, "tabFontSize") end,
     },
     {
+      name = "Tab bar position",
+      desc = "Where the tab bar sits",
+      kind = LEM.SettingType.Dropdown,
+      default = defaults.tabBarPosition,
+      values = {
+        { text = "Above the messages", value = "top" },
+        { text = "Below the messages", value = "bottom" },
+      },
+      get = function () return profile().tabBarPosition end,
+      set = function (_, value) Set("tabBarPosition", value, "tabBarPosition") end,
+    },
+    {
       name = "Tab bar height",
       desc = "Height of the tab bar",
       kind = LEM.SettingType.Slider,

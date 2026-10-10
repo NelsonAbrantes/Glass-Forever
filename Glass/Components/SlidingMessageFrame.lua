@@ -97,7 +97,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     -- Follow the tab bar height (Tabs options)
     if self.combatLogSubscription == nil then
       self.combatLogSubscription = Core:Subscribe(UPDATE_CONFIG, function (key)
-        if key == "tabBarHeight" then
+        if key == "tabBarHeight" or key == "tabBarPosition" then
           self:PlaceCombatLog()
         end
       end)
@@ -108,7 +108,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   -- Chat scroll frame
   self:SetHeight(self.config.height + self.config.overflowHeight)
   self:SetWidth(self.config.width)
-  self:SetPoint("TOPLEFT", 0, (Utils.TabBarHeight() + 5) * -1)
+  self:UpdateFramePosition()
 
   -- Set initial scroll position
   self:SetVerticalScroll(self.config.overflowHeight)
@@ -298,11 +298,12 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             key == "messageLeading" or
             key == "messageLinePadding" or
             key == "indentWordWrap" or
-            key == "tabBarHeight"
+            key == "tabBarHeight" or
+            key == "tabBarPosition"
           ) then
             -- Adjust frame dimensions first (messages start below the tab bar)
             self.config.height = Core.db.profile.frameHeight - Utils.TabBarHeight() - 5
-            self:SetPoint("TOPLEFT", 0, (Utils.TabBarHeight() + 5) * -1)
+            self:UpdateFramePosition()
             self.config.width = Core.db.profile.frameWidth
 
             self:SetHeight(self.config.height + self.config.overflowHeight)
@@ -384,6 +385,14 @@ function SlidingMessageFrameMixin:TakeOverChatFrame()
 end
 
 ---
+-- The messages area: below the tab bar, or from the top of the chat when the
+-- tab bar is at the bottom (its height already leaves room for the bar)
+function SlidingMessageFrameMixin:UpdateFramePosition()
+  local y = Utils.TabBarAtBottom() and 0 or -(Utils.TabBarHeight() + 5)
+  self:SetPoint("TOPLEFT", 0, y)
+end
+
+---
 -- Places the Combat Log (the game's own window) below the tab bar, leaving
 -- room for its filter bar ("My actions" / "What happened to me?")
 local COMBAT_LOG_FILTER_HEIGHT = 27 -- room for the filter bar, below the tab bar
@@ -395,8 +404,12 @@ function SlidingMessageFrameMixin:PlaceCombatLog()
   local chatFrame = self.chatFrame
   pcall(function ()
     chatFrame:ClearAllPoints()
-    chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", COMBAT_LOG_X, -(Utils.TabBarHeight() + COMBAT_LOG_FILTER_HEIGHT))
-    chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -COMBAT_LOG_X, 0)
+    local top, bottom = Utils.TabBarHeight() + COMBAT_LOG_FILTER_HEIGHT, 0
+    if Utils.TabBarAtBottom() then
+      top, bottom = COMBAT_LOG_FILTER_HEIGHT, Utils.TabBarHeight() + 5
+    end
+    chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", COMBAT_LOG_X, -top)
+    chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -COMBAT_LOG_X, bottom)
   end)
   self.positioning = false
 end

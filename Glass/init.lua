@@ -62,6 +62,7 @@ Core.defaults = {
     tabPadding = 15,
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
+    tabBarPosition = "top", -- "top" or "bottom" of the messages
 
     -- Edit box
     editBoxFontSize = 12,

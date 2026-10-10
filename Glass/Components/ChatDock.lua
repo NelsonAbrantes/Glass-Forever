@@ -21,8 +21,8 @@ function ChatDockMixin:Init(parent)
   }
 
   self:SetWidth(Core.db.profile.frameWidth)
-  self:ClearAllPoints()
-  self:SetPoint("TOPLEFT", parent, "TOPLEFT")
+  self.container = parent
+  self:UpdatePosition()
   self:SetFadeInDuration(0.6)
   self:SetFadeOutDuration(0.6)
 
@@ -70,8 +70,23 @@ function ChatDockMixin:Init(parent)
         if key == "tabBarOpacity" then
           self:UpdateBackground()
         end
+
+        if key == "tabBarPosition" then
+          self:UpdatePosition()
+        end
       end)
     }
+  end
+end
+
+---
+-- Puts the tab bar above or below the messages (Tabs options)
+function ChatDockMixin:UpdatePosition()
+  self:ClearAllPoints()
+  if Utils.TabBarAtBottom() then
+    self:SetPoint("BOTTOMLEFT", self.container, "BOTTOMLEFT")
+  else
+    self:SetPoint("TOPLEFT", self.container, "TOPLEFT")
   end
 end
 

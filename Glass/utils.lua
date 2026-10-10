@@ -18,6 +18,11 @@ Utils.TabPadding = function ()
   return Core.db.profile.tabPadding or 15
 end
 
+-- True when the tab bar is below the messages (Tabs options)
+Utils.TabBarAtBottom = function ()
+  return Core.db.profile.tabBarPosition == "bottom"
+end
+
 Utils.super = function (obj)
   return getmetatable(obj).__index
 end
