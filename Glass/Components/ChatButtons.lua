@@ -192,18 +192,40 @@ function ChatButtonsMixin:FadeOut()
   end
 end
 
+-- Where the buttons go, for each "Position" option:
+-- - holder: the point of the column (or row) and the point of the chat it
+--   sits on, with the offset away from the chat
+-- - first: the corner of the column/row where the first button goes
+-- - next: how each button attaches to the one before it
+-- - reverse: the row grows to the left, so it's laid out from the last button
+--   to keep the same order on screen
+local POSITIONS = {
+  left = { holder = { "TOPRIGHT", "TOPLEFT", -MARGIN, 0 }, first = "TOPRIGHT",
+    next = { "TOP", "BOTTOM", 0, -GAP } },
+  right = { holder = { "TOPLEFT", "TOPRIGHT", MARGIN, 0 }, first = "TOPLEFT",
+    next = { "TOP", "BOTTOM", 0, -GAP } },
+  topleft = { holder = { "BOTTOMLEFT", "TOPLEFT", 0, MARGIN }, first = "BOTTOMLEFT",
+    next = { "LEFT", "RIGHT", GAP, 0 } },
+  topright = { holder = { "BOTTOMRIGHT", "TOPRIGHT", 0, MARGIN }, first = "BOTTOMRIGHT",
+    next = { "RIGHT", "LEFT", -GAP, 0 }, reverse = true },
+  bottomleft = { holder = { "TOPLEFT", "BOTTOMLEFT", 0, -MARGIN }, first = "TOPLEFT",
+    next = { "LEFT", "RIGHT", GAP, 0 } },
+  bottomright = { holder = { "TOPRIGHT", "BOTTOMRIGHT", 0, -MARGIN }, first = "TOPRIGHT",
+    next = { "RIGHT", "LEFT", -GAP, 0 }, reverse = true },
+}
+
+local function Position()
+  return POSITIONS[Core.db.profile.chatButtonsSide] or POSITIONS.left
+end
+
 ---
--- Shows or hides the buttons and puts them on the chosen side
+-- Shows or hides the buttons and puts them in the chosen place
 function ChatButtonsMixin:Update()
   local enabled = Core.db.profile.chatButtons
-  local left = Core.db.profile.chatButtonsSide ~= "right"
+  local holder = Position().holder
 
   self:ClearAllPoints()
-  if left then
-    self:SetPoint("TOPRIGHT", self.container, "TOPLEFT", -MARGIN, 0)
-  else
-    self:SetPoint("TOPLEFT", self.container, "TOPRIGHT", MARGIN, 0)
-  end
+  self:SetPoint(holder[1], self.container, holder[2], holder[3], holder[4])
 
   for _, button in ipairs(self.buttons) do
     if enabled then
@@ -225,24 +247,34 @@ function ChatButtonsMixin:Update()
 end
 
 ---
--- Stacks the shown buttons from the top, with no gaps
+-- Lines up the shown buttons in a column (left and right of the chat) or a
+-- row (above and below it), with no gaps
 function ChatButtonsMixin:Layout()
   if self.layingOut then return end
   self.layingOut = true
 
-  local left = Core.db.profile.chatButtonsSide ~= "right"
-  local point = left and "TOPRIGHT" or "TOPLEFT"
-  local previous
+  local position = Position()
+  local shown = {}
   for _, button in ipairs(self.buttons) do
     if button:IsShown() then
-      button:ClearAllPoints()
-      if previous then
-        button:SetPoint("TOP", previous, "BOTTOM", 0, -GAP)
+      if position.reverse then
+        table.insert(shown, 1, button)
       else
-        button:SetPoint(point, self, point, 0, 0)
+        table.insert(shown, button)
       end
-      previous = button
     end
+  end
+
+  local nextPoint = position.next
+  local previous
+  for _, button in ipairs(shown) do
+    button:ClearAllPoints()
+    if previous then
+      button:SetPoint(nextPoint[1], previous, nextPoint[2], nextPoint[3], nextPoint[4])
+    else
+      button:SetPoint(position.first, self, position.first, 0, 0)
+    end
+    previous = button
   end
 
   self.layingOut = false
