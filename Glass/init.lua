@@ -55,6 +55,10 @@ Core.defaults = {
       yOfs = 230
     },
 
+    -- The game's chat buttons beside the chat
+    chatButtons = false,
+    chatButtonsSide = "left", -- "left", "right", "topleft", "topright", "bottomleft" or "bottomright"
+
     -- Tabs
     tabFont = "", -- empty: same font as the messages
     tabFontSize = 12,
