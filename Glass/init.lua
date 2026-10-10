@@ -75,6 +75,7 @@ Core.defaults = {
     -- Edit box
     editBoxFontSize = 12,
     editBoxBackgroundOpacity = 0.6,
+    editBoxStyle = "minimal", -- "minimal", "solid" or "framed"
     editBoxAnchor = {
       position = "BELOW",
       yOfs = -5

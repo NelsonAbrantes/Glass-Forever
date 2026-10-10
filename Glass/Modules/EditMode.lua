@@ -218,6 +218,19 @@ function EditMode:OnEnable()
       end,
     },
     {
+      name = "Edit box style",
+      desc = "Minimal fades out at the ends like the messages, with a line in the color of the chat you're typing in",
+      kind = LEM.SettingType.Dropdown,
+      default = defaults.editBoxStyle,
+      values = {
+        { text = "Minimal", value = "minimal" },
+        { text = "Solid", value = "solid" },
+        { text = "Framed", value = "framed" },
+      },
+      get = function () return profile().editBoxStyle end,
+      set = function (_, value) Set("editBoxStyle", value, "editBoxStyle") end,
+    },
+    {
       name = "Edit box opacity",
       desc = "Background opacity of the box you type in",
       kind = LEM.SettingType.Slider,

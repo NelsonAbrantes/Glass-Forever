@@ -266,6 +266,10 @@ local function BuildEditBox(category, layout)
   local Settings = _G.Settings
 
   Header(layout, "Appearance")
+  local styleSetting = ProfileSetting(category, "editBoxStyle", Settings.VarType.String, "Style", "editBoxStyle")
+  Dropdown(category, styleSetting, function ()
+    return { { "minimal", "Minimal" }, { "solid", "Solid" }, { "framed", "Framed" } }
+  end, "Minimal: fades out at the ends like the messages, with a thin line in the color of the chat you're typing in (say, party, whisper...). Solid: a plain dark box. Framed: rounded corners and a border in the chat's color")
   Slider(category, "editBoxFontSize", "Font size", 6, 48, 1, nil, "editBoxFontSize")
   Slider(category, "editBoxBackgroundOpacity", "Background opacity", 0, 1, 0.05, nil, "editBoxBackgroundOpacity")
 
