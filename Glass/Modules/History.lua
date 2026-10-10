@@ -25,6 +25,36 @@ local function GetFrames()
   return Core:GetModule("UIManager").state.frames
 end
 
+local function IsSeparator(line)
+  return type(line[1]) == "string"
+    and line[1]:match("^%-+ Previous session, ended .+ %-+$") ~= nil
+end
+
+-- Keeps only the separators that sit between messages: none at the start or
+-- the end, and one where several follow each other (sessions with no new
+-- messages in that tab). The first one is kept: it marks when the messages
+-- above it were said.
+local function CleanUp(lines)
+  local cleaned = {}
+  local hasMessages = false
+  local pending
+  for _, line in ipairs(lines) do
+    if IsSeparator(line) then
+      if hasMessages and not pending then
+        pending = line
+      end
+    else
+      if pending then
+        table.insert(cleaned, pending)
+        pending = nil
+      end
+      table.insert(cleaned, line)
+      hasMessages = true
+    end
+  end
+  return cleaned
+end
+
 local function Save()
   local history = {}
   local total = 0
@@ -44,9 +74,11 @@ local function Save()
         end
 
         -- Keep only the newest lines
+        lines = CleanUp(lines)
         while #lines > MAX_LINES do
           table.remove(lines, 1)
         end
+        lines = CleanUp(lines)
 
         if #lines > 0 then
           history[chatFrame:GetName()] = lines
@@ -99,7 +131,10 @@ local function Restore()
   for _, smf in pairs(GetFrames()) do
     local chatFrame = smf.chatFrame
     local lines = chatFrame and history[chatFrame:GetName()]
-    if lines and smf.state and not smf.state.didBackfill and not AlreadyShown(smf, lines) then
+    -- Also tidies history saved by earlier versions, which piled up
+    -- separators in tabs with no messages
+    lines = lines and CleanUp(lines)
+    if lines and #lines > 0 and smf.state and not smf.state.didBackfill and not AlreadyShown(smf, lines) then
       -- Back-filled messages are stacked on top of the current ones, so
       -- add them newest first to keep the original order. The separator
       -- goes first: it ends up between the old messages and the new ones.

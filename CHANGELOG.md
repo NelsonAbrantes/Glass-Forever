@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.12.0-forever (beta, unreleased)
+
+### Fixed
+- Tabs with no new messages piled up a "Previous session" line every session. Those lines now only show between messages, and history saved by earlier versions is tidied up (`History.lua`).
+
 ## 0.11.0-forever (beta) (2026-10-11)
 
 ### Added
