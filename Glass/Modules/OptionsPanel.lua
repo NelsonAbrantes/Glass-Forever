@@ -317,6 +317,8 @@ local function BuildTabs(category, layout)
   Dropdown(category, positionSetting, function ()
     return { { "top", "Above the messages" }, { "bottom", "Below the messages" } }
   end, "Where the tab bar sits")
+  Slider(category, "tabBarOffsetX", "Horizontal offset", -100, 100, 1, "Moves the tab bar left (negative) or right (positive), in pixels", "tabBarOffsetX")
+  Slider(category, "tabBarOffsetY", "Vertical offset", -50, 50, 1, "Moves the tab bar down (negative) or up (positive), in pixels", "tabBarOffsetY")
   Slider(category, "tabBarHeight", "Height", 14, 48, 1, "Height of the tab bar", "tabBarHeight")
   Slider(category, "tabPadding", "Spacing", 2, 40, 1, "Space around each tab name. More space makes the tabs wider", "tabPadding")
   Slider(category, "tabBarOpacity", "Background opacity", 0, 1, 0.05, "Opacity of the tab bar background", "tabBarOpacity")

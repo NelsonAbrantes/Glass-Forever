@@ -63,6 +63,8 @@ Core.defaults = {
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
     tabBarPosition = "top", -- "top" or "bottom" of the messages
+    tabBarOffsetX = 0, -- fine adjustment of the tab bar, in pixels
+    tabBarOffsetY = 0,
 
     -- Edit box
     editBoxFontSize = 12,

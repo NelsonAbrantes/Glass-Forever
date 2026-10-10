@@ -71,7 +71,7 @@ function ChatDockMixin:Init(parent)
           self:UpdateBackground()
         end
 
-        if key == "tabBarPosition" then
+        if key == "tabBarPosition" or key == "tabBarOffsetX" or key == "tabBarOffsetY" then
           self:UpdatePosition()
         end
       end)
@@ -82,11 +82,14 @@ end
 ---
 -- Puts the tab bar above or below the messages (Tabs options)
 function ChatDockMixin:UpdatePosition()
+  -- Plus a fine adjustment in pixels (positive X = right, positive Y = up)
+  local x = Core.db.profile.tabBarOffsetX or 0
+  local y = Core.db.profile.tabBarOffsetY or 0
   self:ClearAllPoints()
   if Utils.TabBarAtBottom() then
-    self:SetPoint("BOTTOMLEFT", self.container, "BOTTOMLEFT")
+    self:SetPoint("BOTTOMLEFT", self.container, "BOTTOMLEFT", x, y)
   else
-    self:SetPoint("TOPLEFT", self.container, "TOPLEFT")
+    self:SetPoint("TOPLEFT", self.container, "TOPLEFT", x, y)
   end
 end
 
