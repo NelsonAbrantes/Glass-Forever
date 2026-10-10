@@ -61,7 +61,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Set width dynamically based on text width
   if not self:IsHooked(self, "SetWidth") then
     self:SecureHook(self, "SetWidth", function ()
-      local width = self:GetTextWidth() + Utils.TabPadding() * 2
+      local width = self:FitText() + Utils.TabPadding() * 2
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
       end
@@ -176,7 +176,23 @@ function ChatTabMixin:UpdateLayout()
   self:SetHeight(Utils.TabBarHeight())
   self.Text:ClearAllPoints()
   self.Text:SetPoint("LEFT", padding, 0)
-  self:SetWidth(self:GetTextWidth() + padding * 2)
+  self:SetWidth(self:FitText() + padding * 2)
+end
+
+---
+-- Gives the tab name room for its full width and returns that width. The game
+-- limits the width of tab names and cuts long ones ("Combat L..."); measuring
+-- the cut text made the tab too narrow.
+function ChatTabMixin:FitText()
+  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
+  if issecretvalue and issecretvalue(width) then
+    return self:GetTextWidth()
+  end
+  width = math.ceil(width) + 1
+  if math.abs(self.Text:GetWidth() - width) > 0.5 then
+    self.Text:SetWidth(width)
+  end
+  return width
 end
 
 ---
