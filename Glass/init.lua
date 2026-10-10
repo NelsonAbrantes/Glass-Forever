@@ -63,6 +63,7 @@ Core.defaults = {
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
     tabBarPosition = "top", -- "top" or "bottom" of the messages
+    tabBarFade = true, -- the tab bar fades out with the chat; false keeps it visible
     tabBarOffsetX = 0, -- fine adjustment of the tab bar, in pixels
     tabBarOffsetY = 0,
 

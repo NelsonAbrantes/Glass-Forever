@@ -247,6 +247,14 @@ function EditMode:OnEnable()
       set = function (_, value) Set("tabBarPosition", value, "tabBarPosition") end,
     },
     {
+      name = "Tab bar fade out",
+      desc = "The tab bar fades out with the chat. Turn off to keep it always visible",
+      kind = LEM.SettingType.Checkbox,
+      default = defaults.tabBarFade,
+      get = function () return profile().tabBarFade end,
+      set = function (_, value) Set("tabBarFade", value, "tabBarFade") end,
+    },
+    {
       name = "Tab bar height",
       desc = "Height of the tab bar",
       kind = LEM.SettingType.Slider,

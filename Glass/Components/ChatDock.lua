@@ -35,7 +35,12 @@ function ChatDockMixin:Init(parent)
   -- Tabs can be dragged out of the dock to become separate chat windows, as in
   -- the default chat (see UIManager)
 
-  self:QuickHide()
+  -- Hidden until the mouse is over the chat, unless "Fade out" is off
+  if Core.db.profile.tabBarFade == false then
+    self:QuickShow()
+  else
+    self:QuickHide()
+  end
 
   if self.subscriptions == nil then
     self.subscriptions = {
@@ -47,6 +52,9 @@ function ChatDockMixin:Init(parent)
       Core:Subscribe(MOUSE_LEAVE, function ()
         -- Hide chat tab when mouse leaves
         self.state.mouseOver = false
+
+        -- "Fade out" turned off in the Tabs options: the tab bar stays
+        if Core.db.profile.tabBarFade == false then return end
 
         if Core.db.profile.chatShowOnMouseOver then
           -- When chatShowOnMouseOver is on, synchronize the chat tab's fade out with
@@ -69,6 +77,14 @@ function ChatDockMixin:Init(parent)
 
         if key == "tabBarOpacity" then
           self:UpdateBackground()
+        end
+
+        if key == "tabBarFade" then
+          if Core.db.profile.tabBarFade == false then
+            self:Show()
+          elseif not self.state.mouseOver then
+            self:HideDelay(Core.db.profile.chatHoldTime)
+          end
         end
 
         if key == "tabBarPosition" or key == "tabBarOffsetX" or key == "tabBarOffsetY" then

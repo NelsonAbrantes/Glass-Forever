@@ -229,7 +229,9 @@ function UIManager:OnEnable()
   local function RevealDock()
     if self.dock and not self.container.state.mouseOver then
       self.dock:Show()
-      self.dock:HideDelay(ALERT_SECONDS)
+      if Core.db.profile.tabBarFade ~= false then
+        self.dock:HideDelay(ALERT_SECONDS)
+      end
     end
   end
 
