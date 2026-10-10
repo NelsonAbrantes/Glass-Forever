@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.9.1-forever (beta, unreleased)
+## 0.9.1-forever (beta) (2026-10-10)
 
 ### Added
 - Glass can be moved and configured in Blizzard's Edit Mode: width, height, font, font sizes, background opacity and fade out delay (`EditMode.lua`, using LibEditMode).
