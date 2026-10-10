@@ -255,6 +255,19 @@ function EditMode:OnEnable()
       set = function (_, value) Set("tabBarPosition", value, "tabBarPosition") end,
     },
     {
+      name = "Tab alignment",
+      desc = "Where the tabs sit along the tab bar",
+      kind = LEM.SettingType.Dropdown,
+      default = defaults.tabAlign,
+      values = {
+        { text = "Left", value = "left" },
+        { text = "Center", value = "center" },
+        { text = "Right", value = "right" },
+      },
+      get = function () return profile().tabAlign end,
+      set = function (_, value) Set("tabAlign", value, "tabAlign") end,
+    },
+    {
       name = "Tab bar fade out",
       desc = "The tab bar fades out with the chat. Turn off to keep it always visible",
       kind = LEM.SettingType.Checkbox,

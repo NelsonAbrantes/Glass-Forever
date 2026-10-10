@@ -65,6 +65,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
       end
+      -- Wider or narrower tabs move the others when centered or on the right
+      if _G.GeneralDockManager.UpdateAlignment then
+        _G.GeneralDockManager:UpdateAlignment()
+      end
     end)
   end
 

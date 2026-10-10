@@ -32,6 +32,17 @@ function ChatDockMixin:Init(parent)
   self:UpdateHeight()
   self:UpdateBackground()
 
+  -- The game lines the tabs up from the left whenever they change (a tab opens,
+  -- closes or is moved); move them to the chosen alignment afterwards
+  if _G.FCFDock_UpdateTabs and not self:IsHooked("FCFDock_UpdateTabs") then
+    self:SecureHook("FCFDock_UpdateTabs", function (dock)
+      if dock == self then
+        self:UpdateAlignment()
+      end
+    end)
+  end
+  self:UpdateAlignment()
+
   -- Tabs can be dragged out of the dock to become separate chat windows, as in
   -- the default chat (see UIManager)
 
@@ -69,6 +80,11 @@ function ChatDockMixin:Init(parent)
         if key == "frameWidth" then
           self:SetWidth(Core.db.profile.frameWidth)
           self:UpdateBackground()
+          self:UpdateAlignment()
+        end
+
+        if key == "tabAlign" then
+          self:UpdateAlignment()
         end
 
         if key == "tabBarHeight" then
@@ -107,6 +123,42 @@ function ChatDockMixin:UpdatePosition()
   else
     self:SetPoint("TOPLEFT", self.container, "TOPLEFT", x, y)
   end
+end
+
+---
+-- Places the tabs on the left, center or right of the tab bar (Tabs options).
+-- The game anchors the first tab to the left of the bar and every other tab to
+-- the one before it, so moving the first tab moves them all.
+function ChatDockMixin:UpdateAlignment()
+  local frames = self.DOCKED_CHAT_FRAMES
+  if not frames or not frames[1] then return end
+
+  local first = _G[frames[1]:GetName().."Tab"]
+  if not first or first:GetNumPoints() == 0 then return end
+
+  local point, relativeTo, relativePoint, _, y = first:GetPoint(1)
+  if relativeTo ~= self then return end
+
+  -- Total width of the tabs
+  local tabsWidth = 0
+  for _, chatFrame in ipairs(frames) do
+    local tab = _G[chatFrame:GetName().."Tab"]
+    if tab and tab:IsShown() then
+      tabsWidth = tabsWidth + tab:GetWidth()
+    end
+  end
+
+  -- When the tabs don't fit, they stay on the left (the game scrolls them).
+  -- 1px to spare, so the game never thinks they're too wide.
+  local free = math.max(0, self:GetWidth() - tabsWidth - 1)
+  local x = 0
+  if Core.db.profile.tabAlign == "center" then
+    x = math.floor(free / 2)
+  elseif Core.db.profile.tabAlign == "right" then
+    x = math.floor(free)
+  end
+
+  first:SetPoint(point, relativeTo, relativePoint, x, y)
 end
 
 function ChatDockMixin:UpdateHeight()

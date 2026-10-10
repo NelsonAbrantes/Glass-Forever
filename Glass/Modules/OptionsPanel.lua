@@ -318,6 +318,10 @@ local function BuildTabs(category, layout)
   Dropdown(category, positionSetting, function ()
     return { { "top", "Above the messages" }, { "bottom", "Below the messages" } }
   end, "Where the tab bar sits")
+  local alignSetting = ProfileSetting(category, "tabAlign", _G.Settings.VarType.String, "Alignment", "tabAlign")
+  Dropdown(category, alignSetting, function ()
+    return { { "left", "Left" }, { "center", "Center" }, { "right", "Right" } }
+  end, "Where the tabs sit along the tab bar")
   Checkbox(category, "tabBarFade", "Fade out", "The tab bar fades out with the chat when you're not using it. Turn off to keep it always visible", "tabBarFade")
   Slider(category, "tabBarOffsetX", "Horizontal offset", -100, 100, 1, "Moves the tab bar left (negative) or right (positive), in pixels", "tabBarOffsetX")
   Slider(category, "tabBarOffsetY", "Vertical offset", -50, 50, 1, "Moves the tab bar down (negative) or up (positive), in pixels", "tabBarOffsetY")

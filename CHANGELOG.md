@@ -6,6 +6,10 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Added
 - Tabs options (Options > AddOns > Glass Forever > Tabs): tab font and font size, tab bar height, spacing between tabs, tab bar background opacity, and an option to turn off the tab alerts (colored glow and tab bar reveal). Tab font size and tab bar height are also in Edit Mode (`OptionsPanel.lua`, `EditMode.lua`, `Fonts.lua`, `ChatDock.lua`, `ChatTab.lua`, `UIManager.lua`).
+- Tab bar position: above or below the messages, with horizontal and vertical offsets for fine adjustment (`ChatDock.lua`, `SlidingMessageFrame.lua`, `ChatTab.lua`).
+- Tab alignment: left, center or right along the tab bar (`ChatDock.lua`, `ChatTab.lua`).
+- "Fade out" options for the tab bar (Tabs) and for the messages (Messages): turn them off to keep the tab bar or the messages always visible (`ChatDock.lua`, `SlidingMessageFrame.lua`, `UIManager.lua`).
+- Tab bar position, alignment and both "Fade out" options are also in Edit Mode (`EditMode.lua`).
 
 ### Fixed
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).
