@@ -9,6 +9,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Fixed
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).
+- Long tab names were cut ("Combat L..."): the tab is now as wide as the full name (`ChatTab.lua`).
+- The Combat Log covered the tabs when the tab bar was made taller. It now follows the tab bar height (`SlidingMessageFrame.lua`).
 
 ## 0.10.1-forever (beta) (2026-10-10)
 
