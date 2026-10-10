@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 
 local AceHook = Core.Libs.AceHook
 
@@ -21,19 +21,16 @@ function ChatDockMixin:Init(parent)
   }
 
   self:SetWidth(Core.db.profile.frameWidth)
-  self:SetHeight(Constants.DOCK_HEIGHT)
   self:ClearAllPoints()
   self:SetPoint("TOPLEFT", parent, "TOPLEFT")
   self:SetFadeInDuration(0.6)
   self:SetFadeOutDuration(0.6)
 
-  self.scrollFrame:SetHeight(Constants.DOCK_HEIGHT)
   self.scrollFrame:SetPoint("TOPLEFT", _G.ChatFrame2Tab, "TOPRIGHT")
-  self.scrollFrame.child:SetHeight(Constants.DOCK_HEIGHT)
 
-  -- Gradient background
-  local opacity = 0.4
-  self:SetGradientBackground(50, 250, Colors.black, opacity)
+  -- Height and background opacity come from the Tabs options
+  self:UpdateHeight()
+  self:UpdateBackground()
 
   -- Tabs can be dragged out of the dock to become separate chat windows, as in
   -- the default chat (see UIManager)
@@ -63,12 +60,30 @@ function ChatDockMixin:Init(parent)
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" then
           self:SetWidth(Core.db.profile.frameWidth)
+          self:UpdateBackground()
+        end
 
-          self:SetGradientBackground(50, 250, Colors.black, opacity)
+        if key == "tabBarHeight" then
+          self:UpdateHeight()
+        end
+
+        if key == "tabBarOpacity" then
+          self:UpdateBackground()
         end
       end)
     }
   end
+end
+
+function ChatDockMixin:UpdateHeight()
+  local height = Utils.TabBarHeight()
+  self:SetHeight(height)
+  self.scrollFrame:SetHeight(height)
+  self.scrollFrame.child:SetHeight(height)
+end
+
+function ChatDockMixin:UpdateBackground()
+  self:SetGradientBackground(50, 250, Colors.black, Core.db.profile.tabBarOpacity or 0.4)
 end
 
 local isCreated = false

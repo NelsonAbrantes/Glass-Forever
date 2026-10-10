@@ -2,6 +2,14 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.11.0-forever (beta, unreleased)
+
+### Added
+- Tabs options (Options > AddOns > Glass Forever > Tabs): tab font and font size, tab bar height, spacing between tabs, tab bar background opacity, and an option to turn off the tab alerts (colored glow and tab bar reveal). Tab font size and tab bar height are also in Edit Mode (`OptionsPanel.lua`, `EditMode.lua`, `Fonts.lua`, `ChatDock.lua`, `ChatTab.lua`, `UIManager.lua`).
+
+### Fixed
+- The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).
+
 ## 0.10.1-forever (beta) (2026-10-10)
 
 ### Fixed

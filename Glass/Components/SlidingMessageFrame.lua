@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 local TP = Core:GetModule("TextProcessing")
 
 local AceHook = Core.Libs.AceHook
@@ -53,7 +53,7 @@ local SlidingMessageFrameMixin = {}
 
 function SlidingMessageFrameMixin:Init(chatFrame)
   self.config = {
-    height = Core.db.profile.frameHeight - Constants.DOCK_HEIGHT - 5,
+    height = Core.db.profile.frameHeight - Utils.TabBarHeight() - 5,
     width = Core.db.profile.frameWidth,
     overflowHeight = 60,
   }
@@ -105,7 +105,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   -- Chat scroll frame
   self:SetHeight(self.config.height + self.config.overflowHeight)
   self:SetWidth(self.config.width)
-  self:SetPoint("TOPLEFT", 0, (Constants.DOCK_HEIGHT + 5) * -1)
+  self:SetPoint("TOPLEFT", 0, (Utils.TabBarHeight() + 5) * -1)
 
   -- Set initial scroll position
   self:SetVerticalScroll(self.config.overflowHeight)
@@ -294,10 +294,12 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             key == "frameHeight" or
             key == "messageLeading" or
             key == "messageLinePadding" or
-            key == "indentWordWrap"
+            key == "indentWordWrap" or
+            key == "tabBarHeight"
           ) then
-            -- Adjust frame dimensions first
-            self.config.height = Core.db.profile.frameHeight - Constants.DOCK_HEIGHT - 5
+            -- Adjust frame dimensions first (messages start below the tab bar)
+            self.config.height = Core.db.profile.frameHeight - Utils.TabBarHeight() - 5
+            self:SetPoint("TOPLEFT", 0, (Utils.TabBarHeight() + 5) * -1)
             self.config.width = Core.db.profile.frameWidth
 
             self:SetHeight(self.config.height + self.config.overflowHeight)

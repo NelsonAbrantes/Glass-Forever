@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 
 local AceHook = Core.Libs.AceHook
 
@@ -34,11 +34,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self[texName]:SetTexture(nil)
   end
 
-  self:SetHeight(Constants.DOCK_HEIGHT)
   self:SetNormalFontObject("GlassChatDockFont")
-  self.Text:ClearAllPoints()
-  self.Text:SetPoint("LEFT", Constants.TEXT_XPADDING, 0)
-  self:SetWidth(self.Text:GetStringWidth() + Constants.TEXT_XPADDING * 2)
+  self:UpdateLayout()
 
   -- All hooks below are secure: they run after the game's code and correct
   -- what it did, instead of replacing its functions. Replacing taints the
@@ -64,7 +61,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Set width dynamically based on text width
   if not self:IsHooked(self, "SetWidth") then
     self:SecureHook(self, "SetWidth", function ()
-      local width = self:GetTextWidth() + Constants.TEXT_XPADDING * 2
+      local width = self:GetTextWidth() + Utils.TabPadding() * 2
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
       end
@@ -162,13 +159,24 @@ function ChatTabMixin:Init(slidingMessageFrame)
   if self.subscriptions == nil then
     self.subscriptions = {
       Core:Subscribe(UPDATE_CONFIG, function (key)
-        if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize" then
-          -- Fit the tab to its text (the font may have changed its width)
-          self:SetWidth(self:GetTextWidth() + Constants.TEXT_XPADDING * 2)
+        if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize"
+          or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding" then
+          -- Fit the tab to its text, the bar height and the spacing
+          self:UpdateLayout()
         end
       end)
     }
   end
+end
+
+---
+-- Height, text position and width of the tab, from the Tabs options
+function ChatTabMixin:UpdateLayout()
+  local padding = Utils.TabPadding()
+  self:SetHeight(Utils.TabBarHeight())
+  self.Text:ClearAllPoints()
+  self.Text:SetPoint("LEFT", padding, 0)
+  self:SetWidth(self:GetTextWidth() + padding * 2)
 end
 
 ---

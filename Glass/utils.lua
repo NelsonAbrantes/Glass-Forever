@@ -7,6 +7,17 @@ local strsplit = strsplit
 -- luacheck: pop
 
 -- Utility functions
+
+---
+-- Height of the tab bar and space around each tab name (Tabs options)
+Utils.TabBarHeight = function ()
+  return Core.db.profile.tabBarHeight or 20
+end
+
+Utils.TabPadding = function ()
+  return Core.db.profile.tabPadding or 15
+end
+
 Utils.super = function (obj)
   return getmetatable(obj).__index
 end

@@ -55,6 +55,14 @@ Core.defaults = {
       yOfs = 230
     },
 
+    -- Tabs
+    tabFont = "", -- empty: same font as the messages
+    tabFontSize = 12,
+    tabBarHeight = 20,
+    tabPadding = 15,
+    tabBarOpacity = 0.4,
+    tabAlerts = true, -- colored glow and tab bar reveal on new messages
+
     -- Edit box
     editBoxFontSize = 12,
     editBoxBackgroundOpacity = 0.6,

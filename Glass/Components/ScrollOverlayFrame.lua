@@ -15,11 +15,20 @@ local ScrollOverlayFrame = {}
 
 function ScrollOverlayFrame:Init()
     local overlayOpacity = 0.65
-    local topOffset = Core.db.profile.frameHeight - (Constants.DOCK_HEIGHT + 5 + 62)
 
     self:SetHeight(64)
-    self:SetPoint("TOPLEFT", 0, -topOffset)
-    self:SetPoint("TOPRIGHT", 0, -topOffset)
+    self:UpdatePosition()
+
+    -- Follow changes to the chat height and the tab bar height
+    if self.subscriptions == nil then
+      self.subscriptions = {
+        Core:Subscribe(Constants.EVENTS.UPDATE_CONFIG, function (key)
+          if key == "frameHeight" or key == "tabBarHeight" then
+            self:UpdatePosition()
+          end
+        end)
+      }
+    end
     self:SetFadeInDuration(0.3)
     self:SetFadeOutDuration(0.15)
 
@@ -74,6 +83,15 @@ end
 
 function ScrollOverlayFrame:HideNewMessageAlert()
   self.newMessageAlertFrame:Hide()
+end
+
+---
+-- Places the overlay at the bottom of the messages area
+function ScrollOverlayFrame:UpdatePosition()
+  local topOffset = Core.db.profile.frameHeight - (Utils.TabBarHeight() + 5 + 62)
+  self:ClearAllPoints()
+  self:SetPoint("TOPLEFT", 0, -topOffset)
+  self:SetPoint("TOPRIGHT", 0, -topOffset)
 end
 
 local function CreateScrollOverlayFrame(parent)

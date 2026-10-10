@@ -134,8 +134,18 @@ local function Dropdown(category, setting, values, tooltip)
   end, tooltip)
 end
 
--- Font list with scrolling: there can be many fonts, more than fit on screen
-local function FontDropdown(layout)
+-- Font list with scrolling: there can be many fonts, more than fit on screen.
+-- key is the profile setting. With sameLabel, the list starts with an entry
+-- that stores "" (e.g. "Same as messages").
+local function FontDropdown(layout, key, label, tooltip, sameLabel)
+  key = key or "font"
+  label = label or "Font"
+
+  local function Shown(value)
+    if value == "" and sameLabel then return sameLabel end
+    return value
+  end
+
   local Initializer = CreateFromMixins(
     _G.ScrollBoxFactoryInitializerMixin,
     _G.SettingsElementHierarchyMixin,
@@ -144,8 +154,8 @@ local function FontDropdown(layout)
 
   function Initializer:Init()
     _G.ScrollBoxFactoryInitializerMixin.Init(self, "SettingsListElementTemplate")
-    self.data = { name = "Font", tooltip = "Font used throughout Glass Forever" }
-    self:AddSearchTags("Font")
+    self.data = { name = label, tooltip = tooltip or "Font used throughout Glass Forever" }
+    self:AddSearchTags(label)
   end
 
   function Initializer:GetExtent()
@@ -156,7 +166,7 @@ local function FontDropdown(layout)
     frame:SetSize(280, 26)
     frame.data = self.data
     frame.Text:SetFontObject("GameFontNormal")
-    frame.Text:SetText("Font")
+    frame.Text:SetText(label)
     frame.Text:SetPoint("LEFT", 37, 0)
     frame.Text:SetPoint("RIGHT", frame, "CENTER", -85, 0)
 
@@ -172,20 +182,28 @@ local function FontDropdown(layout)
     dropdown:Show()
     dropdown:SetupMenu(function (_, rootDescription)
       rootDescription:SetScrollMode(300)
+      -- A copy: LSM's list is shared with other addons
+      local fonts = {}
+      if sameLabel then
+        table.insert(fonts, "")
+      end
       for _, font in ipairs(LSM:List("font")) do
+        table.insert(fonts, font)
+      end
+      for _, font in ipairs(fonts) do
         rootDescription:CreateRadio(
-          font,
-          function (value) return profile().font == value end,
+          Shown(font),
+          function (value) return (profile()[key] or "") == value end,
           function (value)
-            profile().font = value
-            Core:Dispatch(UpdateConfig("font"))
-            dropdown:OverrideText(value)
+            profile()[key] = value
+            Core:Dispatch(UpdateConfig(key))
+            dropdown:OverrideText(Shown(value))
           end,
           font
         )
       end
     end)
-    dropdown:OverrideText(profile().font)
+    dropdown:OverrideText(Shown(profile()[key] or ""))
   end
 
   function Initializer:Resetter(frame)
@@ -289,6 +307,20 @@ local function BuildMessages(category, layout)
   Slider(category, "iconTextureYOffset", "Text icons Y offset", 0, 12, 1, "Adjust this if text icons aren't centered")
 end
 
+local function BuildTabs(category, layout)
+  Header(layout, "Text")
+  FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
+  Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")
+
+  Header(layout, "Tab bar")
+  Slider(category, "tabBarHeight", "Height", 14, 48, 1, "Height of the tab bar", "tabBarHeight")
+  Slider(category, "tabPadding", "Spacing", 2, 40, 1, "Space around each tab name. More space makes the tabs wider", "tabPadding")
+  Slider(category, "tabBarOpacity", "Background opacity", 0, 1, 0.05, "Opacity of the tab bar background", "tabBarOpacity")
+
+  Header(layout, "Alerts")
+  Checkbox(category, "tabAlerts", "Highlight new messages", "A tab glows in the color of the chat type when a message arrives and the tab is not selected, and the tab bar appears for a few seconds")
+end
+
 local function BuildProfiles(category, layout)
   local Settings = _G.Settings
   local db = Core.db
@@ -329,6 +361,9 @@ function OptionsPanel:Build()
 
   local editBox, editBoxLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Edit box")
   BuildEditBox(editBox, editBoxLayout)
+
+  local tabs, tabsLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Tabs")
+  BuildTabs(tabs, tabsLayout)
 
   local messages, messagesLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Messages")
   BuildMessages(messages, messagesLayout)

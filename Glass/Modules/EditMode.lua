@@ -223,6 +223,28 @@ function EditMode:OnEnable()
         Set("editBoxBackgroundOpacity", RoundTo2(value), "editBoxBackgroundOpacity")
       end,
     },
+    {
+      name = "Tab font size",
+      desc = "Size of the tab names",
+      kind = LEM.SettingType.Slider,
+      default = defaults.tabFontSize,
+      minValue = 6,
+      maxValue = 32,
+      valueStep = 1,
+      get = function () return profile().tabFontSize end,
+      set = function (_, value) Set("tabFontSize", value, "tabFontSize") end,
+    },
+    {
+      name = "Tab bar height",
+      desc = "Height of the tab bar",
+      kind = LEM.SettingType.Slider,
+      default = defaults.tabBarHeight,
+      minValue = 14,
+      maxValue = 48,
+      valueStep = 1,
+      get = function () return profile().tabBarHeight end,
+      set = function (_, value) Set("tabBarHeight", value, "tabBarHeight") end,
+    },
   })
 
   -- The mover frame is normally hidden; show it (without its green

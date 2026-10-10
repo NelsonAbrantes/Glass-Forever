@@ -245,6 +245,9 @@ function UIManager:OnEnable()
     alertFrame:RegisterEvent(event)
   end
   alertFrame:SetScript("OnEvent", function (_, event)
+    -- Turned off in the Tabs options
+    if not Core.db.profile.tabAlerts then return end
+
     local group = ALERT_EVENTS[event]
     -- Color of the specific type (e.g. PARTY_LEADER), falling back to the group
     local info = ChatTypeInfo and (ChatTypeInfo[strsub(event, 10)] or ChatTypeInfo[group])
@@ -276,6 +279,16 @@ function UIManager:OnEnable()
   if _G.FCF_StartAlertFlash then
     self:SecureHook("FCF_StartAlertFlash", function (chatFrame)
       if not chatFrame or not chatFrame.isDocked then return end
+
+      -- Turned off in the Tabs options: undo the game's own flash too
+      if not Core.db.profile.tabAlerts then
+        local tab = _G[chatFrame:GetName().."Tab"]
+        if tab and tab.glow then
+          if _G.UIFrameFlashStop then _G.UIFrameFlashStop(tab.glow) end
+          tab.glow:Hide()
+        end
+        return
+      end
 
       -- Glass hides the game's chat frames, so the game flashes even the tab
       -- being shown. Skip that one.
