@@ -62,7 +62,8 @@ Core.defaults = {
     tabPadding = 15,
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
-    tabStyle = "minimal", -- "minimal" (text only) or "framed" (background and border)
+    tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glass or classic
+    tabAccent = "default", -- accent color of the selected tab; "default" = the style's own
 
     -- Edit box
     editBoxFontSize = 12,

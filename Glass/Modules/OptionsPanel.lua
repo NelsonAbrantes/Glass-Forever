@@ -314,10 +314,29 @@ local function BuildTabs(category, layout)
   local styleSetting = ProfileSetting(category, "tabStyle", Settings.VarType.String, "Tab style", "tabStyle")
   Dropdown(category, styleSetting, function ()
     return {
-      { "minimal", "Minimal (text only)" },
-      { "framed", "Framed (background and border)" },
+      { "minimal", "Minimal" },
+      { "framed", "Framed" },
+      { "solid", "Solid" },
+      { "underline", "Underline" },
+      { "pill", "Pill" },
+      { "glass", "Glass" },
+      { "classic", "Classic" },
     }
-  end, "Minimal shows only the tab names. Framed gives each tab a rounded background and a bronze border, brighter on the selected tab.")
+  end, "Minimal: only the names, with a line above the selected tab.\nFramed: rounded background with a bronze border.\nSolid: filled tabs, the selected one in the accent color.\nUnderline: a bar under the selected tab.\nPill: capsule-shaped tabs.\nGlass: raised, glossy buttons.\nClassic: the game's own tabs.")
+
+  local accentSetting = ProfileSetting(category, "tabAccent", Settings.VarType.String, "Accent color", "tabAccent")
+  Dropdown(category, accentSetting, function ()
+    return {
+      { "default", "Style default" },
+      { "bronze", "Bronze" },
+      { "gold", "Gold" },
+      { "cyan", "Cyan" },
+      { "silver", "Silver" },
+      { "green", "Green" },
+      { "purple", "Purple" },
+      { "red", "Red" },
+    }
+  end, "Color of the selected tab: its border, bar, line or background, depending on the style. Not used by the Classic style.")
 
   Header(layout, "Text")
   FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
