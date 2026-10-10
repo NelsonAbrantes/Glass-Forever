@@ -90,15 +90,18 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     -- Secure (after the fact) hook: replacing the game's functions taints its
     -- chat code, which then can't handle "secret" messages
     self:SecureHook(chatFrame, "SetPoint", function ()
-      if self.positioning then return end
-      self.positioning = true
-      pcall(function ()
-        chatFrame:ClearAllPoints()
-        chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", Constants.TEXT_XPADDING, -45)
-        chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -Constants.TEXT_XPADDING, 0)
-      end)
-      self.positioning = false
+      self:PlaceCombatLog()
     end)
+    self:PlaceCombatLog()
+
+    -- Follow the tab bar height (Tabs options)
+    if self.combatLogSubscription == nil then
+      self.combatLogSubscription = Core:Subscribe(UPDATE_CONFIG, function (key)
+        if key == "tabBarHeight" then
+          self:PlaceCombatLog()
+        end
+      end)
+    end
     return
   end
 
@@ -378,6 +381,24 @@ function SlidingMessageFrameMixin:TakeOverChatFrame()
   end
 
   chatFrame:Hide()
+end
+
+---
+-- Places the Combat Log (the game's own window) below the tab bar, leaving
+-- room for its filter bar ("My actions" / "What happened to me?")
+local COMBAT_LOG_FILTER_HEIGHT = 27 -- room for the filter bar, below the tab bar
+local COMBAT_LOG_X = 10              -- left/right margin, lined up with the tabs
+
+function SlidingMessageFrameMixin:PlaceCombatLog()
+  if self.positioning then return end
+  self.positioning = true
+  local chatFrame = self.chatFrame
+  pcall(function ()
+    chatFrame:ClearAllPoints()
+    chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", COMBAT_LOG_X, -(Utils.TabBarHeight() + COMBAT_LOG_FILTER_HEIGHT))
+    chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -COMBAT_LOG_X, 0)
+  end)
+  self.positioning = false
 end
 
 ---

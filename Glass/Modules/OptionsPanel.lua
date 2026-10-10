@@ -308,6 +308,17 @@ local function BuildMessages(category, layout)
 end
 
 local function BuildTabs(category, layout)
+  local Settings = _G.Settings
+
+  Header(layout, "Style")
+  local styleSetting = ProfileSetting(category, "tabStyle", Settings.VarType.String, "Tab style", "tabStyle")
+  Dropdown(category, styleSetting, function ()
+    return {
+      { "minimal", "Minimal (text only)" },
+      { "framed", "Framed (background and border)" },
+    }
+  end, "Minimal shows only the tab names. Framed gives each tab a rounded background and a bronze border, brighter on the selected tab.")
+
   Header(layout, "Text")
   FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
   Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")

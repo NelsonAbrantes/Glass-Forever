@@ -24,6 +24,8 @@ local tabTexs = {
   "HighlightLeft", "HighlightMiddle", "HighlightRight"
 }
 
+local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\"
+
 local ChatTabMixin = {}
 
 function ChatTabMixin:Init(slidingMessageFrame)
@@ -61,7 +63,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Set width dynamically based on text width
   if not self:IsHooked(self, "SetWidth") then
     self:SecureHook(self, "SetWidth", function ()
-      local width = self:GetTextWidth() + Utils.TabPadding() * 2
+      local width = self:FitText() + Utils.TabPadding() * 2
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
       end
@@ -155,6 +157,34 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self.selectedLine:Hide()
   end
 
+  -- "Framed" tab style (Tabs options): a rounded background and border behind
+  -- each tab, brighter on the selected tab and under the mouse
+  if self.styleBg == nil then
+    self.styleBg = self:CreateTexture(nil, "BACKGROUND", nil, -8)
+    self.styleBg:SetTexture(ASSETS.."tabBackground")
+    self.styleBorder = self:CreateTexture(nil, "BACKGROUND", nil, -7)
+    self.styleBorder:SetTexture(ASSETS.."tabBorder")
+
+    for _, texture in ipairs({ self.styleBg, self.styleBorder }) do
+      -- Keep the rounded corners intact however wide the tab is
+      if texture.SetTextureSliceMargins then
+        texture:SetTextureSliceMargins(8, 8, 8, 8)
+        if texture.SetTextureSliceMode and _G.Enum and _G.Enum.UITextureSliceMode then
+          texture:SetTextureSliceMode(_G.Enum.UITextureSliceMode.Stretched)
+        end
+      end
+      -- A small gap so neighbouring tabs don't touch
+      texture:SetPoint("TOPLEFT", 2, -1)
+      texture:SetPoint("BOTTOMRIGHT", -2, 1)
+      texture:Hide()
+    end
+
+    local hookScript = getmetatable(self).__index.HookScript
+    hookScript(self, "OnEnter", function () self.styleHover = true; self:UpdateStyle() end)
+    hookScript(self, "OnLeave", function () self.styleHover = false; self:UpdateStyle() end)
+  end
+  self.styleKey = nil
+
   -- Listeners
   if self.subscriptions == nil then
     self.subscriptions = {
@@ -163,6 +193,11 @@ function ChatTabMixin:Init(slidingMessageFrame)
           or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
+        end
+
+        if key == "tabStyle" then
+          self.styleKey = nil
+          self:UpdateStyle()
         end
       end)
     }
@@ -176,7 +211,23 @@ function ChatTabMixin:UpdateLayout()
   self:SetHeight(Utils.TabBarHeight())
   self.Text:ClearAllPoints()
   self.Text:SetPoint("LEFT", padding, 0)
-  self:SetWidth(self:GetTextWidth() + padding * 2)
+  self:SetWidth(self:FitText() + padding * 2)
+end
+
+---
+-- Gives the tab name room for its full width and returns that width. The game
+-- limits the width of tab names and cuts long ones ("Combat L..."); measuring
+-- the cut text made the tab too narrow.
+function ChatTabMixin:FitText()
+  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
+  if issecretvalue and issecretvalue(width) then
+    return self:GetTextWidth()
+  end
+  width = math.ceil(width) + 1
+  if math.abs(self.Text:GetWidth() - width) > 0.5 then
+    self.Text:SetWidth(width)
+  end
+  return width
 end
 
 ---
@@ -199,6 +250,37 @@ function ChatTabMixin:ShowSteadyGlow(color)
   glow:SetAlpha(1)
 end
 
+-- Colors of the framed tab style: background {r, g, b, a} and border
+local STYLE_COLORS = {
+  normal = { bg = { 0, 0, 0, 0.5 }, border = { 0.45, 0.33, 0.20, 0.7 } },
+  hover = { bg = { 0.08, 0.08, 0.08, 0.65 }, border = { 0.72, 0.49, 0.30, 0.9 } },
+  selected = { bg = { 0.05, 0.05, 0.05, 0.75 }, border = { 0.88, 0.62, 0.36, 1 } },
+}
+
+---
+-- Shows or hides the framed style and colors it for the tab state.
+-- Called every frame from UpdateSelected, so it only changes things when the
+-- state is different from last time.
+function ChatTabMixin:UpdateStyle(isSelected)
+  if self.styleBg == nil then return end
+  if isSelected == nil then isSelected = self.styleSelected end
+
+  local framed = Core.db.profile.tabStyle == "framed"
+  local state = isSelected and "selected" or (self.styleHover and "hover" or "normal")
+  local key = (framed and state) or "off"
+  if key == self.styleKey then return end
+  self.styleKey = key
+  self.styleSelected = isSelected
+
+  self.styleBg:SetShown(framed)
+  self.styleBorder:SetShown(framed)
+  if not framed then return end
+
+  local colors = STYLE_COLORS[state]
+  self.styleBg:SetVertexColor(unpack(colors.bg))
+  self.styleBorder:SetVertexColor(unpack(colors.border))
+end
+
 local LINE_THICKNESS_PIXELS = 2 -- thickness of the selected-tab line, in real screen pixels
 local LINE_WIDTH_RATIO = 0.5    -- fraction of the tab width
 
@@ -208,7 +290,12 @@ function ChatTabMixin:UpdateSelected(selected)
 
   local isSelected = (self.chatFrame == selected)
 
-  if isSelected then
+  self:UpdateStyle(isSelected)
+
+  -- The framed style marks the selected tab with its border instead of the line
+  local showLine = isSelected and Core.db.profile.tabStyle ~= "framed"
+
+  if showLine then
     -- Convert real pixels to this tab's own units, so every tab gets the same thickness.
     -- This runs every frame, so only resize when something changed.
     local _, screenHeight = GetPhysicalScreenSize()
@@ -227,8 +314,8 @@ function ChatTabMixin:UpdateSelected(selected)
     end
   end
 
-  if line:IsShown() ~= isSelected then
-    line:SetShown(isSelected)
+  if line:IsShown() ~= showLine then
+    line:SetShown(showLine)
   end
 end
 
