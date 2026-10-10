@@ -163,7 +163,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self.subscriptions = {
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize" then
-          self:SetWidth()
+          -- Fit the tab to its text (the font may have changed its width)
+          self:SetWidth(self:GetTextWidth() + Constants.TEXT_XPADDING * 2)
         end
       end)
     }

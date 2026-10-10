@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.10.1-forever (beta) (2026-10-10)
+
+### Fixed
+- Changing the font, font size, width or height (in the options or in Edit Mode) caused a "Usage: self:SetWidth(width)" error. The tabs now resize to their text again (`ChatTab.lua`).
+
 ## 0.10.0-forever (beta) (2026-10-10)
 
 ### Added

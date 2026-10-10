@@ -12,6 +12,14 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "0.10.1-forever (beta)",
+    items = {[[
+Bug fixes
+
+- Fixed an error when changing the font, font size, width or height, in the options or in Edit Mode.
+    ]]}
+  },
+  {
     name = "0.10.0-forever (beta)",
     items = {[[
 What's new
