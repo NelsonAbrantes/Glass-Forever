@@ -7,7 +7,9 @@ local MOUSE_LEAVE = Constants.EVENTS.MOUSE_LEAVE
 local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
+local C_Timer = C_Timer
 local CreateFrame = CreateFrame
+local hooksecurefunc = hooksecurefunc
 local Mixin = Mixin
 -- luacheck: pop
 
@@ -85,12 +87,28 @@ function ChatButtonsMixin:Init(container)
   end
 end
 
+-- Keeps a piece of the game's art hidden: the game shows it again when the
+-- button changes state (e.g. after a click)
+local function KeepHidden(region)
+  region:SetAlpha(0)
+  region:Hide()
+  if region.glassHidden then return end
+  region.glassHidden = true
+  hooksecurefunc(region, "SetAlpha", function (_, alpha)
+    if alpha ~= 0 then region:SetAlpha(0) end
+  end)
+  hooksecurefunc(region, "Show", function () region:Hide() end)
+  hooksecurefunc(region, "SetShown", function (_, shown)
+    if shown then region:Hide() end
+  end)
+end
+
 -- Hides the game's art of a button (all its textures and its text, like the
--- friends count) and keeps it hidden when the game changes it
+-- friends count), including pieces the game adds later
 local function Strip(button)
   for _, region in ipairs({ button:GetRegions() }) do
     if region ~= button.glassIcon then
-      region:SetAlpha(0)
+      KeepHidden(region)
     end
   end
 end
@@ -126,6 +144,10 @@ function ChatButtonsMixin:Restyle(button, icon)
     end)
     button:HookScript("OnMouseUp", function ()
       button.glassIcon:SetPoint("CENTER")
+    end)
+    -- A click can add new art: hide it once the game is done with the click
+    button:HookScript("OnClick", function ()
+      C_Timer.After(0, function () Strip(button) end)
     end)
 
     for _, method in ipairs(ART_METHODS) do
