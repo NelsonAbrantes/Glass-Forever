@@ -15,6 +15,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).
 - Long tab names were cut ("Combat L..."): the tab is now as wide as the full name (`ChatTab.lua`).
 - The Combat Log covered the tabs when the tab bar was made taller. It now follows the tab bar height (`SlidingMessageFrame.lua`).
+- Whisper tabs were cut off at the end of the tab bar, and with several whispers most of them couldn't be seen. When the tabs don't fit, they now get less space around their names first, then whisper names get "...", then the other chats' names. The game's arrow with the list of chats only appears when even that isn't enough (`ChatDock.lua`, `ChatTab.lua`).
 
 ## 0.10.1-forever (beta) (2026-10-10)
 

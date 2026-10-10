@@ -61,13 +61,40 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Set width dynamically based on text width
   if not self:IsHooked(self, "SetWidth") then
     self:SecureHook(self, "SetWidth", function ()
-      local width = self:FitText() + Utils.TabPadding() * 2
+      local padding = Utils.TabPadding()
+      local width = self:FitText() + padding * 2
+
+      -- When the tabs don't fit on the bar, some get narrower (see the dock's
+      -- TabLayout): first with less space around the name, then with "..."
+      local dock = _G.GeneralDockManager
+      local shrunkWidth, exact
+      if dock.DynamicTabWidth then
+        shrunkWidth, exact = dock:DynamicTabWidth(self)
+      end
+      local textLeft = padding
+      if shrunkWidth and (exact or shrunkWidth < width) then
+        local minPadding = Constants.TAB_SHRUNK_PADDING
+        -- Whisper tabs keep room for their icon, left of the name
+        local icon = self.conversationIcon
+        local iconWidth = icon and icon:IsShown() and icon:GetWidth() or 0
+        local spare = shrunkWidth - (width - padding * 2) - iconWidth
+        textLeft = iconWidth + math.max(minPadding, math.min(padding, spare / 2))
+        self.Text:SetWidth(math.max(1, shrunkWidth - textLeft - minPadding))
+        width = shrunkWidth
+      end
+      if self.textLeft ~= textLeft then
+        self.textLeft = textLeft
+        self.Text:ClearAllPoints()
+        self.Text:SetPoint("LEFT", textLeft, 0)
+      end
+
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
       end
       -- Wider or narrower tabs move the others when centered or on the right
-      if _G.GeneralDockManager.UpdateAlignment then
-        _G.GeneralDockManager:UpdateAlignment()
+      if dock.UpdateAlignment then
+        dock:UpdateOverflow()
+        dock:UpdateAlignment()
       end
     end)
   end
@@ -179,8 +206,9 @@ end
 function ChatTabMixin:UpdateLayout()
   local padding = Utils.TabPadding()
   self:SetHeight(Utils.TabBarHeight())
-  self.Text:ClearAllPoints()
-  self.Text:SetPoint("LEFT", padding, 0)
+  -- The name's position is set in the SetWidth hook (it moves when the tab is
+  -- shrunk to fit the bar)
+  self.textLeft = nil
   self:SetWidth(self:FitText() + padding * 2)
   self:PlaceSelectedLine()
 end
@@ -204,15 +232,21 @@ end
 -- limits the width of tab names and cuts long ones ("Combat L..."); measuring
 -- the cut text made the tab too narrow.
 function ChatTabMixin:FitText()
-  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
-  if issecretvalue and issecretvalue(width) then
-    return self:GetTextWidth()
-  end
-  width = math.ceil(width) + 1
+  local width = self:FullTextWidth()
   if math.abs(self.Text:GetWidth() - width) > 0.5 then
     self.Text:SetWidth(width)
   end
   return width
+end
+
+---
+-- Width of the whole tab name, even when it's shown cut
+function ChatTabMixin:FullTextWidth()
+  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
+  if issecretvalue and issecretvalue(width) then
+    return self:GetTextWidth()
+  end
+  return math.ceil(width) + 1
 end
 
 ---

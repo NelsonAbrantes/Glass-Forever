@@ -8,6 +8,7 @@ local WOW_PROJECT_ID = WOW_PROJECT_ID
 -- Constants
 Constants.DOCK_HEIGHT = 20
 Constants.TEXT_XPADDING = 15
+Constants.TAB_SHRUNK_PADDING = 4 -- space around the name of a tab shrunk to fit the bar
 
 Constants.ENV = "retail"
 

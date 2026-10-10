@@ -37,11 +37,31 @@ function ChatDockMixin:Init(parent)
   if _G.FCFDock_UpdateTabs and not self:IsHooked("FCFDock_UpdateTabs") then
     self:SecureHook("FCFDock_UpdateTabs", function (dock)
       if dock == self then
+        -- Whisper tabs share the room left on the bar, which just changed
+        for _, chatFrame in ipairs(self.DOCKED_CHAT_FRAMES or {}) do
+          local tab = _G[chatFrame:GetName().."Tab"]
+          if tab and tab.UpdateLayout then
+            tab:UpdateLayout()
+          end
+        end
+        self:UpdateOverflow()
         self:UpdateAlignment()
       end
     end)
   end
   self:UpdateAlignment()
+
+  -- While the tabs all fit, the game must not scroll them (it would hide the
+  -- first ones, see UpdateOverflow)
+  if not self:IsHooked(self.scrollFrame, "SetHorizontalScroll") then
+    self:SecureHook(self.scrollFrame, "SetHorizontalScroll", function (_, offset)
+      if self.tabsOverflow == false and offset ~= 0 and not self.resettingScroll then
+        self.resettingScroll = true
+        self.scrollFrame:SetHorizontalScroll(0)
+        self.resettingScroll = false
+      end
+    end)
+  end
 
   -- Tabs can be dragged out of the dock to become separate chat windows, as in
   -- the default chat (see UIManager)
@@ -159,6 +179,169 @@ function ChatDockMixin:UpdateAlignment()
   end
 
   first:SetPoint(point, relativeTo, relativePoint, x, y)
+end
+
+local MIN_TAB_WIDTH = 50 -- smallest a tab gets before the game's arrow appears
+
+---
+-- Widest the tabs in a list can be to share `room`, or nil if they all fit at
+-- their full width. Narrowest first: each one that fits in an equal share
+-- keeps its width, and the wider ones share what's left.
+local function ShareRoom(widths, room)
+  table.sort(widths)
+  local left = #widths
+  for _, width in ipairs(widths) do
+    local share = room / left
+    if width > share then
+      return math.floor(share)
+    end
+    room = room - width
+    left = left - 1
+  end
+  return nil
+end
+
+local function Sum(widths)
+  local total = 0
+  for _, width in ipairs(widths) do
+    total = total + width
+  end
+  return total
+end
+
+---
+-- Decides how wide the tabs in the bar's scrolling part are. That part comes
+-- after General and Combat Log (which never change) and holds the other chats
+-- (Guild, Party, Trade...) and the whisper tabs; anything past the end of the
+-- bar is cut off. When they don't fit, in this order:
+-- 1. Less space around the names (down to SHRUNK_PADDING), full names.
+-- 2. Whisper names get "...": they come and go. Down to MIN_TAB_WIDTH.
+-- 3. Then the other chats' names, down to MIN_TAB_WIDTH too.
+-- 4. If even that doesn't fit, the game's own system takes over: all those
+--    tabs the same width, and an arrow at the end of the bar with the list of
+--    chats.
+-- Returns overflow (true in case 4) and the width of each shrunk tab (tabs
+-- not in the list keep their normal width).
+function ChatDockMixin:TabLayout()
+  local scrollChild = self.scrollFrame and self.scrollFrame.child
+  local padding = Utils.TabPadding()
+  local SHRUNK_PADDING = Constants.TAB_SHRUNK_PADDING
+  local fixedWidth = 0
+  local tabs = {} -- { tab, full width, compact width, is whisper }
+  local count = 0
+
+  for _, chatFrame in ipairs(self.DOCKED_CHAT_FRAMES or {}) do
+    local tab = _G[chatFrame:GetName().."Tab"]
+    if tab then
+      count = count + 1
+      local text = tab.FullTextWidth and tab:FullTextWidth() or tab:GetWidth() - padding * 2
+      if tab:GetParent() ~= scrollChild then
+        fixedWidth = fixedWidth + text + padding * 2
+      else
+        local icon = tab.conversationIcon
+        local iconWidth = icon and icon:IsShown() and icon:GetWidth() or 0
+        local full = text + padding * 2
+        local compact = math.min(full, text + SHRUNK_PADDING * 2 + iconWidth)
+        table.insert(tabs, { tab, full, compact, chatFrame.isTemporary })
+      end
+    end
+  end
+
+  -- The game leaves 1px between tabs
+  local room = self:GetWidth() - fixedWidth - count
+  local widths = {}
+
+  local fullSum, compactSum, chatCompactSum, numWhispers = 0, 0, 0, 0
+  for _, entry in ipairs(tabs) do
+    fullSum = fullSum + entry[2]
+    compactSum = compactSum + entry[3]
+    if entry[4] then
+      numWhispers = numWhispers + 1
+    else
+      chatCompactSum = chatCompactSum + entry[3]
+    end
+  end
+
+  -- Everything fits
+  if fullSum <= room then
+    return false, widths
+  end
+
+  -- 1. Full names with less space around them, sharing the extra room evenly
+  if compactSum <= room then
+    local extra = (room - compactSum) / #tabs
+    for _, entry in ipairs(tabs) do
+      widths[entry[1]] = math.floor(math.min(entry[2], entry[3] + extra))
+    end
+    return false, widths
+  end
+
+  -- Shrinks the names of one group of tabs to share `groupRoom`
+  local function Shrink(isWhisper, groupRoom)
+    local list = {}
+    for _, entry in ipairs(tabs) do
+      if (entry[4] and true or false) == isWhisper then
+        table.insert(list, entry[3])
+      end
+    end
+    local cap = ShareRoom(list, groupRoom)
+    for _, entry in ipairs(tabs) do
+      if (entry[4] and true or false) == isWhisper then
+        widths[entry[1]] = cap and math.min(entry[3], cap) or entry[3]
+      end
+    end
+  end
+
+  -- 2. Chats with their full names, whispers share the rest
+  if chatCompactSum + numWhispers * MIN_TAB_WIDTH <= room then
+    Shrink(false, chatCompactSum)
+    Shrink(true, room - chatCompactSum)
+    return false, widths
+  end
+
+  -- 3. Whispers at their smallest, chats share the rest
+  local chatsRoom = room - numWhispers * MIN_TAB_WIDTH
+  if (#tabs - numWhispers) * MIN_TAB_WIDTH <= chatsRoom then
+    Shrink(true, numWhispers * MIN_TAB_WIDTH)
+    Shrink(false, chatsRoom)
+    return false, widths
+  end
+
+  return true, widths
+end
+
+---
+-- Width a tab in the scrolling part must have, or nil to keep its normal
+-- width. The second value is true when the game picked it (exactly that
+-- width, even when wider than the name)
+function ChatDockMixin:DynamicTabWidth(tab)
+  local scrollChild = self.scrollFrame and self.scrollFrame.child
+  if not scrollChild or tab:GetParent() ~= scrollChild then return nil end
+
+  local overflow, widths = self:TabLayout()
+  if overflow then
+    -- The size the game picked: its scrolling counts on every tab having it
+    return self.scrollFrame.dynTabSize, true
+  end
+  return widths[tab]
+end
+
+---
+-- The game shows its arrow (and scrolls the tabs) by its own count, which
+-- assumes small tabs of the same size. When our tabs all fit, hide the arrow,
+-- give the tabs the whole bar and keep them from scrolling.
+function ChatDockMixin:UpdateOverflow()
+  local overflow = self:TabLayout()
+  self.tabsOverflow = overflow
+  if overflow then return end
+
+  if self.overflowButton and self.overflowButton:IsShown() then
+    self.overflowButton:Hide()
+    self.scrollFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, -1)
+  end
+  if self.scrollFrame:GetHorizontalScroll() ~= 0 then
+    self.scrollFrame:SetHorizontalScroll(0)
+  end
 end
 
 function ChatDockMixin:UpdateHeight()
