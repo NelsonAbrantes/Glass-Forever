@@ -126,6 +126,14 @@ function EditMode:OnEnable()
       end,
     },
     {
+      name = "Fade out messages",
+      desc = "Messages fade out after a while. Turn off to keep them always visible",
+      kind = LEM.SettingType.Checkbox,
+      default = defaults.messageFade,
+      get = function () return profile().messageFade end,
+      set = function (_, value) Set("messageFade", value, "messageFade") end,
+    },
+    {
       name = "Fade out delay",
       desc = "Seconds before messages fade out",
       kind = LEM.SettingType.Slider,

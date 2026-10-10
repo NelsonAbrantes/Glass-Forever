@@ -293,6 +293,7 @@ local function BuildMessages(category, layout)
   Slider(category, "messageLinePadding", "Line padding", 0, 2, 0.05, "Space around each message", "messageLinePadding")
 
   Header(layout, "Animations")
+  Checkbox(category, "messageFade", "Fade out", "Messages fade out after a while when you're not using the chat. Turn off to keep them always visible", "messageFade")
   Slider(category, "chatHoldTime", "Fade out delay", 1, 180, 1, "Seconds before messages fade out")
   Checkbox(category, "chatShowOnMouseOver", "Show on mouse over", "Show faded messages again while the mouse is over the chat")
   Slider(category, "chatFadeInDuration", "Fade in duration", 0, 10, 0.05, nil, "chatFadeInDuration")

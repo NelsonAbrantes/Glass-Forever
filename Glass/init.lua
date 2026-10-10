@@ -81,6 +81,7 @@ Core.defaults = {
     messageLeading = 3,
     messageLinePadding = 0.25,
 
+    messageFade = true, -- messages fade out after chatHoldTime; false keeps them visible
     chatHoldTime = 10,
     chatShowOnMouseOver = true,
     chatFadeInDuration = 0.6,

@@ -22,6 +22,14 @@ local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local Mixin = Mixin
 -- luacheck: pop
 
+-- Starts a message's fade out, unless "Fade out" is off in the Messages
+-- options (then messages stay visible)
+local function FadeOutLater(message)
+  if Core.db.profile.messageFade ~= false then
+    message:HideDelay(Core.db.profile.chatHoldTime)
+  end
+end
+
 -- Retail 12.x can return "secret" numbers from scroll frame getters, which
 -- addons cannot do arithmetic on. Fall back to values we control ourselves.
 local function GetScrollRange(frame)
@@ -199,7 +207,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     elseif not self.state.mouseOver then
       -- Messages that arrived while hidden never started fading out
       for _, message in ipairs(self.state.messages) do
-        message:HideDelay(Core.db.profile.chatHoldTime)
+        FadeOutLater(message)
       end
     end
   end)
@@ -280,10 +288,20 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         self.overlay:HideDelay(Core.db.profile.chatHoldTime)
 
         for _, message in ipairs(self.state.messages) do
-          message:HideDelay(Core.db.profile.chatHoldTime)
+          FadeOutLater(message)
         end
       end),
       Core:Subscribe(UPDATE_CONFIG, function (key)
+        if key == "messageFade" then
+          for _, message in ipairs(self.state.messages) do
+            if Core.db.profile.messageFade == false then
+              message:Show()
+            elseif not self.state.mouseOver then
+              message:HideDelay(Core.db.profile.chatHoldTime)
+            end
+          end
+        end
+
         -- Separate windows follow the Glass font too
         if key == "font" then
           self:ApplyGlassFont()
@@ -598,7 +616,7 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
   for _, message in ipairs(newMessages) do
     message:Show()
     if not self.state.mouseOver then
-      message:HideDelay(Core.db.profile.chatHoldTime)
+      FadeOutLater(message)
     end
     if reverse then
       table.insert(self.state.messages, 1, message)
