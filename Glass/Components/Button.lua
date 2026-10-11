@@ -31,9 +31,11 @@ end
 
 ---
 -- Creates a button in the current game style. Its width follows the text.
-Core.Components.CreateButton = function (parent)
+-- extraTemplate adds another template, e.g. SecureActionButtonTemplate.
+Core.Components.CreateButton = function (parent, extraTemplate)
   local template = ChooseTemplate()
-  local button = CreateFrame("Button", nil, parent, template.name)
+  local templates = extraTemplate and (template.name..", "..extraTemplate) or template.name
+  local button = CreateFrame("Button", nil, parent, templates)
   button:SetScale(template.scale)
 
   local function Resize()
