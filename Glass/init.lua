@@ -50,6 +50,7 @@ Core.defaults = {
     fontFlags = "",
     frameWidth = 450,
     frameHeight = 230,
+    windowStyle = true, -- separate (undocked) windows get the Glass look
     positionAnchor = {
       point = "BOTTOMLEFT",
       xOfs = 20,

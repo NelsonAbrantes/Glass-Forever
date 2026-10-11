@@ -12,12 +12,16 @@ local reduce = lodash.reduce
 local CreateMessageLinePool = Core.Components.CreateMessageLinePool
 local CreateScrollOverlayFrame = Core.Components.CreateScrollOverlayFrame
 
+local Colors = Constants.COLORS
+
 local MOUSE_ENTER = Constants.EVENTS.MOUSE_ENTER
 local MOUSE_LEAVE = Constants.EVENTS.MOUSE_LEAVE
 local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
+local CreateFont = CreateFont
 local CreateFrame = CreateFrame
+local GetChatWindowInfo = GetChatWindowInfo
 local CreateObjectPool = CreateObjectPool
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local Mixin = Mixin
@@ -308,6 +312,12 @@ function SlidingMessageFrameMixin:Init(chatFrame)
           self:ApplyGlassFont()
         end
 
+        -- ...and the Glass look, with its fade and background settings
+        if self.state.detached and (key == "windowStyle" or key == "chatHoldTime"
+          or key == "chatFadeOutDuration" or key == "chatBackgroundOpacity") then
+          self:ApplyWindowStyle()
+        end
+
         if self.state.isCombatLog == false then
           if (
             key == "font" or
@@ -466,10 +476,208 @@ function SlidingMessageFrameMixin:ReleaseChatFrame()
   chatFrame:SetParent(_G.UIParent)
   chatFrame:SetClampedToScreen(true)
   chatFrame:SetResizable(true)
-  _G[chatFrame:GetName().."ButtonFrame"]:Show()
 
   self:Hide()
   self:ApplyGlassFont()
+  self:ApplyWindowStyle()
+end
+
+-- The background of a separate window: how much of the width fades in at each
+-- side, and how far it reaches past the window's edges (room around the text)
+local WINDOW_FADE_RATIO = 0.3
+local WINDOW_BG_PAD_X = 10
+local WINDOW_BG_PAD_Y = 4
+-- The background fills the whole window, not only behind messages like in the
+-- main chat, so it uses less of the chat background opacity to look as light
+local WINDOW_BG_STRENGTH = 0.4
+
+local function WindowFade(chatFrame)
+  return math.max(40, math.floor(chatFrame:GetWidth() * WINDOW_FADE_RATIO))
+end
+
+-- The window's border pieces (FloatingBorderedFrame)
+local WINDOW_BORDER = {
+  "TopLeftTexture", "TopRightTexture", "BottomLeftTexture", "BottomRightTexture",
+  "LeftTexture", "RightTexture", "TopTexture", "BottomTexture",
+}
+
+---
+-- True while this window is separate and uses the Glass look (Options >
+-- General > Separate windows)
+function SlidingMessageFrameMixin:UsesWindowStyle()
+  return self.state.detached and Core.db.profile.windowStyle ~= false
+end
+
+---
+-- Gives a separate window the Glass look: no border or side buttons, the
+-- Glass fading background (shown while the mouse is over the window, like the
+-- game's own), and messages that fade out like in Glass. The window stays the
+-- game's own, so it can still be moved, resized and docked again. With the
+-- option off it looks like the default chat.
+function SlidingMessageFrameMixin:ApplyWindowStyle()
+  local chatFrame = self.chatFrame
+  local name = chatFrame:GetName()
+  local glass = self:UsesWindowStyle()
+
+  _G[name.."ButtonFrame"]:Show()
+
+  -- Keep the border of the window and of its side buttons hidden: the game
+  -- shows them again on mouse over
+  local parts = {}
+  for _, part in ipairs(WINDOW_BORDER) do
+    table.insert(parts, name..part)
+    table.insert(parts, name.."ButtonFrame"..part)
+  end
+  table.insert(parts, name.."ButtonFrameBackground")
+  for _, part in ipairs(parts) do
+    local texture = _G[part]
+    if texture then
+      if not self:IsHooked(texture, "SetAlpha") then
+        self:SecureHook(texture, "SetAlpha", function (_, alpha)
+          if self:UsesWindowStyle() and alpha ~= 0 then texture:SetAlpha(0) end
+        end)
+      end
+      texture:SetAlpha(glass and 0 or 1)
+    end
+  end
+
+  -- The minimize and resize buttons in the style of the chat buttons
+  local chatButtons = Core:GetModule("UIManager").chatButtons
+  local minimize = _G[name.."ButtonFrameMinimizeButton"]
+  local resize = chatFrame.ResizeButton or _G[name.."ResizeButton"]
+  if chatButtons then
+    if minimize then
+      if glass then chatButtons:Restyle(minimize, "buttonMinimize") else chatButtons:Unstyle(minimize) end
+    end
+    if resize then
+      if glass then chatButtons:Restyle(resize, "buttonResize", 16, 14) else chatButtons:Unstyle(resize) end
+    end
+  end
+
+  -- The Glass background follows the game's: it fades in and out with the
+  -- mouse, the game's own stays invisible
+  local background = _G[name.."Background"]
+  if background then
+    if chatFrame.leftBg == nil then
+      local fade = WindowFade(chatFrame)
+      Core.Components.GradientBackgroundMixin.SetGradientBackground(chatFrame, fade, fade, Colors.codGray, 0)
+      for _, texture in ipairs({ chatFrame.leftBg, chatFrame.centerBg, chatFrame.rightBg }) do
+        texture:SetDrawLayer("BACKGROUND", -8)
+      end
+      -- A bit past the window's edges, so the text isn't right at the border
+      chatFrame.leftBg:ClearAllPoints()
+      chatFrame.leftBg:SetPoint("TOPLEFT", chatFrame, "TOPLEFT", -WINDOW_BG_PAD_X, WINDOW_BG_PAD_Y)
+      chatFrame.leftBg:SetPoint("BOTTOMLEFT", chatFrame, "BOTTOMLEFT", -WINDOW_BG_PAD_X, -WINDOW_BG_PAD_Y)
+      chatFrame.rightBg:ClearAllPoints()
+      chatFrame.rightBg:SetPoint("TOPRIGHT", chatFrame, "TOPRIGHT", WINDOW_BG_PAD_X, WINDOW_BG_PAD_Y)
+      chatFrame.rightBg:SetPoint("BOTTOMRIGHT", chatFrame, "BOTTOMRIGHT", WINDOW_BG_PAD_X, -WINDOW_BG_PAD_Y)
+
+      -- The fade follows the width when the window is resized
+      chatFrame:HookScript("OnSizeChanged", function ()
+        if self:UsesWindowStyle() then
+          self:ShowWindowBackground(self.windowBackgroundAlpha)
+        end
+      end)
+    end
+
+    if not self:IsHooked(background, "SetAlpha") then
+      self:SecureHook(background, "SetAlpha", function (_, alpha)
+        if not self:UsesWindowStyle() or self.settingBackground then return end
+        self:ShowWindowBackground(alpha)
+      end)
+    end
+
+    self:ShowWindowBackground(glass and background:GetAlpha() or nil)
+  end
+
+  -- Messages fade out like in Glass (the game's own fading, with Glass' timing)
+  if glass then
+    chatFrame:SetFading(true)
+    chatFrame:SetTimeVisible(Core.db.profile.chatHoldTime)
+    chatFrame:SetFadeDuration(Core.db.profile.chatFadeOutDuration)
+  end
+
+  self:StyleMinimizedFrame()
+end
+
+local MINIMIZED_ART = { "Left", "Right", "Middle", "HighlightLeft", "HighlightRight", "HighlightMiddle" }
+
+---
+-- A minimized separate window (the bar with its name) in the Glass look: the
+-- fading background, the name in the tab font and color, and a maximize
+-- button like the chat buttons. The game creates it the first time the window
+-- is minimized.
+function SlidingMessageFrameMixin:StyleMinimizedFrame()
+  local minFrame = self.chatFrame.minFrame
+  if not minFrame then return end
+  local glass = self:UsesWindowStyle()
+
+  for _, key in ipairs(MINIMIZED_ART) do
+    local texture = minFrame[key]
+    if texture then
+      if not self:IsHooked(texture, "SetAlpha") then
+        self:SecureHook(texture, "SetAlpha", function (_, alpha)
+          if self:UsesWindowStyle() and alpha ~= 0 then texture:SetAlpha(0) end
+        end)
+      end
+      texture:SetAlpha(glass and 0 or 1)
+    end
+  end
+
+  local GradientBackgroundMixin = Core.Components.GradientBackgroundMixin
+  local opacity = glass and math.max(Core.db.profile.chatBackgroundOpacity * 0.8, 0.35) or 0
+  GradientBackgroundMixin.SetGradientBackground(minFrame, 20, 60, Colors.codGray, opacity)
+
+  -- The name: tab font in the Glass color (a copy, so its color stays)
+  if minFrame.glassFont == nil then
+    minFrame.glassGameFont = minFrame:GetNormalFontObject()
+    minFrame.glassFont = CreateFont(minFrame:GetName().."GlassFont")
+  end
+  if glass then
+    minFrame.glassFont:CopyFontObject(_G.GlassChatDockFont)
+    minFrame.glassFont:SetTextColor(Colors.apache.r, Colors.apache.g, Colors.apache.b)
+    minFrame.glassFont:SetJustifyH("CENTER")
+    minFrame:SetNormalFontObject(minFrame.glassFont)
+  elseif minFrame.glassGameFont then
+    minFrame:SetNormalFontObject(minFrame.glassGameFont)
+  end
+
+  local maximize = _G[minFrame:GetName().."MaximizeButton"]
+  local chatButtons = Core:GetModule("UIManager").chatButtons
+  if maximize and chatButtons then
+    if glass then
+      chatButtons:Restyle(maximize, "buttonMaximize")
+    else
+      chatButtons:Unstyle(maximize)
+    end
+  end
+end
+
+---
+-- Shows the Glass background of a separate window at the strength the game
+-- gives its own (alpha), and keeps the game's invisible. nil: Glass off.
+function SlidingMessageFrameMixin:ShowWindowBackground(alpha)
+  local chatFrame = self.chatFrame
+  local background = _G[chatFrame:GetName().."Background"]
+  local fade = WindowFade(chatFrame)
+  local strength = 0
+  self.windowBackgroundAlpha = alpha
+  if alpha then
+    -- The game's background goes up to the window's own opacity setting
+    local maxAlpha = select(6, GetChatWindowInfo(chatFrame:GetID())) or 0.25
+    strength = math.min(1, alpha / math.max(maxAlpha, 0.01))
+  end
+
+  if alpha then
+    self.settingBackground = true
+    background:SetAlpha(0)
+    self.settingBackground = false
+  end
+
+  -- Drawn again with the right opacity: a texture's own opacity doesn't mix
+  -- well with a fade drawn on it
+  local opacity = Core.db.profile.chatBackgroundOpacity * WINDOW_BG_STRENGTH * strength
+  Core.Components.GradientBackgroundMixin.SetGradientBackground(chatFrame, fade, fade, Colors.codGray, opacity)
 end
 
 ---

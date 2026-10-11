@@ -10,6 +10,7 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 local C_Timer = C_Timer
 local CreateFrame = CreateFrame
 local hooksecurefunc = hooksecurefunc
+local tContains = tContains
 local Mixin = Mixin
 -- luacheck: pop
 
@@ -96,27 +97,33 @@ function ChatButtonsMixin:Init(container)
 end
 
 -- Keeps a piece of the game's art hidden: the game shows it again when the
--- button changes state (e.g. after a click)
-local function KeepHidden(region)
+-- button changes state (e.g. after a click). Does nothing once the button
+-- gets its own look back (Unstyle).
+local function KeepHidden(region, owner)
+  region.glassOwner = owner
   region:SetAlpha(0)
   region:Hide()
   if region.glassHidden then return end
   region.glassHidden = true
+  local function Styled() return region.glassOwner.glassStyled ~= false end
   hooksecurefunc(region, "SetAlpha", function (_, alpha)
-    if alpha ~= 0 then region:SetAlpha(0) end
+    if Styled() and alpha ~= 0 then region:SetAlpha(0) end
   end)
-  hooksecurefunc(region, "Show", function () region:Hide() end)
+  hooksecurefunc(region, "Show", function ()
+    if Styled() then region:Hide() end
+  end)
   hooksecurefunc(region, "SetShown", function (_, shown)
-    if shown then region:Hide() end
+    if Styled() and shown then region:Hide() end
   end)
 end
 
 -- Hides the game's art of a button (all its textures and its text, like the
 -- friends count), including pieces the game adds later
 local function Strip(button)
+  if button.glassStyled == false then return end
   for _, region in ipairs({ button:GetRegions() }) do
     if region ~= button.glassIcon then
-      KeepHidden(region)
+      KeepHidden(region, button)
     end
   end
 end
@@ -129,12 +136,22 @@ local ART_METHODS = {
 ---
 -- Gives a game button the Glass look: a plain icon in the Glass color, white
 -- under the mouse. Only the look changes; clicks still go to the game's code.
-function ChatButtonsMixin:Restyle(button, icon)
-  button:SetSize(BUTTON_SIZE, BUTTON_SIZE)
+-- Sizes are optional (the chat buttons' by default).
+function ChatButtonsMixin:Restyle(button, icon, buttonSize, iconSize)
+  if button.glassIcon == nil then
+    button.glassSize = { button:GetSize() }
+  end
+  button.glassStyled = true
+  button:SetSize(buttonSize or BUTTON_SIZE, buttonSize or BUTTON_SIZE)
+
+  self.styled = self.styled or {}
+  if not tContains(self.styled, button) then
+    table.insert(self.styled, button)
+  end
 
   if button.glassIcon == nil then
     button.glassIcon = button:CreateTexture(nil, "OVERLAY", nil, 7)
-    button.glassIcon:SetSize(ICON_SIZE, ICON_SIZE)
+    button.glassIcon:SetSize(iconSize or ICON_SIZE, iconSize or ICON_SIZE)
     button.glassIcon:SetPoint("CENTER")
     button.glassIcon:SetTexture(ASSETS..icon)
 
@@ -165,14 +182,32 @@ function ChatButtonsMixin:Restyle(button, icon)
     end
   end
 
+  button.glassIcon:Show()
   Strip(button)
   self:UpdateColors()
+end
+
+---
+-- Gives a restyled button its game look back
+function ChatButtonsMixin:Unstyle(button)
+  if button.glassIcon == nil or button.glassStyled == false then return end
+  button.glassStyled = false
+  button.glassIcon:Hide()
+  button:SetSize(unpack(button.glassSize))
+  for _, region in ipairs({ button:GetRegions() }) do
+    if region ~= button.glassIcon then
+      region:SetAlpha(1)
+    end
+  end
+  -- Only the normal look: the pushed and highlight ones show on their own
+  local normal = button:GetNormalTexture()
+  if normal then normal:Show() end
 end
 
 function ChatButtonsMixin:UpdateColors()
   local apache = Constants.COLORS.apache
   local voice = _G.C_VoiceChat
-  for _, button in ipairs(self.buttons or {}) do
+  for _, button in ipairs(self.styled or {}) do
     local icon = button.glassIcon
     if icon then
       local off = voice and (

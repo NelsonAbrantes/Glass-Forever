@@ -248,6 +248,9 @@ local function BuildGeneral(category, layout)
   Slider(category, "frameWidth", "Width", 100, 2000, 1, "Width of the chat", "frameWidth")
   Slider(category, "frameHeight", "Height", 100, 1200, 1, "Height of the chat", "frameHeight")
 
+  Header(layout, "Separate windows")
+  Checkbox(category, "windowStyle", "Glass look", "Tabs dragged out of the chat become windows with the Glass look: no border, the Glass background while the mouse is over them, and messages that fade out. Off: they look like the default chat", "windowStyle")
+
   Header(layout, "Chat buttons")
   Checkbox(category, "chatButtons", "Show chat buttons", "Show the game's chat buttons (friends, channels and voice chat, emotes and languages) beside the chat. They appear and fade with the tab bar", "chatButtons")
   local sideSetting = ProfileSetting(category, "chatButtonsSide", Settings.VarType.String, "Position", "chatButtonsSide")
@@ -313,7 +316,7 @@ local function BuildMessages(category, layout)
 
   Header(layout, "Animations")
   Checkbox(category, "messageFade", "Fade out", "Messages fade out after a while when you're not using the chat. Turn off to keep them always visible", "messageFade")
-  Slider(category, "chatHoldTime", "Fade out delay", 1, 180, 1, "Seconds before messages fade out")
+  Slider(category, "chatHoldTime", "Fade out delay", 1, 180, 1, "Seconds before messages fade out", "chatHoldTime")
   Checkbox(category, "chatShowOnMouseOver", "Show on mouse over", "Show faded messages again while the mouse is over the chat")
   Slider(category, "chatFadeInDuration", "Fade in duration", 0, 10, 0.05, nil, "chatFadeInDuration")
   Slider(category, "chatFadeOutDuration", "Fade out duration", 0, 10, 0.05, nil, "chatFadeOutDuration")

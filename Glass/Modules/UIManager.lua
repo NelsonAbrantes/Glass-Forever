@@ -61,25 +61,78 @@ function UIManager:OnEnable()
     self.state.tabs[i] = CreateChatTab(smf)
   end
 
+  -- Windows left undocked last time stay separate chat windows. The game
+  -- loads the window settings (open, docked...) a while after login and says
+  -- so with UPDATE_CHAT_WINDOWS, so this runs then too; it skips windows
+  -- that are already separate.
+  --
+  -- The game can't tell which windows are open: it says "closed" for any
+  -- window that's hidden, and Glass hides them all while loading. So Glass
+  -- remembers its separate windows itself.
+  -- ...and which of them are minimized
+  local function RememberMinimized(chatFrame, minimized)
+    if not chatFrame or chatFrame.isTemporary then return end
+    Core.db.char.minimizedWindows = Core.db.char.minimizedWindows or {}
+    Core.db.char.minimizedWindows[chatFrame:GetName()] = minimized or nil
+  end
+
+  local function RememberSeparate(chatFrame, separate)
+    if not chatFrame or chatFrame.isTemporary then return end
+    Core.db.char.separateWindows = Core.db.char.separateWindows or {}
+    Core.db.char.separateWindows[chatFrame:GetName()] = separate or nil
+    if not separate then
+      RememberMinimized(chatFrame, false)
+    end
+  end
+
+  local function RestoreSeparateWindows()
+    local remembered = Core.db.char.separateWindows or {}
+    for i, smf in ipairs(self.state.frames) do
+      local chatFrame = smf.chatFrame
+      local shown = remembered[chatFrame:GetName()] or select(7, GetChatWindowInfo(i))
+      local docked = chatFrame.isDocked or select(9, GetChatWindowInfo(i))
+      if shown and not docked and smf.state
+        and not smf.state.isCombatLog and not smf.state.detached then
+        smf:ReleaseChatFrame()
+        if FCF_RestorePositionAndDimensions then
+          FCF_RestorePositionAndDimensions(chatFrame)
+        end
+        -- Our copy of where it was while separate (see the
+        -- FCF_SavePositionAndDimensions hook)
+        local saved = Core.db.char.windowPositions and Core.db.char.windowPositions[chatFrame:GetName()]
+        if saved then
+          local point, x, y = unpack(saved)
+          chatFrame:ClearAllPoints()
+          chatFrame:SetPoint(point, x * _G.GetScreenWidth(), y * _G.GetScreenHeight())
+          _G.SetChatWindowSavedPosition(chatFrame:GetID(), point, x, y)
+        end
+        chatFrame:Show()
+        _G.SetChatWindowShown(chatFrame:GetID(), true)
+
+        -- It was minimized last time (the game doesn't remember that)
+        local minimized = Core.db.char.minimizedWindows
+        if minimized and minimized[chatFrame:GetName()] and _G.FCF_MinimizeFrame then
+          _G.FCF_MinimizeFrame(chatFrame, (chatFrame.buttonSide or "left"):upper())
+        end
+      end
+    end
+  end
+
+  self.tickerFrame:RegisterEvent("UPDATE_CHAT_WINDOWS")
+  self.tickerFrame:HookScript("OnEvent", function (_, event)
+    if event == "UPDATE_CHAT_WINDOWS" then
+      -- After the game's own handling of the event
+      C_Timer.After(0, RestoreSeparateWindows)
+    end
+  end)
+
   -- Show the main chat panel on login (after the game has finished loading)
   C_Timer.After(1, function()
     local main = self.state.frames[1]
     if main then
       main:Show()
     end
-
-    -- Windows left undocked last time stay separate normal chat windows
-    for i, smf in ipairs(self.state.frames) do
-      local chatFrame = smf.chatFrame
-      local shown = select(7, GetChatWindowInfo(i))
-      if shown and not chatFrame.isDocked and smf.state and not smf.state.isCombatLog then
-        smf:ReleaseChatFrame()
-        if FCF_RestorePositionAndDimensions then
-          FCF_RestorePositionAndDimensions(chatFrame)
-        end
-        chatFrame:Show()
-      end
-    end
+    RestoreSeparateWindows()
   end)
 
   -- Dragging a tab out of the dock makes it a normal chat window; dragging it
@@ -114,9 +167,42 @@ function UIManager:OnEnable()
     C_Timer.After(0, function ()
       if StillOpen(smf, chatFrame) then
         chatFrame:Show()
+        RememberSeparate(chatFrame, true)
       end
     end)
   end)
+
+  -- The game saves a window's position when it's docked again too, after
+  -- Glass has moved it into the chat; it would come back there after a reload.
+  -- Keep our own copy of the last position the window had while separate.
+  if _G.FCF_SavePositionAndDimensions then
+    self:SecureHook("FCF_SavePositionAndDimensions", function (chatFrame)
+      local smf = FindFrame(chatFrame)
+      if smf and smf.state and smf.state.detached and not chatFrame.isTemporary then
+        local point, x, y = _G.GetChatWindowSavedPosition(chatFrame:GetID())
+        if point then
+          Core.db.char.windowPositions = Core.db.char.windowPositions or {}
+          Core.db.char.windowPositions[chatFrame:GetName()] = { point, x, y }
+        end
+      end
+    end)
+  end
+
+  -- Minimizing a separate window shows a bar with its name: Glass look too
+  if _G.FCF_MinimizeFrame then
+    self:SecureHook("FCF_MinimizeFrame", function (chatFrame)
+      local smf = FindFrame(chatFrame)
+      if smf and smf.state and smf.state.detached then
+        smf:StyleMinimizedFrame()
+        RememberMinimized(chatFrame, true)
+      end
+    end)
+  end
+  if _G.FCF_MaximizeFrame then
+    self:SecureHook("FCF_MaximizeFrame", function (chatFrame)
+      RememberMinimized(chatFrame, false)
+    end)
+  end
 
   -- Changing the font size from the tab menu resets the font, put Glass' back
   if _G.FCF_SetChatWindowFontSize then
@@ -126,10 +212,27 @@ function UIManager:OnEnable()
     end)
   end
 
+  -- Shows the messages of the tab the game has selected, and hides the others
+  local function ShowSelectedFrame()
+    local selected = FCFDock_GetSelectedWindow and FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK)
+    if not selected then return end
+    local function Sync(smf)
+      if smf.state and not smf.state.detached and not smf.state.isCombatLog then
+        if smf.chatFrame == selected then smf:Show() else smf:Hide() end
+      end
+    end
+    for _, smf in ipairs(self.state.frames) do Sync(smf) end
+    for _, smf in pairs(self.state.temporaryFrames) do Sync(smf) end
+  end
+
   self:SecureHook("FCF_DockFrame", function (chatFrame)
+    RememberSeparate(chatFrame, false)
     local smf = FindFrame(chatFrame)
     if smf and smf.state and smf.state.detached then
       smf:TakeOverChatFrame()
+      -- The game selects the window docked again, but Glass was still showing
+      -- the tab that was open before (after the game is done with the dock)
+      C_Timer.After(0, ShowSelectedFrame)
     end
   end)
 
@@ -189,6 +292,7 @@ function UIManager:OnEnable()
 
   -- Close window
   self:SecureHook("FCF_Close", function (chatFrame)
+    RememberSeparate(chatFrame, false)
     local name = chatFrame and chatFrame:GetName()
     local smf = name and self.state.temporaryFrames[name]
     if smf then
