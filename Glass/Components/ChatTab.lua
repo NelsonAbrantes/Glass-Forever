@@ -28,6 +28,17 @@ local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\"
 
 local ChatTabMixin = {}
 
+-- The new message glow is bright: pale chat colors (party is a very light
+-- blue) turned white in it, so it gets a stronger version of the color.
+-- White stays white.
+local GLOW_SATURATION = 2.5
+local function GlowColor(color)
+  local r, g, b = color.r, color.g, color.b
+  local top = math.max(r, g, b)
+  local function push(c) return math.max(0, top - (top - c) * GLOW_SATURATION) end
+  return push(r), push(g), push(b)
+end
+
 function ChatTabMixin:Init(slidingMessageFrame)
   self.slidingMessageFrame = slidingMessageFrame
   self.chatFrame = slidingMessageFrame.chatFrame
@@ -136,7 +147,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
       local color = self.glowColor
       if color then
         self.glow:SetDesaturated(true)
-        Adjust(function () self.glow:SetVertexColor(color.r, color.g, color.b) end)
+        Adjust(function () self.glow:SetVertexColor(GlowColor(color)) end)
       else
         self.glow:SetDesaturated(false)
       end
@@ -158,7 +169,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self:SecureHook(self.glow, "SetVertexColor", function ()
       local color = self.glowColor
       if color then
-        Adjust(function () self.glow:SetVertexColor(color.r, color.g, color.b) end)
+        Adjust(function () self.glow:SetVertexColor(GlowColor(color)) end)
       end
     end)
   end
