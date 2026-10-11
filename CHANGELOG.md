@@ -5,9 +5,11 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ## 0.12.0-forever (beta, unreleased)
 
 ### Added
+- Edit box styles (Options > Edit Box > Style, also in Edit Mode): Minimal, the new default, fades out at the ends like the messages, with a thin line in the color of the chat you're typing in (say, party, whisper...); Solid is the previous plain dark box; Framed has rounded corners and a border in the chat's color (`EditBox.lua`, `OptionsPanel.lua`, `EditMode.lua`).
 - Glass Forever shows its logo in the game's AddOns list (`Glass.toc`, `logo.tga`).
 
 ### Fixed
+- The game's own edit box border could show again behind the Glass edit box (`EditBox.lua`).
 - Tabs with no new messages piled up a "Previous session" line every session. Those lines now only show between messages, and history saved by earlier versions is tidied up (`History.lua`).
 
 ## 0.11.0-forever (beta) (2026-10-11)
