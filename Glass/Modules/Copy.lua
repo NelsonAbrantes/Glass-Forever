@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 local Copy = Core:GetModule("Copy")
 
 -- luacheck: push ignore 113
@@ -17,21 +17,7 @@ local OPEN_COPY = Constants.EVENTS.OPEN_COPY
 -- tab right-click menu, and clickable web links (see TextProcessing and
 -- Hyperlinks). Both open a window with the text selected, ready for Ctrl+C.
 
--- Turns a chat line into plain text: no colors, icons or link codes
-local function PlainText(text)
-  if text == nil then return nil end
-  if issecretvalue and issecretvalue(text) then return nil end
-
-  text = text:gsub("|Hglassurl:.-|h%[(.-)%]|h", "%1") -- our web links, without brackets
-  text = text:gsub("|H.-|h(.-)|h", "%1")
-  text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
-  text = text:gsub("|cn.-:", "")
-  text = text:gsub("|r", "")
-  text = text:gsub("|T.-|t", "")
-  text = text:gsub("|A.-|a", "")
-  text = text:gsub("||", "|")
-  return text
-end
+local PlainText = Utils.PlainText
 
 -- Window built with the game's own panel template, so it matches the
 -- current UI (bronze border) instead of the old Classic dialog look.

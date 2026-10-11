@@ -23,6 +23,23 @@ Utils.TabBarAtBottom = function ()
   return Core.db.profile.tabBarPosition == "bottom"
 end
 
+-- Turns a chat line into plain text: no colors, icons or link codes. nil for
+-- text the game marks as secret, which can't be read.
+Utils.PlainText = function (text)
+  if type(text) ~= "string" then return nil end
+  if issecretvalue and issecretvalue(text) then return nil end
+
+  text = text:gsub("|Hglassurl:.-|h%[(.-)%]|h", "%1") -- our web links, without brackets
+  text = text:gsub("|H.-|h(.-)|h", "%1")
+  text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
+  text = text:gsub("|cn.-:", "")
+  text = text:gsub("|r", "")
+  text = text:gsub("|T.-|t", "")
+  text = text:gsub("|A.-|a", "")
+  text = text:gsub("||", "|")
+  return text
+end
+
 Utils.super = function (obj)
   return getmetatable(obj).__index
 end

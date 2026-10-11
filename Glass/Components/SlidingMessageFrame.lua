@@ -1,5 +1,6 @@
 local Core, Constants, Utils = unpack(select(2, ...))
 local TP = Core:GetModule("TextProcessing")
+local SpamFilter = Core:GetModule("SpamFilter")
 
 local AceHook = Core.Libs.AceHook
 
@@ -506,13 +507,15 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
 end
 
 function SlidingMessageFrameMixin:AddMessage(...)
-  -- Enqueue messages to be displayed
+  -- Enqueue messages to be displayed. The second argument is the text.
   local args = {...}
+  if SpamFilter:IsSpam(args[2]) then return end
   table.insert(self.state.incomingMessages, args)
 end
 
 function SlidingMessageFrameMixin:BackFillMessage(...)
   local args = {...}
+  if SpamFilter:IsSpam(args[2]) then return end
   table.insert(self.state.incomingScrollbackMessages, args)
 end
 

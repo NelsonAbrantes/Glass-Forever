@@ -37,6 +37,7 @@ Constants.EVENTS = {
   MOUSE_LEAVE = "Glass/MOUSE_LEAVE",
   OPEN_COPY = "Glass/OPEN_COPY",
   OPEN_NEWS = "Glass/OPEN_NEWS",
+  OPEN_SPAM_WORDS = "Glass/OPEN_SPAM_WORDS",
   REFRESH_CONFIG = "Glass/REFRESH_CONFIG",
   SAVE_FRAME_POSITION = "Glass/SAVE_FRAME_POSITION",
   UNLOCK_MOVER = "Glass/UNLOCK_MOVER",
@@ -64,6 +65,9 @@ Constants.ACTIONS = {
   end,
   OpenCopy = function (payload)
     return Constants.EVENTS.OPEN_COPY, payload
+  end,
+  OpenSpamWords = function ()
+    return Constants.EVENTS.OPEN_SPAM_WORDS
   end,
   OpenNews = function ()
     return Constants.EVENTS.OPEN_NEWS

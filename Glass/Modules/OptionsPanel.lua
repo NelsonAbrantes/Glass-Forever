@@ -4,6 +4,7 @@ local OptionsPanel = Core:GetModule("OptionsPanel")
 local LSM = Core.Libs.LSM
 
 local OpenNews = Constants.ACTIONS.OpenNews
+local OpenSpamWords = Constants.ACTIONS.OpenSpamWords
 local UnlockMover = Constants.ACTIONS.UnlockMover
 local UpdateConfig = Constants.ACTIONS.UpdateConfig
 
@@ -317,6 +318,12 @@ local function BuildMessages(category, layout)
   Slider(category, "chatFadeInDuration", "Fade in duration", 0, 10, 0.05, nil, "chatFadeInDuration")
   Slider(category, "chatFadeOutDuration", "Fade out duration", 0, 10, 0.05, nil, "chatFadeOutDuration")
   Slider(category, "chatSlideInDuration", "Slide in duration", 0, 5, 0.05, "0 turns the animation off")
+
+  Header(layout, "Spam filter")
+  Checkbox(category, "spamFilter", "Hide spam", "Hide messages that contain any of the blocked words, like gold sellers. Applies to new messages")
+  Button(layout, "Blocked words", "Edit list", function ()
+    Core:Dispatch(OpenSpamWords())
+  end, "Words and phrases that hide a message. Comes with a few gold seller phrases; add or remove what you like.")
 
   Header(layout, "Misc")
   Checkbox(category, "indentWordWrap", "Indent on line wrap", "Adds an indent when a message wraps beyond a single line", "indentWordWrap")

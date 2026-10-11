@@ -32,6 +32,7 @@ Core.Version = "DEBUG"
 -- Modules
 Core:NewModule("Config", "AceConsole-3.0")
 Core:NewModule("Copy")
+Core:NewModule("SpamFilter")
 Core:NewModule("Fonts")
 Core:NewModule("Hyperlinks")
 Core:NewModule("News")
@@ -97,6 +98,11 @@ Core.defaults = {
     indentWordWrap = true,
     shortChannelNames = false,
     keepHistory = true,
+    spamFilter = true, -- hide messages with any of spamWords
+    spamWords = { -- gold sellers; players can change the list
+      "safe gold", "cheap gold", "buy gold", "gold for sale", "wts gold",
+      "refund if not delivered",
+    },
     mouseOverTooltips = true,
     iconTextureYOffset = 4,
   }

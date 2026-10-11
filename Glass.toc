@@ -55,6 +55,7 @@ Glass\Modules\History.lua
 Glass\Modules\Hyperlinks.lua
 Glass\Modules\News.lua
 Glass\Modules\OptionsPanel.lua
+Glass\Modules\SpamFilter.lua
 Glass\Modules\TextProcessing.lua
 Glass\Modules\UIManager.lua
 Glass\Modules\EditMode.lua
