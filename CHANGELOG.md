@@ -7,6 +7,9 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Added
 - Spam filter (Options > Messages > Spam filter): hides messages that contain blocked words or phrases. Comes on, with a few gold seller phrases; "Edit list" opens a window to change them. Only Glass stops showing them (`SpamFilter.lua`, `SlidingMessageFrame.lua`, `OptionsPanel.lua`).
 - Separate windows with the Glass look (Options > General > Separate windows): tabs dragged out of the chat become windows without the default border, with the Glass fading background while the mouse is over them, messages that fade out like in Glass, and minimize, maximize and resize buttons like the chat buttons. The minimized bar gets the Glass look too. Separate windows now come back where you left them after a reload, minimized if they were (`SlidingMessageFrame.lua`, `UIManager.lua`, `ChatButtons.lua`).
+- "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glossy (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
+- "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red. Works on every style, Classic included (`ChatTab.lua`).
+- "Name color" option for the tab names: auto, gold, white, silver or dark. Auto now uses white on the selected Solid tab when the letters have an outline, so it stays readable (`ChatTab.lua`, `OptionsPanel.lua`).
 
 ### Fixed
 - After a reload, a separate window could end up hidden inside the chat, or be closed (`UIManager.lua`).
