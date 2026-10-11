@@ -332,6 +332,7 @@ local function BuildMessages(category, layout)
   Checkbox(category, "indentWordWrap", "Indent on line wrap", "Adds an indent when a message wraps beyond a single line", "indentWordWrap")
   Checkbox(category, "shortChannelNames", "Short channel names", "[1] instead of [1. General], [P] instead of [Party], and so on. Applies to new messages")
   Checkbox(category, "keepHistory", "Keep chat history", "Saves the last 50 messages of each tab and shows them again when you log back in")
+  Checkbox(category, "arrowKeyHistory", "Arrow keys history", "Up and Down arrows in the chat box go through what you typed, even before logging out or /reload, without holding Alt")
   Checkbox(category, "mouseOverTooltips", "Mouse over tooltips", "Show tooltips when hovering over chat links")
   Slider(category, "iconTextureYOffset", "Text icons Y offset", 0, 12, 1, "Adjust this if text icons aren't centered")
 end

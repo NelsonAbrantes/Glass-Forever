@@ -103,6 +103,7 @@ Core.defaults = {
     indentWordWrap = true,
     shortChannelNames = false,
     keepHistory = true,
+    arrowKeyHistory = true, -- Up/Down arrows go through what you typed, no Alt
     spamFilter = true, -- hide messages with any of spamWords
     spamWords = { -- gold sellers; players can change the list
       "safe gold", "cheap gold", "buy gold", "gold for sale", "wts gold",

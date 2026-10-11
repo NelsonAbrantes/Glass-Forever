@@ -219,7 +219,108 @@ function EditBoxMixin:Init(parent)
   end)
 end
 
+local TYPED_LINES = 32 -- lines you typed kept for the next session
+
+-- What you typed, oldest first, kept per character between sessions
+local function TypedLines()
+  Core.db.char.typedHistory = Core.db.char.typedHistory or {}
+  return Core.db.char.typedHistory
+end
+
+local restoring = false
+
+local function RememberLine(text)
+  if restoring or type(text) ~= "string" or text == "" then return end
+  if issecretvalue and issecretvalue(text) then return end
+  local lines = TypedLines()
+  -- The same line again moves to the end instead of repeating
+  for i = #lines, 1, -1 do
+    if lines[i] == text then table.remove(lines, i) end
+  end
+  table.insert(lines, text)
+  while #lines > TYPED_LINES do
+    table.remove(lines, 1)
+  end
+end
+
+-- Up: the line typed before; Down: the one after, and past the newest, what
+-- you were writing before going up
+local function Browse(box, step)
+  local lines = TypedLines()
+  if #lines == 0 then return end
+  if not box.glassHistoryIndex then
+    box.glassHistoryIndex = #lines + 1
+    box.glassHistoryDraft = box:GetText()
+  end
+  local index = math.max(1, math.min(#lines + 1, box.glassHistoryIndex + step))
+  if index == box.glassHistoryIndex then return end
+  box.glassHistoryIndex = index
+  box.glassBrowsing = true
+  box:SetText(lines[index] or box.glassHistoryDraft or "")
+  box.glassBrowsing = false
+  box:SetCursorPosition(#box:GetText())
+end
+
+-- The chat box keeps the arrows (otherwise they reach the game and move your
+-- character). The game can switch it back when a box opens, so it's set again.
+local function KeepArrows(box)
+  if box.SetAltArrowKeyMode then
+    box:SetAltArrowKeyMode(Core.db.profile.arrowKeyHistory == false)
+  end
+end
+
+-- Up and Down arrows go through what you typed, without holding Alt. The
+-- game only does it with Alt held, and even keeping the arrows in the chat
+-- box it doesn't go through the list, so Glass does it itself. The list
+-- survives logging out and /reload; the game's own Alt + arrows get last
+-- session's lines too. Every chat window has its own box, so all of them
+-- get it.
+local function ArrowKeyHistory()
+  for i = 1, (_G.NUM_CHAT_WINDOWS or 10) do
+    local editBox = _G["ChatFrame"..i.."EditBox"]
+    if editBox then KeepArrows(editBox) end
+    if editBox and editBox.AddHistoryLine and not editBox.glassArrowHooked then
+      editBox.glassArrowHooked = true
+
+      -- Last session's lines first, then remember the new ones
+      restoring = true
+      for _, text in ipairs(TypedLines()) do
+        editBox:AddHistoryLine(text)
+      end
+      restoring = false
+      hooksecurefunc(editBox, "AddHistoryLine", function (_, text)
+        RememberLine(text)
+      end)
+
+      editBox:HookScript("OnKeyDown", function (box, key)
+        if Core.db.profile.arrowKeyHistory == false or IsAltKeyDown() then return end
+        if key == "UP" then
+          Browse(box, -1)
+        elseif key == "DOWN" then
+          Browse(box, 1)
+        end
+      end)
+      -- Typing, opening the box again or sending starts from the newest again
+      editBox:HookScript("OnTextChanged", function (box, userInput)
+        if userInput and not box.glassBrowsing then
+          box.glassHistoryIndex = nil
+        end
+      end)
+      editBox:HookScript("OnEditFocusGained", function (box)
+        box.glassHistoryIndex = nil
+        KeepArrows(box)
+      end)
+    end
+  end
+end
+
 Core.Components.CreateEditBox = function (parent)
+  ArrowKeyHistory()
+  Core:Subscribe(UPDATE_CONFIG, function (key)
+    if key == "arrowKeyHistory" then
+      ArrowKeyHistory()
+    end
+  end)
   local GradientBackgroundMixin = Core.Components.GradientBackgroundMixin
   local object = Mixin(_G.ChatFrame1EditBox, GradientBackgroundMixin, EditBoxMixin)
   AceHook:Embed(object)

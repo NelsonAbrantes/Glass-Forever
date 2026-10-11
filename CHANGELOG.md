@@ -11,6 +11,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glossy (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
 - "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red. Works on every style, Classic included (`ChatTab.lua`).
 - "Name color" option for the tab names: auto, gold, white, silver or dark. Auto now uses white on the selected Solid tab when the letters have an outline, so it stays readable (`ChatTab.lua`, `OptionsPanel.lua`).
+- "Arrow keys history" option (Options > Messages > Misc, on by default): the Up and Down arrows in the chat box go through what you typed, without holding Alt. The last 32 lines are kept after logging out or /reload, per character (`EditBox.lua`).
 
 ### Fixed
 - After a reload, a separate window could end up hidden inside the chat, or be closed (`UIManager.lua`).
