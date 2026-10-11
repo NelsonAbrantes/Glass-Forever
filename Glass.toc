@@ -5,6 +5,7 @@
 
 ## Title: |c00DFBA69Glass Forever|r
 ## Notes: Immersive and minimalistic chat UI. Fork of Glass for WoW: Forever (beta).
+## IconTexture: Interface\AddOns\Glass\Glass\Assets\logo
 
 ## SavedVariables: GlassDB
 

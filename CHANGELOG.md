@@ -4,6 +4,9 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ## 0.12.0-forever (beta, unreleased)
 
+### Added
+- Glass Forever shows its logo in the game's AddOns list (`Glass.toc`, `logo.tga`).
+
 ### Fixed
 - Tabs with no new messages piled up a "Previous session" line every session. Those lines now only show between messages, and history saved by earlier versions is tidied up (`History.lua`).
 
