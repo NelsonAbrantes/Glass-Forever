@@ -438,6 +438,27 @@ function ChatTabMixin:ShowClassic(show)
   end
 end
 
+local CLASSIC_SELECTED = { "ActiveLeft", "ActiveMiddle", "ActiveRight" }
+
+---
+-- Classic style: the selected tab's art in the accent color. "Style default"
+-- keeps the game's own colors. The art is made gray first, otherwise its own
+-- colors mix with the accent.
+function ChatTabMixin:TintClassic()
+  local color = ACCENTS[Core.db.profile.tabAccent]
+  for _, name in ipairs(CLASSIC_SELECTED) do
+    local texture = self[name]
+    if texture then
+      texture:SetDesaturated(color ~= nil)
+      if color then
+        texture:SetVertexColor(color[1], color[2], color[3])
+      else
+        texture:SetVertexColor(1, 1, 1)
+      end
+    end
+  end
+end
+
 ---
 -- Draws the tab in the chosen style and colors it for its state (normal, under
 -- the mouse, selected). Called every frame from UpdateSelected, so it only
@@ -455,6 +476,9 @@ function ChatTabMixin:UpdateStyle(isSelected)
   self.styleSelected = isSelected
 
   self:ShowClassic(style.classic == true)
+  if style.classic then
+    self:TintClassic()
+  end
 
   -- Background
   local bg = style.bg and style.bg[state]

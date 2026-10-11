@@ -355,7 +355,7 @@ local function BuildTabs(category, layout)
       { "purple", "Purple" },
       { "red", "Red" },
     }
-  end, "Color of the selected tab: its border, bar, line or background, depending on the style. Not used by the Classic style.")
+  end, "Color of the selected tab: its border, bar, line or background, depending on the style.")
 
   Header(layout, "Text")
   FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")

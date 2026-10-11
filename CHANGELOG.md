@@ -6,7 +6,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Added
 - "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glossy (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
-- "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red (`ChatTab.lua`).
+- "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red. Works on every style, Classic included (`ChatTab.lua`).
 - "Name color" option for the tab names: auto, gold, white, silver or dark. Auto now uses white on the selected Solid tab when the letters have an outline, so it stays readable (`ChatTab.lua`, `OptionsPanel.lua`).
 
 ## 0.12.0-forever (beta) (2026-10-11)
