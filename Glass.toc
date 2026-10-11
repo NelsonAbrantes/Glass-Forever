@@ -1,10 +1,11 @@
 ## Interface: 120100, 16001
 ## Plain Title: Glass Forever
 ## Author: mixxorz (original), Rethz (fork)
-## Version: 0.10.1-forever
+## Version: 0.12.0-forever
 
 ## Title: |c00DFBA69Glass Forever|r
 ## Notes: Immersive and minimalistic chat UI. Fork of Glass for WoW: Forever (beta).
+## IconTexture: Interface\AddOns\Glass\Glass\Assets\logo
 
 ## SavedVariables: GlassDB
 
@@ -32,6 +33,7 @@ Glass\utils.lua
 
 # Components
 Glass\Components\Button.lua
+Glass\Components\ChatButtons.lua
 Glass\Components\ChatDock.lua
 Glass\Components\ChatTab.lua
 Glass\Components\EditBox.lua

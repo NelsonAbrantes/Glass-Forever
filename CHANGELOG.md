@@ -2,10 +2,26 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.11.0-forever (beta, unreleased)
+## 0.12.0-forever (beta) (2026-10-11)
+
+### Added
+- Edit box styles (Options > Edit Box > Style, also in Edit Mode): Minimal, the new default, fades out at the ends like the messages, with a thin line in the color of the chat you're typing in (say, party, whisper...); Solid is the previous plain dark box; Framed has rounded corners and a border in the chat's color (`EditBox.lua`, `OptionsPanel.lua`, `EditMode.lua`).
+- Glass Forever shows its logo in the game's AddOns list (`Glass.toc`, `logo.tga`).
+
+### Fixed
+- The game's own edit box border could show again behind the Glass edit box (`EditBox.lua`).
+- Tabs with no new messages piled up a "Previous session" line every session. Those lines now only show between messages, and history saved by earlier versions is tidied up (`History.lua`).
+- The chat buttons could end up in the wrong place (where the game puts them) after a while. They now always go back to the chosen position (`ChatButtons.lua`).
+
+## 0.11.0-forever (beta) (2026-10-11)
 
 ### Added
 - Tabs options (Options > AddOns > Glass Forever > Tabs): tab font and font size, tab bar height, spacing between tabs, tab bar background opacity, and an option to turn off the tab alerts (colored glow and tab bar reveal). Tab font size and tab bar height are also in Edit Mode (`OptionsPanel.lua`, `EditMode.lua`, `Fonts.lua`, `ChatDock.lua`, `ChatTab.lua`, `UIManager.lua`).
+- Tab bar position: above or below the messages, with horizontal and vertical offsets for fine adjustment (`ChatDock.lua`, `SlidingMessageFrame.lua`, `ChatTab.lua`).
+- Tab alignment: left, center or right along the tab bar (`ChatDock.lua`, `ChatTab.lua`).
+- "Fade out" options for the tab bar (Tabs) and for the messages (Messages): turn them off to keep the tab bar or the messages always visible (`ChatDock.lua`, `SlidingMessageFrame.lua`, `UIManager.lua`).
+- Tab bar position, alignment and both "Fade out" options are also in Edit Mode (`EditMode.lua`).
+- Chat buttons (Options > General > Chat buttons): the game's chat buttons (friends, channels and voice chat, mute and deafen, emotes and languages) can be shown beside, above or below the chat (left, right, top left, top right, bottom left or bottom right), with plain icons in the Glass color. They appear and fade with the tab bar. Off by default (`ChatButtons.lua`, `MainContainerFrame.lua`, `UIManager.lua`, `OptionsPanel.lua`).
 
 - "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glass (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
 - "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red (`ChatTab.lua`).
@@ -14,6 +30,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).
 - Long tab names were cut ("Combat L..."): the tab is now as wide as the full name (`ChatTab.lua`).
 - The Combat Log covered the tabs when the tab bar was made taller. It now follows the tab bar height (`SlidingMessageFrame.lua`).
+- Whisper tabs were cut off at the end of the tab bar, and with several whispers most of them couldn't be seen. When the tabs don't fit, they now get less space around their names first, then whisper names get "...", then the other chats' names. The game's arrow with the list of chats only appears when even that isn't enough (`ChatDock.lua`, `ChatTab.lua`).
+- Chat history from earlier sessions was shown mixed with the current one, with nothing to tell them apart. A gray line now marks where each earlier session ended, with its date and time (`History.lua`).
 
 ## 0.10.1-forever (beta) (2026-10-10)
 

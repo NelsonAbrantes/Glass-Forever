@@ -246,12 +246,30 @@ local function BuildGeneral(category, layout)
   Header(layout, "Frame")
   Slider(category, "frameWidth", "Width", 100, 2000, 1, "Width of the chat", "frameWidth")
   Slider(category, "frameHeight", "Height", 100, 1200, 1, "Height of the chat", "frameHeight")
+
+  Header(layout, "Chat buttons")
+  Checkbox(category, "chatButtons", "Show chat buttons", "Show the game's chat buttons (friends, channels and voice chat, emotes and languages) beside the chat. They appear and fade with the tab bar", "chatButtons")
+  local sideSetting = ProfileSetting(category, "chatButtonsSide", Settings.VarType.String, "Position", "chatButtonsSide")
+  Dropdown(category, sideSetting, function ()
+    return {
+      { "left", "Left" },
+      { "right", "Right" },
+      { "topleft", "Top left" },
+      { "topright", "Top right" },
+      { "bottomleft", "Bottom left" },
+      { "bottomright", "Bottom right" },
+    }
+  end, "Where the buttons are: in a column beside the chat, or in a row above or below it")
 end
 
 local function BuildEditBox(category, layout)
   local Settings = _G.Settings
 
   Header(layout, "Appearance")
+  local styleSetting = ProfileSetting(category, "editBoxStyle", Settings.VarType.String, "Style", "editBoxStyle")
+  Dropdown(category, styleSetting, function ()
+    return { { "minimal", "Minimal" }, { "solid", "Solid" }, { "framed", "Framed" } }
+  end, "Minimal: fades out at the ends like the messages, with a thin line in the color of the chat you're typing in (say, party, whisper...). Solid: a plain dark box. Framed: rounded corners and a border in the chat's color")
   Slider(category, "editBoxFontSize", "Font size", 6, 48, 1, nil, "editBoxFontSize")
   Slider(category, "editBoxBackgroundOpacity", "Background opacity", 0, 1, 0.05, nil, "editBoxBackgroundOpacity")
 
@@ -293,6 +311,7 @@ local function BuildMessages(category, layout)
   Slider(category, "messageLinePadding", "Line padding", 0, 2, 0.05, "Space around each message", "messageLinePadding")
 
   Header(layout, "Animations")
+  Checkbox(category, "messageFade", "Fade out", "Messages fade out after a while when you're not using the chat. Turn off to keep them always visible", "messageFade")
   Slider(category, "chatHoldTime", "Fade out delay", 1, 180, 1, "Seconds before messages fade out")
   Checkbox(category, "chatShowOnMouseOver", "Show on mouse over", "Show faded messages again while the mouse is over the chat")
   Slider(category, "chatFadeInDuration", "Fade in duration", 0, 10, 0.05, nil, "chatFadeInDuration")
@@ -319,10 +338,10 @@ local function BuildTabs(category, layout)
       { "solid", "Solid" },
       { "underline", "Underline" },
       { "pill", "Pill" },
-      { "glass", "Glass" },
+      { "glossy", "Glossy" },
       { "classic", "Classic" },
     }
-  end, "Minimal: only the names, with a line above the selected tab.\nFramed: rounded background with a bronze border.\nSolid: filled tabs, the selected one in the accent color.\nUnderline: a bar under the selected tab.\nPill: capsule-shaped tabs.\nGlass: raised, glossy buttons.\nClassic: the game's own tabs.")
+  end, "Minimal: only the names, with a line on the selected tab.\nFramed: rounded background with a bronze border.\nSolid: filled tabs, the selected one in the accent color.\nUnderline: a bar under the selected tab.\nPill: capsule-shaped tabs.\nGlossy: raised, shiny buttons.\nClassic: the game's own tabs.")
 
   local accentSetting = ProfileSetting(category, "tabAccent", Settings.VarType.String, "Accent color", "tabAccent")
   Dropdown(category, accentSetting, function ()
@@ -343,6 +362,17 @@ local function BuildTabs(category, layout)
   Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")
 
   Header(layout, "Tab bar")
+  local positionSetting = ProfileSetting(category, "tabBarPosition", _G.Settings.VarType.String, "Position", "tabBarPosition")
+  Dropdown(category, positionSetting, function ()
+    return { { "top", "Above the messages" }, { "bottom", "Below the messages" } }
+  end, "Where the tab bar sits")
+  local alignSetting = ProfileSetting(category, "tabAlign", _G.Settings.VarType.String, "Alignment", "tabAlign")
+  Dropdown(category, alignSetting, function ()
+    return { { "left", "Left" }, { "center", "Center" }, { "right", "Right" } }
+  end, "Where the tabs sit along the tab bar")
+  Checkbox(category, "tabBarFade", "Fade out", "The tab bar fades out with the chat when you're not using it. Turn off to keep it always visible", "tabBarFade")
+  Slider(category, "tabBarOffsetX", "Horizontal offset", -100, 100, 1, "Moves the tab bar left (negative) or right (positive), in pixels", "tabBarOffsetX")
+  Slider(category, "tabBarOffsetY", "Vertical offset", -50, 50, 1, "Moves the tab bar down (negative) or up (positive), in pixels", "tabBarOffsetY")
   Slider(category, "tabBarHeight", "Height", 14, 48, 1, "Height of the tab bar", "tabBarHeight")
   Slider(category, "tabPadding", "Spacing", 2, 40, 1, "Space around each tab name. More space makes the tabs wider", "tabPadding")
   Slider(category, "tabBarOpacity", "Background opacity", 0, 1, 0.05, "Opacity of the tab bar background", "tabBarOpacity")

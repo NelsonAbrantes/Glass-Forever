@@ -73,9 +73,40 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Set width dynamically based on text width
   if not self:IsHooked(self, "SetWidth") then
     self:SecureHook(self, "SetWidth", function ()
-      local width = self:FitText() + Utils.TabPadding() * 2
+      local padding = Utils.TabPadding()
+      local width = self:FitText() + padding * 2
+
+      -- When the tabs don't fit on the bar, some get narrower (see the dock's
+      -- TabLayout): first with less space around the name, then with "..."
+      local dock = _G.GeneralDockManager
+      local shrunkWidth, exact
+      if dock.DynamicTabWidth then
+        shrunkWidth, exact = dock:DynamicTabWidth(self)
+      end
+      local textLeft = padding
+      if shrunkWidth and (exact or shrunkWidth < width) then
+        local minPadding = Constants.TAB_SHRUNK_PADDING
+        -- Whisper tabs keep room for their icon, left of the name
+        local icon = self.conversationIcon
+        local iconWidth = icon and icon:IsShown() and icon:GetWidth() or 0
+        local spare = shrunkWidth - (width - padding * 2) - iconWidth
+        textLeft = iconWidth + math.max(minPadding, math.min(padding, spare / 2))
+        self.Text:SetWidth(math.max(1, shrunkWidth - textLeft - minPadding))
+        width = shrunkWidth
+      end
+      if self.textLeft ~= textLeft then
+        self.textLeft = textLeft
+        self.Text:ClearAllPoints()
+        self.Text:SetPoint("LEFT", textLeft, 0)
+      end
+
       if math.abs(self:GetWidth() - width) > 0.5 then
         Adjust(function () self:SetWidth(width) end)
+      end
+      -- Wider or narrower tabs move the others when centered or on the right
+      if dock.UpdateAlignment then
+        dock:UpdateOverflow()
+        dock:UpdateAlignment()
       end
     end)
   end
@@ -161,7 +192,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   if self.selectedLine == nil then
     self.selectedLine = self:CreateTexture(nil, "OVERLAY")
     self.selectedLine:SetColorTexture(Colors.apache.r, Colors.apache.g, Colors.apache.b, 1)
-    self.selectedLine:SetPoint("TOP", self, "TOP", 0, 0)
+    self:PlaceSelectedLine()
     self.selectedLine:SetSize(1, 1)
     self.selectedLine:Hide()
   end
@@ -196,7 +227,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self.subscriptions = {
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize"
-          or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding" then
+          or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding"
+          or key == "tabBarPosition" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
         end
@@ -215,10 +247,26 @@ end
 function ChatTabMixin:UpdateLayout()
   local padding = Utils.TabPadding()
   self:SetHeight(Utils.TabBarHeight())
-  self.Text:ClearAllPoints()
-  self.Text:SetPoint("LEFT", padding, 0)
+  -- The name's position is set in the SetWidth hook (it moves when the tab is
+  -- shrunk to fit the bar)
+  self.textLeft = nil
   self:SetWidth(self:FitText() + padding * 2)
   self.styleKey = nil -- redraw the style (the Underline bar depends on the spacing)
+  self:PlaceSelectedLine()
+end
+
+---
+-- The selected line sits on the side facing the messages: above the tab, or
+-- below it when the tab bar is at the bottom
+function ChatTabMixin:PlaceSelectedLine()
+  local line = self.selectedLine
+  if line == nil then return end
+  line:ClearAllPoints()
+  if Utils.TabBarAtBottom() then
+    line:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+  else
+    line:SetPoint("TOP", self, "TOP", 0, 0)
+  end
 end
 
 ---
@@ -226,15 +274,21 @@ end
 -- limits the width of tab names and cuts long ones ("Combat L..."); measuring
 -- the cut text made the tab too narrow.
 function ChatTabMixin:FitText()
-  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
-  if issecretvalue and issecretvalue(width) then
-    return self:GetTextWidth()
-  end
-  width = math.ceil(width) + 1
+  local width = self:FullTextWidth()
   if math.abs(self.Text:GetWidth() - width) > 0.5 then
     self.Text:SetWidth(width)
   end
   return width
+end
+
+---
+-- Width of the whole tab name, even when it's shown cut
+function ChatTabMixin:FullTextWidth()
+  local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
+  if issecretvalue and issecretvalue(width) then
+    return self:GetTextWidth()
+  end
+  return math.ceil(width) + 1
 end
 
 ---
@@ -301,7 +355,7 @@ local STYLES = {
   },
   -- Raised, glossy buttons: a shaded background (lighter at the top), a shine
   -- on the top half and a dark border; the selected tab gets an orange border
-  glass = {
+  glossy = {
     shape = "tabBevel", border = "tabBorder", shine = "tabShine", margin = 8,
     accentDefault = { 1.00, 0.55, 0.20 },
     bg = { normal = { 0.32, 0.24, 0.18, 0.9 }, hover = { 0.42, 0.32, 0.24, 0.92 }, selected = { 0.45, 0.22, 0.12, 0.95 } },
@@ -391,7 +445,7 @@ function ChatTabMixin:UpdateStyle(isSelected)
     self.styleBg:Hide()
   end
 
-  -- Shine on the top half (Glass)
+  -- Shine on the top half (Glossy)
   local shine = style.shineColor and style.shineColor[state]
   if style.shine and shine then
     SetShape(self.styleShine, style.shine, style.margin)

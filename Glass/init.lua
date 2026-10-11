@@ -24,7 +24,7 @@ Core.Libs = {
   lodash = _G.LibStub("lodash.wow")
 }
 Core.Components = {}
-Core.Version = "0.10.1-forever"
+Core.Version = "0.12.0-forever"
 --[==[@debug@--
 Core.Version = "DEBUG"
 --@end-debug@]==]--
@@ -55,6 +55,10 @@ Core.defaults = {
       yOfs = 230
     },
 
+    -- The game's chat buttons beside the chat
+    chatButtons = false,
+    chatButtonsSide = "left", -- "left", "right", "topleft", "topright", "bottomleft" or "bottomright"
+
     -- Tabs
     tabFont = "", -- empty: same font as the messages
     tabFontSize = 12,
@@ -62,12 +66,18 @@ Core.defaults = {
     tabPadding = 15,
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
-    tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glass or classic
+    tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glossy or classic
     tabAccent = "default", -- accent color of the selected tab; "default" = the style's own
+    tabBarPosition = "top", -- "top" or "bottom" of the messages
+    tabAlign = "left", -- "left", "center" or "right" along the tab bar
+    tabBarFade = true, -- the tab bar fades out with the chat; false keeps it visible
+    tabBarOffsetX = 0, -- fine adjustment of the tab bar, in pixels
+    tabBarOffsetY = 0,
 
     -- Edit box
     editBoxFontSize = 12,
     editBoxBackgroundOpacity = 0.6,
+    editBoxStyle = "minimal", -- "minimal", "solid" or "framed"
     editBoxAnchor = {
       position = "BELOW",
       yOfs = -5
@@ -79,6 +89,7 @@ Core.defaults = {
     messageLeading = 3,
     messageLinePadding = 0.25,
 
+    messageFade = true, -- messages fade out after chatHoldTime; false keeps them visible
     chatHoldTime = 10,
     chatShowOnMouseOver = true,
     chatFadeInDuration = 0.6,
