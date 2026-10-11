@@ -58,6 +58,14 @@ function ChatButtonsMixin:Init(container)
       -- The voice buttons come and go: close the gap they leave
       self:SecureHook(button, "Show", function () self:Layout() end)
       self:SecureHook(button, "Hide", function () self:Layout() end)
+      -- The game puts the buttons back in its own place now and then (beside
+      -- the old chat frame): bring them back
+      self:SecureHook(button, "SetPoint", function () self:Layout() end)
+      self:SecureHook(button, "SetParent", function (_, parent)
+        if not self.parenting and parent ~= self and parent ~= self.hiddenParent then
+          self:PlaceButton(button)
+        end
+      end)
     end
   end
 
@@ -219,6 +227,15 @@ local function Position()
 end
 
 ---
+-- Moves a button into the column (option on) or out of sight (option off)
+function ChatButtonsMixin:PlaceButton(button)
+  self.parenting = true
+  button:SetParent(Core.db.profile.chatButtons and self or self.hiddenParent)
+  self.parenting = false
+  self:Layout()
+end
+
+---
 -- Shows or hides the buttons and puts them in the chosen place
 function ChatButtonsMixin:Update()
   local enabled = Core.db.profile.chatButtons
@@ -228,11 +245,7 @@ function ChatButtonsMixin:Update()
   self:SetPoint(holder[1], self.container, holder[2], holder[3], holder[4])
 
   for _, button in ipairs(self.buttons) do
-    if enabled then
-      button:SetParent(self)
-    else
-      button:SetParent(self.hiddenParent)
-    end
+    self:PlaceButton(button)
   end
 
   if enabled and (self.state.mouseOver or Core.db.profile.tabBarFade == false) then

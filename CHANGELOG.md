@@ -11,6 +11,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Fixed
 - The game's own edit box border could show again behind the Glass edit box (`EditBox.lua`).
 - Tabs with no new messages piled up a "Previous session" line every session. Those lines now only show between messages, and history saved by earlier versions is tidied up (`History.lua`).
+- The chat buttons could end up in the wrong place (where the game puts them) after a while. They now always go back to the chosen position (`ChatButtons.lua`).
 
 ## 0.11.0-forever (beta) (2026-10-11)
 
