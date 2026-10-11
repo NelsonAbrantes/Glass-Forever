@@ -2,6 +2,13 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.13.0-forever (beta, unreleased)
+
+### Added
+- "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glossy (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
+- "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red (`ChatTab.lua`).
+- "Name color" option for the tab names: auto, gold, white, silver or dark. Auto now uses white on the selected Solid tab when the letters have an outline, so it stays readable (`ChatTab.lua`, `OptionsPanel.lua`).
+
 ## 0.12.0-forever (beta) (2026-10-11)
 
 ### Added
@@ -22,9 +29,6 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - "Fade out" options for the tab bar (Tabs) and for the messages (Messages): turn them off to keep the tab bar or the messages always visible (`ChatDock.lua`, `SlidingMessageFrame.lua`, `UIManager.lua`).
 - Tab bar position, alignment and both "Fade out" options are also in Edit Mode (`EditMode.lua`).
 - Chat buttons (Options > General > Chat buttons): the game's chat buttons (friends, channels and voice chat, mute and deafen, emotes and languages) can be shown beside, above or below the chat (left, right, top left, top right, bottom left or bottom right), with plain icons in the Glass color. They appear and fade with the tab bar. Off by default (`ChatButtons.lua`, `MainContainerFrame.lua`, `UIManager.lua`, `OptionsPanel.lua`).
-
-- "Tab style" option with seven styles: Minimal (as before), Framed (rounded background and bronze border), Solid (filled tabs), Underline (a bar under the selected tab), Pill (capsule-shaped tabs), Glass (raised, glossy buttons) and Classic (the game's own tabs) (`ChatTab.lua`, new images in `Assets/`).
-- "Accent color" option for the selected tab: style default, bronze, gold, cyan, silver, green, purple or red (`ChatTab.lua`).
 
 ### Fixed
 - The "jump to the newest messages" button didn't move when the chat height changed (`ScrollOverlayFrame.lua`).

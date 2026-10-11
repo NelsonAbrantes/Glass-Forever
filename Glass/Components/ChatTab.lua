@@ -113,7 +113,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
 
   if not self:IsHooked(self.Text, "SetTextColor") then
     self:SecureHook(self.Text, "SetTextColor", function ()
-      -- Temporary chat frames retain their color (unless the style needs dark text)
+      -- Temporary chat frames (whispers) retain their color
       local r, g, b = self:DesiredTextColor()
       if r then
         Adjust(function () self.Text:SetTextColor(r, g, b) end)
@@ -233,7 +233,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
           self:UpdateLayout()
         end
 
-        if key == "tabStyle" or key == "tabAccent" then
+        if key == "tabStyle" or key == "tabAccent" or key == "tabTextColor" or key == "font" then
           self.styleKey = nil
           self:UpdateStyle()
         end
@@ -322,6 +322,14 @@ local ACCENTS = {
   red = { 0.95, 0.38, 0.32 },
 }
 
+-- Tab name colors (Tabs options). "auto" isn't listed: it depends on the style.
+local TEXT_COLORS = {
+  gold = { Colors.apache.r, Colors.apache.g, Colors.apache.b },
+  white = { 1, 1, 1 },
+  silver = { 0.75, 0.75, 0.78 },
+  dark = { 0.10, 0.07, 0.04 },
+}
+
 -- A color that follows the accent color, with the given opacity
 local function Accent(alpha, height)
   return { accent = true, a = alpha, h = height }
@@ -393,10 +401,23 @@ end
 -- Text color of the tab name: dark on the filled selected tab (Solid), the
 -- Glass color otherwise. nil keeps the game's color (whisper tabs).
 function ChatTabMixin:DesiredTextColor()
-  if CurrentStyle().darkTextSelected and self.styleSelected then
-    return 0.10, 0.07, 0.04
-  end
+  -- Whisper tabs keep the whisper color
   if self.chatFrame and self.chatFrame.isTemporary then return nil end
+
+  local choice = Core.db.profile.tabTextColor
+  local color = TEXT_COLORS[choice]
+  if color then
+    return color[1], color[2], color[3]
+  end
+
+  -- Auto: the Glass color, or dark on a filled selected tab (Solid). With an
+  -- outline around the letters dark text gets lost, so it's white then.
+  if CurrentStyle().darkTextSelected and self.styleSelected then
+    if (Core.db.profile.fontFlags or ""):find("OUTLINE") then
+      return 1, 1, 1
+    end
+    return TEXT_COLORS.dark[1], TEXT_COLORS.dark[2], TEXT_COLORS.dark[3]
+  end
   return Colors.apache.r, Colors.apache.g, Colors.apache.b
 end
 
@@ -484,7 +505,7 @@ function ChatTabMixin:UpdateStyle(isSelected)
     self.selectedLine:SetColorTexture(Resolve(Accent(1), style))
   end
 
-  -- Name color (dark on a filled selected tab)
+  -- Name color (Tabs options; "Auto" depends on the style)
   local r, g, b = self:DesiredTextColor()
   if r then self.Text:SetTextColor(r, g, b) end
 end

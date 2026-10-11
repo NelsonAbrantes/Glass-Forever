@@ -68,6 +68,7 @@ Core.defaults = {
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
     tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glossy or classic
     tabAccent = "default", -- accent color of the selected tab; "default" = the style's own
+    tabTextColor = "auto", -- tab name color: auto, gold, white, silver or dark
     tabBarPosition = "top", -- "top" or "bottom" of the messages
     tabAlign = "left", -- "left", "center" or "right" along the tab bar
     tabBarFade = true, -- the tab bar fades out with the chat; false keeps it visible

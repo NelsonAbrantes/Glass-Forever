@@ -360,6 +360,16 @@ local function BuildTabs(category, layout)
   Header(layout, "Text")
   FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
   Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")
+  local textColorSetting = ProfileSetting(category, "tabTextColor", Settings.VarType.String, "Name color", "tabTextColor")
+  Dropdown(category, textColorSetting, function ()
+    return {
+      { "auto", "Auto" },
+      { "gold", "Gold" },
+      { "white", "White" },
+      { "silver", "Silver" },
+      { "dark", "Dark" },
+    }
+  end, "Color of the tab names. Auto: gold, and on the Solid style the selected tab gets a color that stands out from its background. Whisper tabs keep the whisper color.")
 
   Header(layout, "Tab bar")
   local positionSetting = ProfileSetting(category, "tabBarPosition", _G.Settings.VarType.String, "Position", "tabBarPosition")
