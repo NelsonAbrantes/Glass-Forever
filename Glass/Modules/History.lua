@@ -10,9 +10,10 @@ local time = time
 local MAX_LINES = 50 -- messages kept per tab
 
 -- Line shown under the restored messages, so they aren't mixed up with the
--- ones from this session
-local SEPARATOR = "-------- Previous session, ended %s --------"
-local SEPARATOR_COLOR = 0.5 -- gray
+-- ones from this session. The chat draws it with lines on each side, as
+-- "Previous session · 12 Oct, 14:30" (MessageLine.lua).
+local SEPARATOR = "Previous session, ended %s"
+local SEPARATOR_COLOR = 0.5 -- gray (the chat shows it in a dim gold)
 
 ----
 -- History Module
@@ -25,9 +26,9 @@ local function GetFrames()
   return Core:GetModule("UIManager").state.frames
 end
 
+-- (also the "-------- ... --------" ones saved by earlier versions)
 local function IsSeparator(line)
-  return type(line[1]) == "string"
-    and line[1]:match("^%-+ Previous session, ended .+ %-+$") ~= nil
+  return Core.Components.SeparatorText(line[1]) ~= nil
 end
 
 -- Keeps only the separators that sit between messages: none at the start or

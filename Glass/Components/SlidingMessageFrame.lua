@@ -710,7 +710,10 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
   message.raw = { text = text, r = red, g = green, b = blue }
 
   message.text:SetTextColor(red, green, blue, 1)
-  message.text:SetText(TP:ProcessText(text))
+  -- The "Previous session" separator has a look of its own (MessageLine.lua)
+  local separator = Core.Components.SeparatorText(text)
+  message.text:SetText(separator or TP:ProcessText(text))
+  message:SetSeparator(separator ~= nil)
 
   -- Adjust height to contain text
   message:UpdateFrame()

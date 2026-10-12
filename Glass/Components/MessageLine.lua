@@ -9,6 +9,7 @@ local HyperlinkLeave = Constants.ACTIONS.HyperlinkLeave
 local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
+local CreateColor = CreateColor
 local CreateFrame = CreateFrame
 local CreateObjectPool = CreateObjectPool
 local Mixin = Mixin
@@ -182,6 +183,68 @@ function MessageLineMixin:UpdateFrame()
 
   local rightBgWidth = math.min(250, Core.db.profile.frameWidth - 50)
   self:SetGradientBackground(50, rightBgWidth, Colors.codGray, Core.db.profile.chatBackgroundOpacity)
+  -- The background above shows again: the separator keeps its own look
+  if self.isSeparator then self:SetSeparator(true) end
+end
+
+---
+-- The "Previous session" separator (History module): its text centered and
+-- smaller-looking in a dim gold, with a thin line on each side that fades out
+-- towards the edge, and no message background. Lines are textures, so they
+-- don't depend on the font having line characters.
+local SEPARATOR_GAP = 8      -- between the text and each line
+local SEPARATOR_ALPHA = 0.55 -- the lines at their strongest, next to the text
+
+-- The separator's text, or nil if this isn't one. Older versions saved it as
+-- "-------- Previous session, ended 12 Oct, 14:30 --------".
+local function SeparatorText(text)
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return nil end
+  local core = text:match("^%-*%s*(Previous session.-)%s*%-*$")
+  if not core then return nil end
+  return (core:gsub(", ended ", " · "))
+end
+Core.Components.SeparatorText = SeparatorText
+
+function MessageLineMixin:LayoutSeparator()
+  local gold = Colors.apache
+  local half = self.text:GetStringWidth() / 2 + SEPARATOR_GAP
+  for _, side in ipairs({ "Left", "Right" }) do
+    local key = "separator"..side
+    if not self[key] then
+      self[key] = self:CreateTexture(nil, "ARTWORK")
+      self[key]:SetColorTexture(1, 1, 1, 1)
+      self[key]:SetHeight(1)
+    end
+  end
+  self.separatorLeft:ClearAllPoints()
+  self.separatorLeft:SetPoint("LEFT", Constants.TEXT_XPADDING, 0)
+  self.separatorLeft:SetPoint("RIGHT", self, "CENTER", -half, 0)
+  self.separatorLeft:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, 0), CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA))
+  self.separatorRight:ClearAllPoints()
+  self.separatorRight:SetPoint("LEFT", self, "CENTER", half, 0)
+  self.separatorRight:SetPoint("RIGHT", -Constants.TEXT_XPADDING, 0)
+  self.separatorRight:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA), CreateColor(gold.r, gold.g, gold.b, 0))
+end
+
+---
+-- Shows this line as a normal message or as the separator
+function MessageLineMixin:SetSeparator(isSeparator)
+  self.isSeparator = isSeparator
+  self.text:SetJustifyH(isSeparator and "CENTER" or "LEFT")
+  for _, texture in ipairs({ self.leftBg, self.centerBg, self.rightBg }) do
+    if texture then texture:SetShown(not isSeparator) end
+  end
+  if isSeparator then
+    local gold = Colors.apache
+    self.text:SetTextColor(gold.r, gold.g, gold.b, 0.8)
+    self:LayoutSeparator()
+  end
+  if self.separatorLeft then
+    self.separatorLeft:SetShown(isSeparator)
+    self.separatorRight:SetShown(isSeparator)
+  end
 end
 
 ---
