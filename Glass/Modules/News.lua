@@ -12,6 +12,22 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "0.14.0-forever (beta)",
+    items = {[[
+What's new
+
+- The selected tab line glows and slides between tabs (Options > Tabs: Slide, Grow or Off).
+- Thin outline on the chat button icons.
+- New look for the "Previous session" line.
+
+Bug fixes
+
+- Right-aligned tabs no longer shake.
+- Changing the chat height no longer freezes the game.
+- Lighter on memory and performance in busy chats.
+    ]]}
+  },
+  {
     name = "0.13.0-forever (beta)",
     items = {[[
 What's new

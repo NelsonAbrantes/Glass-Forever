@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.13.1-forever (beta, unreleased)
+## 0.14.0-forever (beta) (2026-10-12)
 
 ### Added
 - "Selected line animation" option (Options > Tabs): Slide (the line slides from the old tab to the new one, the default), Grow (it opens from the middle of the new tab) or Off (`ChatTab.lua`, `OptionsPanel.lua`).
