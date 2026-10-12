@@ -149,6 +149,8 @@ end
 -- Places the tabs on the left, center or right of the tab bar (Tabs options).
 -- The game anchors the first tab to the left of the bar and every other tab to
 -- the one before it, so moving the first tab moves them all.
+local ALIGN_SLACK = 2 -- pixels the tabs may be off before they're moved
+
 function ChatDockMixin:UpdateAlignment()
   local frames = self.DOCKED_CHAT_FRAMES
   if not frames or not frames[1] then return end
@@ -159,18 +161,21 @@ function ChatDockMixin:UpdateAlignment()
   local point, relativeTo, relativePoint, _, y = first:GetPoint(1)
   if relativeTo ~= self then return end
 
-  -- Total width of the tabs
+  -- Total width of the tabs, with the 1px the game leaves after each one.
+  -- Without those, right-aligned tabs were a few pixels too wide for the
+  -- game, which moved them back to the left, and they jumped back and forth
+  -- without end.
   local tabsWidth = 0
   for _, chatFrame in ipairs(frames) do
     local tab = _G[chatFrame:GetName().."Tab"]
     if tab and tab:IsShown() then
-      tabsWidth = tabsWidth + tab:GetWidth()
+      tabsWidth = tabsWidth + tab:GetWidth() + 1
     end
   end
 
   -- When the tabs don't fit, they stay on the left (the game scrolls them).
-  -- 1px to spare, so the game never thinks they're too wide.
-  local free = math.max(0, self:GetWidth() - tabsWidth - 1)
+  -- 2px to spare, so the game never thinks they're too wide.
+  local free = math.max(0, self:GetWidth() - tabsWidth - 2)
   local x = 0
   if Core.db.profile.tabAlign == "center" then
     x = math.floor(free / 2)
@@ -178,6 +183,11 @@ function ChatDockMixin:UpdateAlignment()
     x = math.floor(free)
   end
 
+  -- Only when it moves by more than a couple of pixels. Moving the tabs can
+  -- make one of them a pixel wider or narrower, which moved them back by a
+  -- pixel, and so on, many times a second: the tabs shook.
+  local _, _, _, currentX = first:GetPoint(1)
+  if currentX and math.abs(currentX - x) <= ALIGN_SLACK then return end
   first:SetPoint(point, relativeTo, relativePoint, x, y)
 end
 

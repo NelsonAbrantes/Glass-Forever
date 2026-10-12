@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.13.1-forever (beta, unreleased)
+
+### Fixed
+- Tabs aligned right (or centered) shook left and right: a tab a pixel wider or narrower moved them by a pixel, which changed the width again. They now only move when off by more than 2px, and the 1px gap the game leaves between tabs is counted (`ChatDock.lua`).
+
 ## 0.13.0-forever (beta) (2026-10-12)
 
 ### Added
