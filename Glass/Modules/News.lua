@@ -16,9 +16,9 @@ local CHANGELOG = {
     items = {[[
 What's new
 
-- Tab styles (Options > Tabs > Tab style): Minimal (as before), Framed, Solid, Underline, Pill, Glossy and Classic (the game's own tabs).
+- Tab styles (Options > Tabs > Tab style): Minimal (as before), Framed, Solid, Underline, Pill, Glossy and Classic.
 - Accent color for the selected tab, and a color for the tab names, so every style stays readable.
-- Separate windows with the Glass look: tabs dragged out of the chat lose the default border, get the Glass background while the mouse is over them, and their messages fade out like in the chat. They come back where you left them after a reload, minimized if they were.
+- Separate windows with the Glass look: tabs you drag out of the chat now look like the rest of Glass, and stay where you left them after a reload.
 - Spam filter (Options > Messages > Spam filter): hides messages with blocked words, like gold sellers. Comes with a few phrases; "Edit list" lets you change them.
 - Arrow keys history: the Up and Down arrows in the chat box go through what you typed, without holding Alt, even after a reload.
 - Update notice: if someone in your guild or group has a newer Glass Forever, a message in chat tells you.
