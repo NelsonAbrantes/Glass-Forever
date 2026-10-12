@@ -15,6 +15,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - The "Previous session" line between old and new messages is now centered, in a dim gold, with a thin line on each side that fades out ("Previous session · 12 Oct, 14:30"), instead of a row of dashes. Lines saved by earlier versions get the new look too (`MessageLine.lua`, `History.lua`, `SlidingMessageFrame.lua`).
 
 ### Fixed
+- The selected tab line sat 1px lower on Guild, Party and whisper tabs than on General and Combat Log: it now sits on the edge of the tab bar itself (`ChatTab.lua`).
 - Changing the chat's height could freeze the game for a moment: every saved message of every tab was measured again at each step of the slider. Height and tab bar changes no longer do that (`SlidingMessageFrame.lua`, `ChatTab.lua`).
 - Tabs aligned right (or centered) shook left and right: a tab a pixel wider or narrower moved them by a pixel, which changed the width again. They now only move when off by more than 2px, and the 1px gap the game leaves between tabs is counted (`ChatDock.lua`).
 

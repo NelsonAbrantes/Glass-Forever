@@ -415,11 +415,14 @@ function SelectedLine:Follow(tab)
     self.dirty = false
     self.x, self.w, self.height = x, w, height
     frame:SetSize(math.max(1, w), height)
+    -- On the edge of the tab bar itself, not of the tab: the game places the
+    -- scrolling tabs (Guild, Party, whispers) 1px lower than General and
+    -- Combat Log, and the line moved down with them
     frame:ClearAllPoints()
     if self.bottom then
-      frame:SetPoint("BOTTOM", dock, "BOTTOMLEFT", x, (tab:GetBottom() or 0) - (dock:GetBottom() or 0))
+      frame:SetPoint("BOTTOM", dock, "BOTTOMLEFT", x, 0)
     else
-      frame:SetPoint("TOP", dock, "TOPLEFT", x, (tab:GetTop() or 0) - (dock:GetTop() or 0))
+      frame:SetPoint("TOP", dock, "TOPLEFT", x, 0)
     end
   end
   if not frame:IsShown() then frame:Show() end
