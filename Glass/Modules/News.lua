@@ -16,20 +16,20 @@ local CHANGELOG = {
     items = {[[
 What's new
 
-- Tab styles (Options > Tabs > Tab style): Minimal (as before), Framed, Solid, Underline, Pill, Glossy and Classic.
-- Accent color for the selected tab, and a color for the tab names, so every style stays readable.
-- Separate windows with the Glass look: tabs you drag out of the chat now look like the rest of Glass, and stay where you left them after a reload.
-- Spam filter (Options > Messages > Spam filter): hides messages with blocked words, like gold sellers. Comes with a few phrases; "Edit list" lets you change them.
-- Arrow keys history: the Up and Down arrows in the chat box go through what you typed, without holding Alt, even after a reload.
-- Update notice: if someone in your guild or group has a newer Glass Forever, a message in chat tells you.
+- Tab styles: Minimal, Framed, Solid, Underline, Pill, Glossy and Classic.
+- Accent color for the selected tab, and a color for tab names.
+- Separate windows with the Glass look.
+- Spam filter with an editable list of blocked words.
+- Arrow keys history in the chat box.
+- Update notice in the chat.
 
 Bug fixes
 
 - Chinese and Korean letters no longer show as squares.
-- "Unread messages" is now under the chat, where it can be read.
-- The new message glow of a party tab is blue again, not white.
-- A separate window no longer ends up hidden or closed after a reload.
-- Docking a window again no longer shows the messages of another tab.
+- "Unread messages" is now under the chat.
+- Party tab glow is blue again.
+- Separate windows no longer disappear after a reload.
+- Docking a window no longer shows another tab's messages.
     ]]}
   },
   {
