@@ -6,8 +6,6 @@ local AceHook = Core.Libs.AceHook
 
 local LibEasing = Core.Libs.LibEasing
 local LSM = Core.Libs.LSM
-local lodash = Core.Libs.lodash
-local reduce = lodash.reduce
 
 local CreateMessageLinePool = Core.Components.CreateMessageLinePool
 local CreateScrollOverlayFrame = Core.Components.CreateScrollOverlayFrame
@@ -29,6 +27,14 @@ local Mixin = Mixin
 
 -- Starts a message's fade out, unless "Fade out" is off in the Messages
 -- options (then messages stay visible)
+-- Settings that move or resize the chat without changing the size of the
+-- messages in it
+local RELAYOUT_KEEPS_MESSAGES = {
+  frameHeight = true,
+  tabBarHeight = true,
+  tabBarPosition = true,
+}
+
 local function FadeOutLater(message)
   if Core.db.profile.messageFade ~= false then
     message:HideDelay(Core.db.profile.chatHoldTime)
@@ -338,15 +344,21 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             self:SetHeight(self.config.height + self.config.overflowHeight)
             self:SetWidth(self.config.width)
 
-            -- Then adjust message line dimensions
-            for _, message in ipairs(self.state.messages) do
+            -- Then adjust message line dimensions. Only what changes the size
+            -- of the messages themselves: the chat's height and the tab bar
+            -- don't, and measuring every saved message of every tab again at
+            -- each step of the Height slider froze the game.
+            if not RELAYOUT_KEEPS_MESSAGES[key] then
+              for _, message in ipairs(self.state.messages) do
                 message:UpdateFrame()
+              end
             end
 
             -- Then update scroll values
-            local contentHeight = reduce(self.state.messages, function (acc, message)
-              return acc + message:GetHeight()
-            end, 0)
+            local contentHeight = 0
+            for _, message in ipairs(self.state.messages) do
+              contentHeight = contentHeight + message:GetHeight()
+            end
             self.slider:SetHeight(self.config.height + self.config.overflowHeight + contentHeight)
             self.slider:SetWidth(self.config.width)
 
@@ -734,23 +746,28 @@ function SlidingMessageFrameMixin:BackFillMessage(...)
   table.insert(self.state.incomingScrollbackMessages, args)
 end
 
+-- The queued messages are handed over as they are, and the emptied list is
+-- kept for the next ones: copying them into new lists every time was garbage
+-- the game had to clean up
+local function TakeQueue(state, key)
+  local queue = state[key]
+  local spareKey = key.."Spare"
+  state[key] = state[spareKey] or {}
+  state[spareKey] = queue
+  return queue
+end
+
 function SlidingMessageFrameMixin:OnFrame()
   if #self.state.incomingMessages > 0 then
-    local incoming = {}
-    for _, message in ipairs(self.state.incomingMessages) do
-      table.insert(incoming, message)
-    end
-    self.state.incomingMessages = {}
+    local incoming = TakeQueue(self.state, "incomingMessages")
     self:Update(incoming, false)
+    wipe(incoming)
   end
 
   if #self.state.incomingScrollbackMessages > 0 then
-    local incoming = {}
-    for _, message in ipairs(self.state.incomingScrollbackMessages) do
-      table.insert(incoming, message)
-    end
-    self.state.incomingScrollbackMessages = {}
+    local incoming = TakeQueue(self.state, "incomingScrollbackMessages")
     self:Update(incoming, true)
+    wipe(incoming)
   end
 end
 
@@ -793,9 +810,10 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
   end
 
   -- Update slider offsets animation
-  local offset = reduce(newMessages, function (acc, message)
-    return acc + message:GetHeight()
-  end, 0)
+  local offset = 0
+  for _, message in ipairs(newMessages) do
+    offset = offset + message:GetHeight()
+  end
 
   local newHeight = self.slider:GetHeight() + offset
   self.slider:SetHeight(newHeight)

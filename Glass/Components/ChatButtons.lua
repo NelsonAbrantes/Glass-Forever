@@ -28,6 +28,7 @@ local BUTTONS = {
 local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\"
 local BUTTON_SIZE = 22
 local ICON_SIZE = 16
+local OUTLINE_ALPHA = 0.85 -- the dark outline around the icons
 local GAP = 2 -- space between the buttons
 local MARGIN = 2 -- space between the buttons and the chat
 local OFF_COLOR = { r = 1, g = 0.35, b = 0.3 } -- muted or deafened
@@ -122,7 +123,7 @@ end
 local function Strip(button)
   if button.glassStyled == false then return end
   for _, region in ipairs({ button:GetRegions() }) do
-    if region ~= button.glassIcon then
+    if region ~= button.glassIcon and region ~= button.glassOutline then
       KeepHidden(region, button)
     end
   end
@@ -155,6 +156,13 @@ function ChatButtonsMixin:Restyle(button, icon, buttonSize, iconSize)
     button.glassIcon:SetPoint("CENTER")
     button.glassIcon:SetTexture(ASSETS..icon)
 
+    -- A thin dark outline behind the icon (its shape a little thicker), so
+    -- it stands out on any background
+    button.glassOutline = button:CreateTexture(nil, "OVERLAY", nil, 6)
+    button.glassOutline:SetAllPoints(button.glassIcon)
+    button.glassOutline:SetTexture(ASSETS..icon.."Outline")
+    button.glassOutline:SetVertexColor(0, 0, 0, OUTLINE_ALPHA)
+
     -- The frame's own HookScript (secure): AceHook isn't embedded in it
     button:HookScript("OnEnter", function ()
       button.glassHover = true
@@ -183,6 +191,7 @@ function ChatButtonsMixin:Restyle(button, icon, buttonSize, iconSize)
   end
 
   button.glassIcon:Show()
+  if button.glassOutline then button.glassOutline:Show() end
   Strip(button)
   self:UpdateColors()
 end
@@ -193,6 +202,7 @@ function ChatButtonsMixin:Unstyle(button)
   if button.glassIcon == nil or button.glassStyled == false then return end
   button.glassStyled = false
   button.glassIcon:Hide()
+  if button.glassOutline then button.glassOutline:Hide() end
   button:SetSize(unpack(button.glassSize))
   for _, region in ipairs({ button:GetRegions() }) do
     if region ~= button.glassIcon then

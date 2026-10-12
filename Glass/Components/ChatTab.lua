@@ -12,7 +12,10 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local ChatTypeInfo = ChatTypeInfo
 local FCF_StopAlertFlash = FCF_StopAlertFlash
+local CreateColor = CreateColor
+local CreateFrame = CreateFrame
 local GetPhysicalScreenSize = GetPhysicalScreenSize
+local GetTime = GetTime
 local IsCombatLog = IsCombatLog
 local Mixin = Mixin
 local UNLOCK_WINDOW = UNLOCK_WINDOW
@@ -27,6 +30,11 @@ local tabTexs = {
 local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\"
 
 local ChatTabMixin = {}
+
+-- The soft glow from the selected line into the tab (Minimal style)
+local LINE_GLOW_HEIGHT = 12
+local LINE_GLOW_SPREAD = 6   -- how much wider than the line, on each side
+local LINE_GLOW_ALPHA = 0.35
 
 -- The new message glow is bright: pale chat colors (party is a very light
 -- blue) turned white in it, so it gets a stronger version of the color.
@@ -204,15 +212,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end)
   end
 
-  -- Thin line above the tab, shown only while this tab is selected.
-  -- Size and thickness are set in UpdateSelected.
-  if self.selectedLine == nil then
-    self.selectedLine = self:CreateTexture(nil, "OVERLAY")
-    self.selectedLine:SetColorTexture(Colors.apache.r, Colors.apache.g, Colors.apache.b, 1)
-    self:PlaceSelectedLine()
-    self.selectedLine:SetSize(1, 1)
-    self.selectedLine:Hide()
-  end
+  -- The line of the selected tab is one for the whole tab bar (see
+  -- SelectedLine below), so it can slide from tab to tab. Each tab only
+  -- keeps its color for it.
+  self.lineColor = self.lineColor or { Colors.apache.r, Colors.apache.g, Colors.apache.b }
 
   -- Layers used by the tab styles (Tabs options, see STYLES below): a
   -- background, a border and a bar under the name
@@ -243,7 +246,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
   if self.subscriptions == nil then
     self.subscriptions = {
       Core:Subscribe(UPDATE_CONFIG, function (key)
-        if key == "frameWidth" or key == "frameHeight" or key == "font" or key == "messageFontSize"
+        if key == "frameWidth" or key == "font" or key == "messageFontSize"
           or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding"
           or key == "tabBarPosition" then
           -- Fit the tab to its text, the bar height and the spacing
@@ -272,17 +275,166 @@ function ChatTabMixin:UpdateLayout()
   self:PlaceSelectedLine()
 end
 
----
--- The selected line sits on the side facing the messages: above the tab, or
--- below it when the tab bar is at the bottom
-function ChatTabMixin:PlaceSelectedLine()
-  local line = self.selectedLine
-  if line == nil then return end
-  line:ClearAllPoints()
-  if Utils.TabBarAtBottom() then
-    line:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+----
+-- The selected line (Minimal style): one for the whole tab bar, on the side
+-- facing the messages. Strongest in the middle and fading out to the ends,
+-- with a soft glow into the tab. When another tab is selected it slides
+-- there, stretching or shrinking to the new tab's size; the first time it
+-- opens from the middle. It belongs to the tab bar, not to a tab, so it isn't
+-- cut off where the scrolling tabs end.
+
+local LINE_THICKNESS_PIXELS = 2 -- in real screen pixels
+local LINE_WIDTH_RATIO = 0.75   -- fraction of the tab width (the ends fade out)
+local LINE_MOVE_TIME = 0.25     -- seconds to slide to another tab (or open)
+
+local SelectedLine = {}
+
+function SelectedLine:Create()
+  if self.frame then return true end
+  local dock = _G.GeneralDockManager
+  if not dock then return false end
+  local frame = CreateFrame("Frame", nil, dock)
+  frame:SetFrameLevel(dock:GetFrameLevel() + 20)
+  frame:SetSize(1, 1)
+  frame:Hide()
+  self.frame = frame
+
+  self.left = frame:CreateTexture(nil, "OVERLAY")
+  self.left:SetPoint("TOPLEFT")
+  self.left:SetPoint("BOTTOMRIGHT", frame, "BOTTOM")
+  self.right = frame:CreateTexture(nil, "OVERLAY")
+  self.right:SetPoint("TOPLEFT", frame, "TOP")
+  self.right:SetPoint("BOTTOMRIGHT")
+  -- A soft half-ellipse of light (an image, so it's smooth at any size)
+  self.glow = frame:CreateTexture(nil, "ARTWORK")
+  self.glow:SetTexture(ASSETS.."tabGlow")
+  self.glow:SetBlendMode("ADD")
+  self.glow:SetHeight(LINE_GLOW_HEIGHT)
+  for _, texture in ipairs({ self.left, self.right }) do
+    texture:SetColorTexture(1, 1, 1, 1)
+  end
+  for _, texture in ipairs({ self.left, self.right, self.glow }) do
+    -- Not snapped to whole pixels: smooth edges and a smooth slide
+    if texture.SetSnapToPixelGrid then
+      texture:SetSnapToPixelGrid(false)
+      texture:SetTexelSnappingBias(0)
+    end
+  end
+  self:Place()
+  return true
+end
+
+-- The glow goes into the tab: below the line, or above it when the tab bar
+-- is under the messages (the image flipped)
+function SelectedLine:Place()
+  if not self.frame then return end
+  -- Placed again on its next update, without forgetting where it is (the
+  -- game lays the tabs out again when one is clicked: forgetting it made
+  -- "Slide" always grow from the middle instead)
+  self.dirty = true
+  local bottom = Utils.TabBarAtBottom()
+  if bottom == self.bottom then return end
+  local glow = self.glow
+  glow:ClearAllPoints()
+  self.bottom = bottom
+  if self.bottom then
+    glow:SetPoint("BOTTOMLEFT", self.frame, "TOPLEFT", -LINE_GLOW_SPREAD, 0)
+    glow:SetPoint("BOTTOMRIGHT", self.frame, "TOPRIGHT", LINE_GLOW_SPREAD, 0)
+    glow:SetTexCoord(0, 1, 1, 0)
   else
-    line:SetPoint("TOP", self, "TOP", 0, 0)
+    glow:SetPoint("TOPLEFT", self.frame, "BOTTOMLEFT", -LINE_GLOW_SPREAD, 0)
+    glow:SetPoint("TOPRIGHT", self.frame, "BOTTOMRIGHT", LINE_GLOW_SPREAD, 0)
+    glow:SetTexCoord(0, 1, 0, 1)
+  end
+end
+
+function SelectedLine:Color(color)
+  if self.color == color then return end
+  self.color = color
+  local r, g, b = color[1], color[2], color[3]
+  local clear, strong = CreateColor(r, g, b, 0), CreateColor(r, g, b, 1)
+  self.left:SetGradient("HORIZONTAL", clear, strong)
+  self.right:SetGradient("HORIZONTAL", strong, clear)
+  self.glow:SetVertexColor(r, g, b, LINE_GLOW_ALPHA)
+end
+
+function SelectedLine:Hide()
+  if self.frame and self.frame:IsShown() then self.frame:Hide() end
+  self.tab = nil
+end
+
+-- Puts the line on `tab`, sliding there if it was on another one. Called
+-- every frame for the selected tab: only does work while something changes.
+function SelectedLine:Follow(tab)
+  if not self:Create() then return end
+  local frame = self.frame
+  local dock = frame:GetParent()
+  local dockLeft, tabLeft = dock:GetLeft(), tab:GetLeft()
+  if not dockLeft or not tabLeft then return end
+
+  local targetX = tabLeft - dockLeft + tab:GetWidth() / 2
+  local targetW = tab:GetWidth() * LINE_WIDTH_RATIO
+  local now = GetTime()
+
+  -- Another tab (Tabs options: Selected line animation)
+  if tab ~= self.tab then
+    local animation = Core.db.profile.tabLineAnimation or "slide"
+    if animation == "off" then
+      self.movedAt = nil
+    elseif animation == "slide" and self.tab and frame:IsShown() and self.x then
+      self.fromX, self.fromW = self.x, self.w -- slide from where it is
+      self.movedAt = now
+    else
+      self.fromX, self.fromW = targetX, 0     -- grow from the middle
+      self.movedAt = now
+    end
+    self.tab = tab
+  end
+
+  local x, w = targetX, targetW
+  if self.movedAt then
+    local k = (now - self.movedAt) / LINE_MOVE_TIME
+    if k < 1 then
+      local ease = 1 - (1 - k) ^ 3 -- fast start, soft landing
+      x = self.fromX + (targetX - self.fromX) * ease
+      w = self.fromW + (targetW - self.fromW) * ease
+    else
+      self.movedAt = nil
+    end
+  end
+
+  -- The same thickness in real pixels whatever the UI scale
+  local _, screenHeight = GetPhysicalScreenSize()
+  local scale = tab:GetEffectiveScale()
+  local height = self.height or 1
+  if screenHeight and screenHeight > 0 and scale and scale > 0 then
+    height = LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale
+  end
+
+  if self.dirty or x ~= self.x or w ~= self.w or height ~= self.height then
+    self.dirty = false
+    self.x, self.w, self.height = x, w, height
+    frame:SetSize(math.max(1, w), height)
+    frame:ClearAllPoints()
+    if self.bottom then
+      frame:SetPoint("BOTTOM", dock, "BOTTOMLEFT", x, (tab:GetBottom() or 0) - (dock:GetBottom() or 0))
+    else
+      frame:SetPoint("TOP", dock, "TOPLEFT", x, (tab:GetTop() or 0) - (dock:GetTop() or 0))
+    end
+  end
+  if not frame:IsShown() then frame:Show() end
+end
+
+-- The line's side follows the tab bar position
+function ChatTabMixin:PlaceSelectedLine()
+  SelectedLine:Place()
+end
+
+-- The selected line's color for this tab (the accent color)
+function ChatTabMixin:ColorSelectedLine(r, g, b)
+  local color = self.lineColor
+  if not color or color[1] ~= r or color[2] ~= g or color[3] ~= b then
+    self.lineColor = { r, g, b }
   end
 end
 
@@ -542,8 +694,9 @@ function ChatTabMixin:UpdateStyle(isSelected)
   end
 
   -- Line above the selected tab (Minimal), in the accent color
-  if style.line and self.selectedLine then
-    self.selectedLine:SetColorTexture(Resolve(Accent(1), style))
+  if style.line then
+    local r, g, b = Resolve(Accent(1), style)
+    self:ColorSelectedLine(r, g, b)
   end
 
   -- Name color (Tabs options; "Auto" depends on the style)
@@ -551,41 +704,21 @@ function ChatTabMixin:UpdateStyle(isSelected)
   if r then self.Text:SetTextColor(r, g, b) end
 end
 
-local LINE_THICKNESS_PIXELS = 2 -- thickness of the selected-tab line, in real screen pixels
-local LINE_WIDTH_RATIO = 0.5    -- fraction of the tab width
-
 function ChatTabMixin:UpdateSelected(selected)
-  local line = self.selectedLine
-  if line == nil then return end
-
   local isSelected = (self.chatFrame == selected)
 
   self:UpdateStyle(isSelected)
+  if not isSelected then return end
 
-  -- Only the Minimal style marks the selected tab with the line; the others draw it
-  local showLine = isSelected and CurrentStyle().line == true
-
-  if showLine then
-    -- Convert real pixels to this tab's own units, so every tab gets the same thickness.
-    -- This runs every frame, so only resize when something changed.
-    local _, screenHeight = GetPhysicalScreenSize()
-    local scale = self:GetEffectiveScale()
-    if screenHeight and screenHeight > 0 and scale and scale > 0 then
-      local height = LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale
-      if line.glassHeight ~= height then
-        line.glassHeight = height
-        line:SetHeight(height)
-      end
+  -- Only the Minimal style marks the selected tab with the line; the others
+  -- draw it themselves
+  if CurrentStyle().line == true and self:IsVisible() then
+    if SelectedLine:Create() then
+      SelectedLine:Color(self.lineColor)
+      SelectedLine:Follow(self)
     end
-    local width = self:GetWidth() * LINE_WIDTH_RATIO
-    if line.glassWidth ~= width then
-      line.glassWidth = width
-      line:SetWidth(width)
-    end
-  end
-
-  if line:IsShown() ~= showLine then
-    line:SetShown(showLine)
+  else
+    SelectedLine:Hide()
   end
 end
 

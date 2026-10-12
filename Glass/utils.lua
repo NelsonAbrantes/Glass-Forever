@@ -28,6 +28,8 @@ end
 Utils.PlainText = function (text)
   if type(text) ~= "string" then return nil end
   if issecretvalue and issecretvalue(text) then return nil end
+  -- No codes at all (most messages): nothing to strip, no copies made
+  if not text:find("|", 1, true) then return text end
 
   text = text:gsub("|Hglassurl:.-|h%[(.-)%]|h", "%1") -- our web links, without brackets
   text = text:gsub("|H.-|h(.-)|h", "%1")

@@ -82,9 +82,12 @@ function FadingFrameMixin:HideDelay(delay)
       self.hideTimer:Cancel()
     end
 
-    self.hideTimer = C_Timer.NewTimer(delay, function ()
-      self:Hide()
-    end)
+    -- One function per frame, kept: a new one for every message was garbage
+    -- the game had to clean up
+    if not self.hideCallback then
+      self.hideCallback = function () self:Hide() end
+    end
+    self.hideTimer = C_Timer.NewTimer(delay, self.hideCallback)
   end
 end
 

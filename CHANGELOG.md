@@ -4,10 +4,17 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ## 0.13.1-forever (beta, unreleased)
 
+### Added
+- "Selected line animation" option (Options > Tabs): Slide (the line slides from the old tab to the new one, the default), Grow (it opens from the middle of the new tab) or Off (`ChatTab.lua`, `OptionsPanel.lua`).
+- A thin dark outline around the chat button icons and the separate window buttons, so they stand out on any background (`ChatButtons.lua`, new `*Outline.tga` images).
+
 ### Changed
+- The selected tab line (Minimal style) fades out towards its ends and has a soft glow into the tab. It's now one line for the whole tab bar, so it's never cut off (`ChatTab.lua`, new `tabGlow.tga`).
+- Less memory churn in busy chats: no new timer function per message, no copies of message text without codes, no copied message queues (`FadingFrame.lua`, `utils.lua`, `SlidingMessageFrame.lua`).
 - The "Previous session" line between old and new messages is now centered, in a dim gold, with a thin line on each side that fades out ("Previous session · 12 Oct, 14:30"), instead of a row of dashes. Lines saved by earlier versions get the new look too (`MessageLine.lua`, `History.lua`, `SlidingMessageFrame.lua`).
 
 ### Fixed
+- Changing the chat's height could freeze the game for a moment: every saved message of every tab was measured again at each step of the slider. Height and tab bar changes no longer do that (`SlidingMessageFrame.lua`, `ChatTab.lua`).
 - Tabs aligned right (or centered) shook left and right: a tab a pixel wider or narrower moved them by a pixel, which changed the width again. They now only move when off by more than 2px, and the 1px gap the game leaves between tabs is counted (`ChatDock.lua`).
 
 ## 0.13.0-forever (beta) (2026-10-12)
