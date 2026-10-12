@@ -253,7 +253,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
           self:UpdateLayout()
         end
 
-        if key == "tabStyle" or key == "tabAccent" or key == "tabTextColor" or key == "font" then
+        if key == "tabStyle" or key == "tabAccent" or key == "tabTextColor" or key == "font"
+          or key == "tabLineAnimation" then
           self.styleKey = nil
           self:UpdateStyle()
         end
@@ -288,6 +289,8 @@ local LINE_WIDTH_RATIO = 0.75   -- fraction of the tab width (the ends fade out)
 local LINE_MOVE_TIME = 0.25     -- seconds to slide to another tab (or open)
 
 local SelectedLine = {}
+local SelectedBox = {} -- the sliding selected look of Framed, Solid, Pill and Glossy (below)
+local fadingTabs = {} -- tabs whose look is fading now (see FadeLayer)
 
 function SelectedLine:Create()
   if self.frame then return true end
@@ -332,12 +335,20 @@ function SelectedLine:Place()
   -- game lays the tabs out again when one is clicked: forgetting it made
   -- "Slide" always grow from the middle instead)
   self.dirty = true
-  local bottom = Utils.TabBarAtBottom()
-  if bottom == self.bottom then return end
+  self.bottom = Utils.TabBarAtBottom()
+  self:AnchorGlow()
+end
+
+-- The glow goes into the tab: up from the line when it's under the names
+-- (Underline's bar, or Minimal with the tab bar under the messages), down
+-- from it otherwise (the image flipped for up)
+function SelectedLine:AnchorGlow()
+  local up = self.mode == "bar" or self.bottom
+  if up == self.glowUp then return end
+  self.glowUp = up
   local glow = self.glow
   glow:ClearAllPoints()
-  self.bottom = bottom
-  if self.bottom then
+  if up then
     glow:SetPoint("BOTTOMLEFT", self.frame, "TOPLEFT", -LINE_GLOW_SPREAD, 0)
     glow:SetPoint("BOTTOMRIGHT", self.frame, "TOPRIGHT", LINE_GLOW_SPREAD, 0)
     glow:SetTexCoord(0, 1, 1, 0)
@@ -348,14 +359,32 @@ function SelectedLine:Place()
   end
 end
 
+-- "line" (Minimal): on the bar's edge facing the messages, fading out to the
+-- ends, with a glow into the tab. "bar" (Underline): a thicker bar under the
+-- name, only softened at its ends, with a glow rising from it that lights the
+-- name from below.
+local BAR_HEIGHT = 3
+local BAR_EDGE_ALPHA = 0.25 -- the bar's ends (the line's fade out completely)
+local BAR_GLOW_ALPHA = 0.45
+
+function SelectedLine:SetMode(mode)
+  if mode == self.mode then return end
+  self.mode = mode
+  self:AnchorGlow()
+  self.color = nil -- colored again for this mode
+  self.dirty = true
+end
+
 function SelectedLine:Color(color)
   if self.color == color then return end
   self.color = color
   local r, g, b = color[1], color[2], color[3]
-  local clear, strong = CreateColor(r, g, b, 0), CreateColor(r, g, b, 1)
-  self.left:SetGradient("HORIZONTAL", clear, strong)
-  self.right:SetGradient("HORIZONTAL", strong, clear)
-  self.glow:SetVertexColor(r, g, b, LINE_GLOW_ALPHA)
+  local bar = self.mode == "bar"
+  local strong = CreateColor(r, g, b, 1)
+  local edge = CreateColor(r, g, b, bar and BAR_EDGE_ALPHA or 0)
+  self.left:SetGradient("HORIZONTAL", edge, strong)
+  self.right:SetGradient("HORIZONTAL", strong, edge)
+  self.glow:SetVertexColor(r, g, b, bar and BAR_GLOW_ALPHA or LINE_GLOW_ALPHA)
 end
 
 function SelectedLine:Hide()
@@ -372,8 +401,10 @@ function SelectedLine:Follow(tab)
   local dockLeft, tabLeft = dock:GetLeft(), tab:GetLeft()
   if not dockLeft or not tabLeft then return end
 
+  local bar = self.mode == "bar"
   local targetX = tabLeft - dockLeft + tab:GetWidth() / 2
-  local targetW = tab:GetWidth() * LINE_WIDTH_RATIO
+  local targetW = bar and (tab:GetWidth() - 2 * math.max(Utils.TabPadding() - 3, 0))
+    or tab:GetWidth() * LINE_WIDTH_RATIO
   local now = GetTime()
 
   -- Another tab (Tabs options: Selected line animation)
@@ -403,12 +434,17 @@ function SelectedLine:Follow(tab)
     end
   end
 
-  -- The same thickness in real pixels whatever the UI scale
-  local _, screenHeight = GetPhysicalScreenSize()
-  local scale = tab:GetEffectiveScale()
+  -- The line: the same thickness in real pixels whatever the UI scale. The
+  -- bar: Underline's own bar height.
   local height = self.height or 1
-  if screenHeight and screenHeight > 0 and scale and scale > 0 then
-    height = LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale
+  if bar then
+    height = BAR_HEIGHT
+  else
+    local _, screenHeight = GetPhysicalScreenSize()
+    local scale = tab:GetEffectiveScale()
+    if screenHeight and screenHeight > 0 and scale and scale > 0 then
+      height = LINE_THICKNESS_PIXELS * (768 / screenHeight) / scale
+    end
   end
 
   if self.dirty or x ~= self.x or w ~= self.w or height ~= self.height then
@@ -419,7 +455,10 @@ function SelectedLine:Follow(tab)
     -- scrolling tabs (Guild, Party, whispers) 1px lower than General and
     -- Combat Log, and the line moved down with them
     frame:ClearAllPoints()
-    if self.bottom then
+    if bar then
+      -- Under the names, where Underline draws its bar
+      frame:SetPoint("BOTTOM", dock, "BOTTOMLEFT", x, 1)
+    elseif self.bottom then
       frame:SetPoint("BOTTOM", dock, "BOTTOMLEFT", x, 0)
     else
       frame:SetPoint("TOP", dock, "TOPLEFT", x, 0)
@@ -428,9 +467,10 @@ function SelectedLine:Follow(tab)
   if not frame:IsShown() then frame:Show() end
 end
 
--- True while the line slides or opens (UIManager then updates it every frame)
+-- True while the line slides or a tab's look fades (UIManager then updates
+-- them every frame)
 Core.Components.TabLineMoving = function ()
-  return SelectedLine.movedAt ~= nil
+  return SelectedLine.movedAt ~= nil or SelectedBox.movedAt ~= nil or next(fadingTabs) ~= nil
 end
 
 -- The line's side follows the tab bar position
@@ -640,6 +680,262 @@ end
 -- Draws the tab in the chosen style and colors it for its state (normal, under
 -- the mouse, selected). Called every frame from UpdateSelected, so it only
 -- changes things when something is different from last time.
+----
+-- Slide (Framed, Solid, Pill, Glossy): the selected look (background, shine
+-- and border) is one piece for the whole tab bar, under the tabs, that
+-- slides from the old tab to the new one, stretching or shrinking to its
+-- size. The selected tab itself then draws no background of its own, so the
+-- piece shows through. On its way it passes under the tabs in between, which
+-- dim it a little with their own backgrounds.
+
+-- Framed, Solid, Pill and Glossy slide with "Slide"; Minimal and Underline
+-- have their own line, Classic is the game's art
+local BOX_MOVE_TIME = 0.3  -- seconds the selected look takes to slide
+local BOX_GROW_TIME = 0.28 -- seconds it takes to open (Grow)
+local BOX_GROW_FROM = 0.3  -- size it opens from, as a fraction of the tab
+local BOX_FADE_PART = 0.45 -- part of the Grow time the new look fades in over
+local BOX_HANDOFF = 0.08   -- seconds the tab just left waits before its own look comes back (Grow)
+
+-- Framed, Solid, Pill and Glossy animate with "Slide" (the look travels
+-- from tab to tab) and "Grow" (it opens from the middle of the new tab)
+local function BoxSlides(style)
+  local animation = Core.db.profile.tabLineAnimation
+  return style.shape ~= nil and not style.classic and (animation == "slide" or animation == "grow")
+end
+
+-- A piece showing the selected look: a frame with a background, shine and
+-- border. There are two: the one on the selected tab, and with Grow a ghost
+-- that shrinks and fades out on the tab just left.
+local function NewPiece(dock)
+  -- At the tab bar's own level: drawn over its background, under the tabs
+  local frame = CreateFrame("Frame", nil, dock)
+  frame:SetFrameLevel(dock:GetFrameLevel())
+  frame:SetSize(1, 1)
+  frame:Hide()
+  frame.layers = {
+    frame:CreateTexture(nil, "BACKGROUND", nil, -8), -- background
+    frame:CreateTexture(nil, "BACKGROUND", nil, -7), -- shine
+    frame:CreateTexture(nil, "BACKGROUND", nil, -6), -- border
+  }
+  for _, texture in ipairs(frame.layers) do
+    texture:SetAllPoints()
+    if texture.SetSnapToPixelGrid then
+      texture:SetSnapToPixelGrid(false)
+      texture:SetTexelSnappingBias(0)
+    end
+  end
+  frame.opacity = 1
+  return frame
+end
+
+function SelectedBox:Create()
+  if self.frame then return true end
+  local dock = _G.GeneralDockManager
+  if not dock then return false end
+  self.frame = NewPiece(dock)
+  self.ghost = NewPiece(dock)
+  return true
+end
+
+-- How visible a piece is, through its colors' alpha (in this game version a
+-- texture's own alpha replaces that)
+local function SetPieceOpacity(frame, opacity, force)
+  if frame.opacity == opacity and not force then return end
+  frame.opacity = opacity
+  for i, texture in ipairs(frame.layers) do
+    local c = frame.colors and frame.colors[i]
+    if c then texture:SetVertexColor(c[1], c[2], c[3], c[4] * opacity) end
+  end
+end
+
+-- The style's selected look, drawn again only when the style or accent changes
+function SelectedBox:Configure(style)
+  local name, accent = Core.db.profile.tabStyle, Core.db.profile.tabAccent
+  if name == self.styleName and accent == self.accent then return end
+  self.styleName, self.accent = name, accent
+  local specs = {
+    { style.shape, style.bg and style.bg.selected },
+    { style.shine, style.shineColor and style.shineColor.selected },
+    { style.border, style.borderColor and style.borderColor.selected },
+  }
+  for _, frame in ipairs({ self.frame, self.ghost }) do
+    frame.colors = {}
+    for i, spec in ipairs(specs) do
+      local texture, file, color = frame.layers[i], spec[1], spec[2]
+      if file and color then
+        SetShape(texture, file, style.margin)
+        frame.colors[i] = { Resolve(color, style) }
+        texture:Show()
+      else
+        texture:Hide()
+      end
+    end
+    SetPieceOpacity(frame, frame.opacity, true)
+  end
+end
+
+function SelectedBox:Hide()
+  if self.frame and self.frame:IsShown() then self.frame:Hide() end
+  if self.ghost and self.ghost:IsShown() then self.ghost:Hide() end
+  self.tab = nil
+  self.movedAt = nil
+end
+
+-- Puts the selected look on `tab`, sliding there from the tab it was on
+function SelectedBox:Follow(tab)
+  local frame = self.frame
+  local dock = frame:GetParent()
+  local dockLeft, dockBottom = dock:GetLeft(), dock:GetBottom()
+  local tabLeft, tabBottom = tab:GetLeft(), tab:GetBottom()
+  if not dockLeft or not tabLeft or not dockBottom or not tabBottom then return end
+
+  -- Where the tab's own background would be (2px in at the sides, 1px at
+  -- the top and bottom)
+  local targetH = math.max(1, tab:GetHeight() - 2)
+  local targetX = tabLeft - dockLeft + tab:GetWidth() / 2
+  local targetY = tabBottom - dockBottom + 1 + targetH / 2 -- its middle
+  local targetW = math.max(1, tab:GetWidth() - 4)
+  local now = GetTime()
+
+  -- Another tab: Slide travels from where it is, Grow opens from the middle
+  -- of the new tab. The first time it's just there.
+  if tab ~= self.tab then
+    local grow = Core.db.profile.tabLineAnimation == "grow"
+    if self.tab and frame:IsShown() and self.x then
+      self.growing = grow
+      if grow then
+        -- The ghost takes over where the look was, to shrink away there
+        local ghost = self.ghost
+        ghost.x, ghost.y, ghost.w, ghost.h = self.x, self.y, self.w, self.h
+        ghost:SetSize(math.max(1, ghost.w), math.max(1, ghost.h))
+        ghost:ClearAllPoints()
+        ghost:SetPoint("CENTER", dock, "BOTTOMLEFT", ghost.x, ghost.y)
+        SetPieceOpacity(ghost, 1)
+        ghost:Show()
+        self.fromX, self.fromY = targetX, targetY
+        self.fromW, self.fromH = targetW * BOX_GROW_FROM, targetH * BOX_GROW_FROM
+      else
+        self.ghost:Hide()
+        self.fromX, self.fromY, self.fromW, self.fromH = self.x, self.y, self.w, self.h
+      end
+      self.movedAt = now
+    else
+      self.movedAt = nil
+    end
+    self.tab = tab
+  end
+
+  local x, y, w, h = targetX, targetY, targetW, targetH
+  local opacity = 1
+  if self.movedAt then
+    local duration = self.growing and BOX_GROW_TIME or BOX_MOVE_TIME
+    local k = (now - self.movedAt) / duration
+    if k < 1 then
+      local ease
+      if self.growing then
+        -- Opens with a small pop past its size, then settles, fading in
+        -- over its first part
+        local back = k - 1
+        ease = 1 + 2.4 * back * back * back + 1.4 * back * back
+        opacity = math.min(1, k / BOX_FADE_PART)
+        opacity = opacity * opacity * (3 - 2 * opacity)
+        -- Meanwhile the ghost on the old tab shrinks to its middle and fades
+        local ghost = self.ghost
+        local out = k * k
+        local scale = 1 - (1 - BOX_GROW_FROM) * out
+        ghost:SetSize(math.max(1, ghost.w * scale), math.max(1, ghost.h * scale))
+        -- Fades over the whole time, while the tab's own look comes back
+        -- under it: no moment with the tab empty (that looked like a flicker)
+        SetPieceOpacity(ghost, 1 - k)
+      else
+        -- Speeds up softly, glides, slows down softly (a fast start looked
+        -- like a jump)
+        ease = k < 0.5 and 4 * k * k * k or 1 - (-2 * k + 2) ^ 3 / 2
+      end
+      x = self.fromX + (targetX - self.fromX) * ease
+      y = self.fromY + (targetY - self.fromY) * ease
+      w = self.fromW + (targetW - self.fromW) * ease
+      h = self.fromH + (targetH - self.fromH) * ease
+    else
+      self.movedAt = nil
+      self.ghost:Hide()
+    end
+  end
+  SetPieceOpacity(frame, opacity)
+
+  if x ~= self.x or y ~= self.y or w ~= self.w or h ~= self.h then
+    self.x, self.y, self.w, self.h = x, y, w, h
+    frame:SetSize(math.max(1, w), math.max(1, h))
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", dock, "BOTTOMLEFT", x, y)
+  end
+  if not frame:IsShown() then frame:Show() end
+end
+
+----
+-- Smooth changes between a tab's states (Framed, Solid, Pill, Glossy): the
+-- background, shine and border fade from their old color to the new one, so
+-- the selected look passes from tab to tab and the hover look comes and goes
+-- softly. Colors only, through the vertex color (in this game version a
+-- texture's own alpha replaces it).
+
+local FADE_TIME = 0.2
+
+function ChatTabMixin:FadeLayer(texture, r, g, b, a)
+  local current = texture.glassColor
+  -- Already fading to this color: a redraw meanwhile leaves the fade going
+  local to = texture.glassTo
+  if texture.glassFrom and to and to[1] == r and to[2] == g and to[3] == b and to[4] == a then
+    return
+  end
+  if not self.styleFades or not current then
+    texture:SetVertexColor(r, g, b, a)
+    texture.glassColor = { r, g, b, a }
+    texture.glassFrom = nil
+    return
+  end
+  -- From what it shows now (or invisible, if it was hidden) to the new color
+  local from = texture.glassFrom or {}
+  from[1], from[2], from[3] = current[1], current[2], current[3]
+  from[4] = texture:IsShown() and current[4] or 0
+  texture.glassFrom = from
+  local target = to or {}
+  target[1], target[2], target[3], target[4] = r, g, b, a
+  texture.glassTo = target
+  -- (later on the tab just left, while the Grow ghost shrinks away there)
+  self.fadeStart = GetTime() + (self.handOffDelay or 0)
+  fadingTabs[self] = true
+end
+
+function ChatTabMixin:StepStyleFade(now)
+  if not self.fadeStart then return end
+  local k = (now - self.fadeStart) / FADE_TIME
+  local done = k >= 1
+  if done then k = 1 end
+  if k < 0 then k = 0 end -- still waiting (hand-off to the Grow ghost)
+  local ease = k * k * (3 - 2 * k)
+  for _, texture in ipairs({ self.styleBg, self.styleShine, self.styleBorder }) do
+    local from, to = texture.glassFrom, texture.glassTo
+    if from and to then
+      local c = texture.glassColor
+      for i = 1, 4 do c[i] = from[i] + (to[i] - from[i]) * ease end
+      texture:SetVertexColor(c[1], c[2], c[3], c[4])
+      if done then texture.glassFrom = nil end
+    end
+  end
+  if done then
+    self.fadeStart = nil
+    fadingTabs[self] = nil
+  end
+end
+
+-- A layer's color; invisible on the selected tab while the sliding piece
+-- draws its look (SelectedBox)
+local function LayerColor(spec, style, hidden)
+  local r, g, b, a = Resolve(spec, style)
+  return r, g, b, hidden and 0 or a
+end
+
 function ChatTabMixin:UpdateStyle(isSelected)
   if self.styleBg == nil then return end
   if isSelected == nil then isSelected = self.styleSelected end
@@ -653,10 +949,29 @@ function ChatTabMixin:UpdateStyle(isSelected)
     and accent == self.styleAccent then
     return
   end
+  -- Only a change of state (selected, hover, normal) fades; a new style or
+  -- accent color shows at once. (Not tied to the redraw flag: the game lays
+  -- the tabs out again when one is clicked, which asks for a redraw right as
+  -- the state changes, and that skipped the fade.)
+  self.styleFades = state ~= self.styleState and styleName == self.styleName
+    and accent == self.styleAccent and Core.db.profile.tabLineAnimation ~= "off"
+  -- With the sliding or growing piece (SelectedBox), the tab's own look
+  -- hands over to it: gone at once on the newly selected tab, so the piece
+  -- shows from the start; back only after the piece left (Grow: its ghost
+  -- shrinks away there first) on the tab just left. Otherwise the tab's own
+  -- dark background covered the piece.
+  local leaving = self.styleState == "selected" and state ~= "selected"
+  if state == "selected" and BoxSlides(CurrentStyle()) then
+    self.styleFades = false
+  end
+  self.handOffDelay = (self.styleFades and leaving and BoxSlides(CurrentStyle())
+    and Core.db.profile.tabLineAnimation == "grow") and BOX_HANDOFF or nil
   self.styleKey = true
   self.styleName, self.styleState, self.styleAccent = styleName, state, accent
   self.styleSelected = isSelected
   local style = CurrentStyle()
+  -- The selected look slides as one piece (SelectedBox): this tab shows none
+  local hideSelected = state == "selected" and BoxSlides(style)
 
   self:ShowClassic(style.classic == true)
   if style.classic then
@@ -667,7 +982,7 @@ function ChatTabMixin:UpdateStyle(isSelected)
   local bg = style.bg and style.bg[state]
   if style.shape and bg then
     SetShape(self.styleBg, style.shape, style.margin)
-    self.styleBg:SetVertexColor(Resolve(bg, style))
+    self:FadeLayer(self.styleBg, LayerColor(bg, style, hideSelected))
     self.styleBg:Show()
   else
     self.styleBg:Hide()
@@ -677,7 +992,7 @@ function ChatTabMixin:UpdateStyle(isSelected)
   local shine = style.shineColor and style.shineColor[state]
   if style.shine and shine then
     SetShape(self.styleShine, style.shine, style.margin)
-    self.styleShine:SetVertexColor(Resolve(shine, style))
+    self:FadeLayer(self.styleShine, LayerColor(shine, style, hideSelected))
     self.styleShine:Show()
   else
     self.styleShine:Hide()
@@ -687,14 +1002,18 @@ function ChatTabMixin:UpdateStyle(isSelected)
   local border = style.borderColor and style.borderColor[state]
   if style.border and border then
     SetShape(self.styleBorder, style.border, style.margin)
-    self.styleBorder:SetVertexColor(Resolve(border, style))
+    self:FadeLayer(self.styleBorder, LayerColor(border, style, hideSelected))
     self.styleBorder:Show()
   else
     self.styleBorder:Hide()
   end
 
-  -- Bar under the name (Underline)
+  -- Bar under the name (Underline). The selected tab's bar is drawn by the
+  -- shared SelectedLine when it's animated, so it can slide between tabs.
   local bar = style.bar and style.bar[state]
+  if bar and state == "selected" and Core.db.profile.tabLineAnimation ~= "off" then
+    bar = nil
+  end
   if bar then
     local inset = math.max(Utils.TabPadding() - 3, 0)
     self.styleBar:ClearAllPoints()
@@ -707,8 +1026,9 @@ function ChatTabMixin:UpdateStyle(isSelected)
     self.styleBar:Hide()
   end
 
-  -- Line above the selected tab (Minimal), in the accent color
-  if style.line then
+  -- Line above the selected tab (Minimal) or bar under it (Underline), in
+  -- the accent color
+  if style.line or style.bar then
     local r, g, b = Resolve(Accent(1), style)
     self:ColorSelectedLine(r, g, b)
   end
@@ -722,17 +1042,32 @@ function ChatTabMixin:UpdateSelected(selected)
   local isSelected = (self.chatFrame == selected)
 
   self:UpdateStyle(isSelected)
+  self:StepStyleFade(GetTime())
   if not isSelected then return end
 
-  -- Only the Minimal style marks the selected tab with the line; the others
-  -- draw it themselves
-  if CurrentStyle().line == true and self:IsVisible() then
+  -- The shared line: Minimal's line always, Underline's bar when animated.
+  -- The other styles draw the selected tab themselves.
+  local style = CurrentStyle()
+  local mode = style.line and "line"
+    or (style.bar and Core.db.profile.tabLineAnimation ~= "off" and "bar")
+  if mode and self:IsVisible() then
     if SelectedLine:Create() then
+      SelectedLine:SetMode(mode)
       SelectedLine:Color(self.lineColor)
       SelectedLine:Follow(self)
     end
   else
     SelectedLine:Hide()
+  end
+
+  -- The box styles' sliding selected look (Slide)
+  if BoxSlides(style) and self:IsVisible() then
+    if SelectedBox:Create() then
+      SelectedBox:Configure(style)
+      SelectedBox:Follow(self)
+    end
+  else
+    SelectedBox:Hide()
   end
 end
 

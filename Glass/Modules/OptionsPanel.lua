@@ -368,14 +368,14 @@ local function BuildTabs(category, layout)
     }
   end, "Color of the selected tab: its border, bar, line or background, depending on the style.")
 
-  local lineAnimSetting = ProfileSetting(category, "tabLineAnimation", Settings.VarType.String, "Selected line animation", "tabLineAnimation")
+  local lineAnimSetting = ProfileSetting(category, "tabLineAnimation", Settings.VarType.String, "Selected tab animation", "tabLineAnimation")
   Dropdown(category, lineAnimSetting, function ()
     return {
       { "slide", "Slide" },
       { "grow", "Grow" },
       { "off", "Off" },
     }
-  end, "Minimal style, when you select another tab.\nSlide: the line slides from the old tab to the new one.\nGrow: the line opens from the middle of the new tab.\nOff: no animation.")
+  end, "When you select another tab.\nSlide: the line (Minimal) or bar (Underline) slides from the old tab to the new one.\nGrow: it opens from the middle of the new tab.\nFramed, Solid, Pill and Glossy fade softly from tab to tab with either.\nOff: no animation.")
 
   Header(layout, "Text")
   FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
