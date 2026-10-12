@@ -16,7 +16,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Fixed
 - After a reload, a separate window could end up hidden inside the chat, or be closed (`UIManager.lua`).
 - Docking a window again showed the messages of the tab that was open before (`UIManager.lua`).
-- The new message glow of a party tab looked white: pale chat colors are now stronger in the glow (`ChatTab.lua`).
+- The new message glow of a party tab looked white: pale chat colors are now stronger in the glow, and blues lean to sky blue (`ChatTab.lua`).
+- Chinese and Korean letters showed as squares (and Cyrillic ones with some fonts): the chat, edit box, tabs and separate windows now use the game's own fonts for those letters, and the chosen font for the rest (`Fonts.lua`, `SlidingMessageFrame.lua`).
 
 ## 0.12.0-forever (beta) (2026-10-11)
 

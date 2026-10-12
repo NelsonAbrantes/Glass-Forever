@@ -688,11 +688,15 @@ function SlidingMessageFrameMixin:ApplyGlassFont()
 
   local chatFrame = self.chatFrame
   local _, size = chatFrame:GetFont()
-  chatFrame:SetFont(
+  -- A font of its own (with the game's fonts for Chinese, Korean and Russian
+  -- letters, like the main chat), named after the window
+  local font = Core:GetModule("Fonts"):Set(
+    "GlassWindowFont"..chatFrame:GetID(),
     LSM:Fetch(LSM.MediaType.FONT, Core.db.profile.font),
     size or Core.db.profile.messageFontSize,
     Core.db.profile.fontFlags
   )
+  chatFrame:SetFontObject(font)
 end
 
 function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, blue, messageId, holdTime)

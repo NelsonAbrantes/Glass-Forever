@@ -30,13 +30,19 @@ local ChatTabMixin = {}
 
 -- The new message glow is bright: pale chat colors (party is a very light
 -- blue) turned white in it, so it gets a stronger version of the color.
--- White stays white.
+-- White stays white. Blues (equal red and green, like party) looked purple
+-- that strong, so they lean towards sky blue.
 local GLOW_SATURATION = 2.5
+local SKY_BLUE = 0.5 -- how far a blue's green goes up towards its blue
 local function GlowColor(color)
   local r, g, b = color.r, color.g, color.b
   local top = math.max(r, g, b)
   local function push(c) return math.max(0, top - (top - c) * GLOW_SATURATION) end
-  return push(r), push(g), push(b)
+  r, g, b = push(r), push(g), push(b)
+  if b == top and b > g and math.abs(r - g) < 0.1 then
+    g = g + (b - g) * SKY_BLUE
+  end
+  return r, g, b
 end
 
 function ChatTabMixin:Init(slidingMessageFrame)
