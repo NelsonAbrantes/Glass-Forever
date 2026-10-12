@@ -51,21 +51,55 @@ function ScrollOverlayFrame:Init()
     end
     self.icon:SetTexture("Interface\\Addons\\Glass\\Glass\\Assets\\snapToBottomIcon")
     self.icon:SetSize(16, 16)
-    self.icon:SetPoint("BOTTOMLEFT", 15, 5)
 
     -- See new messages click area
     if self.snapToBottomFrame == nil then
       self.snapToBottomFrame = CreateFrame("Frame", nil, self)
     end
     self.snapToBottomFrame:SetHeight(20)
-    self.snapToBottomFrame:SetPoint("BOTTOMLEFT")
-    self.snapToBottomFrame:SetPoint("BOTTOMRIGHT")
 
     if self.newMessageAlertFrame == nil then
       self.newMessageAlertFrame = CreateNewMessageAlertFrame(self)
     end
 
     self.newMessageAlertFrame:QuickHide()
+
+    -- The edit box opening or closing moves them
+    local editBox = _G.ChatFrame1EditBox
+    if editBox and not self.editBoxHooked then
+      self.editBoxHooked = true
+      editBox:HookScript("OnShow", function () self:PlaceBelow() end)
+      editBox:HookScript("OnHide", function () self:PlaceBelow() end)
+    end
+    self:PlaceBelow()
+end
+
+---
+-- The arrow, its click area and "Unread messages" go under the chat, outside
+-- the messages (on top of them they were hard to read). Under the edit box
+-- while it's open below the chat, so they don't cover it.
+function ScrollOverlayFrame:PlaceBelow()
+  local anchor = self
+  local editBox = _G.ChatFrame1EditBox
+  -- Separate windows have edit boxes of their own
+  local parent = self:GetParent()
+  local detached = parent and parent.state and parent.state.detached
+  if editBox and not detached and editBox:IsShown()
+    and Core.db.profile.editBoxAnchor.position ~= "ABOVE" then
+    anchor = editBox
+  end
+  local gap = 2
+
+  self.snapToBottomFrame:ClearAllPoints()
+  self.snapToBottomFrame:SetPoint("TOP", anchor, "BOTTOM", 0, -gap)
+  self.snapToBottomFrame:SetPoint("LEFT", self)
+  self.snapToBottomFrame:SetPoint("RIGHT", self)
+
+  self.newMessageAlertFrame:ClearAllPoints()
+  self.newMessageAlertFrame:SetAllPoints(self.snapToBottomFrame)
+
+  self.icon:ClearAllPoints()
+  self.icon:SetPoint("LEFT", self.snapToBottomFrame, "LEFT", 15, 0)
 end
 
 function ScrollOverlayFrame:SetScript(name, callback)

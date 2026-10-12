@@ -10,9 +10,9 @@ local Mixin = Mixin
 local NewMessageAlertFrameMixin = {}
 
 function NewMessageAlertFrameMixin:Init()
+    -- Placed under the chat by the overlay (ScrollOverlayFrame:PlaceBelow),
+    -- outside the messages, so it can be read
     self:SetHeight(20)
-    self:SetPoint("BOTTOMLEFT")
-    self:SetPoint("BOTTOMRIGHT")
     self:SetFadeInDuration(0.15)
     self:SetFadeOutDuration(0.15)
 
@@ -21,7 +21,7 @@ function NewMessageAlertFrameMixin:Init()
       self.text = self:CreateFontString(nil, "ARTWORK", "GlassMessageFont")
     end
     self.text:SetTextColor(Colors.apache.r, Colors.apache.g, Colors.apache.b)
-    self.text:SetPoint("BOTTOMLEFT", 30, 10)
+    self.text:SetPoint("LEFT", 36, 0)
     self.text:SetText("Unread messages")
 
     -- Alert line
@@ -32,8 +32,8 @@ function NewMessageAlertFrameMixin:Init()
       self.bottomLine = Mixin(self.bottomLine, GradientBackgroundMixin)
       GradientBackgroundMixin.Init(self.bottomLine)
       self.bottomLine:SetHeight(1)
-      self.bottomLine:SetPoint("BOTTOMLEFT")
-      self.bottomLine:SetPoint("BOTTOMRIGHT")
+      self.bottomLine:SetPoint("TOPLEFT")
+      self.bottomLine:SetPoint("TOPRIGHT")
     end
     self.bottomLine:SetGradientBackground(15, 15, Colors.apache, 0.65)
 end
