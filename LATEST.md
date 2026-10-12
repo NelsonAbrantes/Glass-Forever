@@ -2,7 +2,7 @@
 
 What's new
 
-- The selected tab line glows and slides between tabs (Options > Tabs: Slide, Grow or Off).
+- New look and animation for the selected tab.
 - Thin outline on the chat button icons.
 - New look for the "Previous session" line.
 
