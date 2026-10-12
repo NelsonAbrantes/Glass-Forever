@@ -365,8 +365,9 @@ local function BuildTabs(category, layout)
       { "green", "Green" },
       { "purple", "Purple" },
       { "red", "Red" },
+      { "class", "Class color" },
     }
-  end, "Color of the selected tab: its border, bar, line or background, depending on the style.")
+  end, "Color of the selected tab: its border, bar, line or background, depending on the style. Class color: the color of your character's class.")
 
   local lineAnimSetting = ProfileSetting(category, "tabLineAnimation", Settings.VarType.String, "Selected tab animation", "tabLineAnimation")
   Dropdown(category, lineAnimSetting, function ()

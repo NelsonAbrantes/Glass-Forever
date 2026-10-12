@@ -16,6 +16,7 @@ local CreateColor = CreateColor
 local CreateFrame = CreateFrame
 local GetPhysicalScreenSize = GetPhysicalScreenSize
 local GetTime = GetTime
+local UnitClass = UnitClass
 local IsCombatLog = IsCombatLog
 local Mixin = Mixin
 local UNLOCK_WINDOW = UNLOCK_WINDOW
@@ -539,6 +540,23 @@ local ACCENTS = {
   red = { 0.95, 0.38, 0.32 },
 }
 
+-- The chosen accent color, or nil for the style's own ("Style default").
+-- "class" is the color of your character's class.
+local classAccent
+local function AccentColor()
+  local choice = Core.db.profile.tabAccent
+  if choice == "class" then
+    if not classAccent then
+      local _, class = UnitClass("player")
+      local color = class and _G.RAID_CLASS_COLORS and _G.RAID_CLASS_COLORS[class]
+      if not color then return nil end
+      classAccent = { color.r, color.g, color.b }
+    end
+    return classAccent
+  end
+  return ACCENTS[choice]
+end
+
 -- Tab name colors (Tabs options). "auto" isn't listed: it depends on the style.
 local TEXT_COLORS = {
   gold = { Colors.apache.r, Colors.apache.g, Colors.apache.b },
@@ -597,7 +615,7 @@ end
 -- r, g, b, a of a color spec (or of the accent color)
 local function Resolve(spec, style)
   if spec.accent then
-    local c = ACCENTS[Core.db.profile.tabAccent] or style.accentDefault or ACCENTS.bronze
+    local c = AccentColor() or style.accentDefault or ACCENTS.bronze
     return c[1], c[2], c[3], spec.a
   end
   return spec[1], spec[2], spec[3], spec[4]
@@ -662,7 +680,7 @@ local CLASSIC_SELECTED = { "ActiveLeft", "ActiveMiddle", "ActiveRight" }
 -- keeps the game's own colors. The art is made gray first, otherwise its own
 -- colors mix with the accent.
 function ChatTabMixin:TintClassic()
-  local color = ACCENTS[Core.db.profile.tabAccent]
+  local color = AccentColor()
   for _, name in ipairs(CLASSIC_SELECTED) do
     local texture = self[name]
     if texture then

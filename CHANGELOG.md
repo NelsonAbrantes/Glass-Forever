@@ -7,6 +7,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Added
 - Tab animations for every style ("Selected tab animation", Options > Tabs). Framed, Solid, Pill and Glossy: with Slide the selected look travels from the old tab to the new one, stretching to its size; with Grow it opens from the middle of the new tab with a small pop while it shrinks away on the old one. Their hover look comes and goes softly too. Underline's bar slides or grows like Minimal's line (`ChatTab.lua`, `OptionsPanel.lua`).
 
+- "Class color" accent for the selected tab: the color of your character's class, in every style (`ChatTab.lua`, `OptionsPanel.lua`).
+
 ### Changed
 - Underline's selected bar has softened ends and a glow rising from it that lights the tab name from below (`ChatTab.lua`).
 
