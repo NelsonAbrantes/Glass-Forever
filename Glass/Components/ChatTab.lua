@@ -425,6 +425,11 @@ function SelectedLine:Follow(tab)
   if not frame:IsShown() then frame:Show() end
 end
 
+-- True while the line slides or opens (UIManager then updates it every frame)
+Core.Components.TabLineMoving = function ()
+  return SelectedLine.movedAt ~= nil
+end
+
 -- The line's side follows the tab bar position
 function ChatTabMixin:PlaceSelectedLine()
   SelectedLine:Place()
@@ -637,12 +642,18 @@ function ChatTabMixin:UpdateStyle(isSelected)
   if isSelected == nil then isSelected = self.styleSelected end
 
   local styleName = Core.db.profile.tabStyle or "minimal"
-  local style = CurrentStyle()
   local state = isSelected and "selected" or (self.styleHover and "hover" or "normal")
-  local key = styleName..":"..state..":"..tostring(Core.db.profile.tabAccent)
-  if key == self.styleKey then return end
-  self.styleKey = key
+  local accent = Core.db.profile.tabAccent
+  -- Nothing changed (this runs many times a second): compared value by
+  -- value, without building a text each time
+  if self.styleKey and styleName == self.styleName and state == self.styleState
+    and accent == self.styleAccent then
+    return
+  end
+  self.styleKey = true
+  self.styleName, self.styleState, self.styleAccent = styleName, state, accent
   self.styleSelected = isSelected
+  local style = CurrentStyle()
 
   self:ShowClassic(style.classic == true)
   if style.classic then

@@ -24,6 +24,8 @@ local SetCVar = C_CVar and C_CVar.SetCVar or SetCVar
 local UIParent = UIParent
 -- luacheck: pop
 
+local TABS_CHECK_EVERY = 0.03 -- seconds between checks of the selected tab
+
 ----
 -- UIManager Module
 function UIManager:OnInitialize()
@@ -434,12 +436,23 @@ function UIManager:OnEnable()
 
     -- Show the panel of the selected tab and hide all the others. Use the tab
     -- selected in the Glass dock: clicking a separate window changes
-    -- SELECTED_CHAT_FRAME but shouldn't empty Glass.
+    -- SELECTED_CHAT_FRAME but shouldn't empty Glass. About 30 times a
+    -- second, which feels instant; every frame only while the selected line
+    -- slides to another tab.
+    self.tabsElapsed = (self.tabsElapsed or 0) + elapsed
+    local tabsDue = self.tabsElapsed >= TABS_CHECK_EVERY
+      or (Core.Components.TabLineMoving and Core.Components.TabLineMoving())
     local selected = _G.SELECTED_CHAT_FRAME
     if FCFDock_GetSelectedWindow and GENERAL_CHAT_DOCK then
       selected = FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK) or selected
     end
-    if selected then
+    -- A newly selected tab shows its messages right away
+    if selected ~= self.lastSelected then
+      self.lastSelected = selected
+      tabsDue = true
+    end
+    if tabsDue then self.tabsElapsed = 0 end
+    if selected and tabsDue then
       for _, smf in pairs(self.state.frames) do
         if smf.chatFrame and smf.state and not smf.state.isCombatLog and not smf.state.detached then
           if smf.chatFrame == selected then

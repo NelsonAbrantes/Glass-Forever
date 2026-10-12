@@ -11,6 +11,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Changed
 - The selected tab line (Minimal style) fades out towards its ends and has a soft glow into the tab. It's now one line for the whole tab bar, so it's never cut off (`ChatTab.lua`, new `tabGlow.tga`).
 - Less memory churn in busy chats: no new timer function per message, no copies of message text without codes, no copied message queues (`FadingFrame.lua`, `utils.lua`, `SlidingMessageFrame.lua`).
+- Lighter every frame: the selected tab and its line are checked about 30 times a second instead of every frame (every frame only while the line slides), and tab styles are compared without building text (`UIManager.lua`, `ChatTab.lua`).
 - The "Previous session" line between old and new messages is now centered, in a dim gold, with a thin line on each side that fades out ("Previous session · 12 Oct, 14:30"), instead of a row of dashes. Lines saved by earlier versions get the new look too (`MessageLine.lua`, `History.lua`, `SlidingMessageFrame.lua`).
 
 ### Fixed
