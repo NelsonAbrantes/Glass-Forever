@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.13.0-forever (beta, unreleased)
+## 0.13.0-forever (beta) (2026-10-12)
 
 ### Added
 - Spam filter (Options > Messages > Spam filter): hides messages that contain blocked words or phrases. Comes on, with a few gold seller phrases; "Edit list" opens a window to change them. Only Glass stops showing them (`SpamFilter.lua`, `SlidingMessageFrame.lua`, `OptionsPanel.lua`).
