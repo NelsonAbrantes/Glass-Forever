@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.14.1-forever (beta) (2026-10-13)
+
+### Fixed
+- A new whisper (or any second chat window) gave an error and its tab kept the game's look, with its name cut short. Since 0.13.0, each chat window hooked the edit box with AceHook's HookScript instead of the frame's own (`ScrollOverlayFrame.lua`).
+
 ## 0.14.0-forever (beta) (2026-10-12)
 
 ### Added

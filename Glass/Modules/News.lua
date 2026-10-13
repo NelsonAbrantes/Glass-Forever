@@ -12,6 +12,14 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "0.14.1-forever (beta)",
+    items = {[[
+Bug fixes
+
+- New whisper tabs no longer show an error and the game's look.
+    ]]}
+  },
+  {
     name = "0.14.0-forever (beta)",
     items = {[[
 What's new

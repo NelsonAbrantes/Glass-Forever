@@ -13,6 +13,26 @@ local Mixin = Mixin
 
 local ScrollOverlayFrame = {}
 
+-- Every chat window's overlay; all of them follow the edit box
+local overlays = {}
+
+-- The edit box tells the overlays when it opens or closes. Hooked once, with
+-- the frame's own HookScript: the Glass edit box has AceHook in it, whose
+-- HookScript takes other arguments (calling that one failed when a second
+-- chat window opened, e.g. a new whisper, and left its tab unstyled)
+local editBoxHooked = false
+local function HookEditBox()
+  local editBox = _G.ChatFrame1EditBox
+  if editBoxHooked or not editBox then return end
+  editBoxHooked = true
+  local function PlaceAll()
+    for overlay in pairs(overlays) do overlay:PlaceBelow() end
+  end
+  local HookScript = getmetatable(editBox).__index.HookScript
+  HookScript(editBox, "OnShow", PlaceAll)
+  HookScript(editBox, "OnHide", PlaceAll)
+end
+
 function ScrollOverlayFrame:Init()
     local overlayOpacity = 0.65
 
@@ -64,13 +84,9 @@ function ScrollOverlayFrame:Init()
 
     self.newMessageAlertFrame:QuickHide()
 
-    -- The edit box opening or closing moves them
-    local editBox = _G.ChatFrame1EditBox
-    if editBox and not self.editBoxHooked then
-      self.editBoxHooked = true
-      editBox:HookScript("OnShow", function () self:PlaceBelow() end)
-      editBox:HookScript("OnHide", function () self:PlaceBelow() end)
-    end
+    -- The edit box opening or closing moves them (every overlay, hooked once)
+    overlays[self] = true
+    HookEditBox()
     self:PlaceBelow()
 end
 
