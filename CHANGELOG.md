@@ -9,6 +9,9 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 - "Class color" accent for the selected tab: the color of your character's class, in every style (`ChatTab.lua`, `OptionsPanel.lua`).
 
+### Fixed
+- A new whisper (or any second chat window) gave an error and its tab kept the game's look, with its name cut short. Since 0.13.0, each chat window hooked the edit box with AceHook's HookScript instead of the frame's own (`ScrollOverlayFrame.lua`).
+
 ### Changed
 - Underline's selected bar has softened ends and a glow rising from it that lights the tab name from below (`ChatTab.lua`).
 
