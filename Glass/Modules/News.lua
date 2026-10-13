@@ -16,7 +16,7 @@ local CHANGELOG = {
     items = {[[
 Bug fixes
 
-- New whisper tabs no longer show an error and the game's look.
+- Fixed an error when a new whisper arrived.
     ]]}
   },
   {
