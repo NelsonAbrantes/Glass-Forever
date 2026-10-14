@@ -99,6 +99,7 @@ function Hyperlinks:OnEnable()
   -- to New Window", and takes that window out of the dock, beside the chat
   -- (above it if there's no room on the right). Glass gives it its look.
   local OPEN_SEPARATE = "Open in Separate Window"
+  local MOVE_TO_TAB = "Move to New Tab"
   local SEPARATE_WIDTH, SEPARATE_HEIGHT, SEPARATE_GAP = 380, 170, 30
   local function OpenSeparate(chatFrame, chatType, chatTarget)
     local dock = _G.GENERAL_CHAT_DOCK
@@ -172,6 +173,15 @@ function Hyperlinks:OnEnable()
           description:SetResponder(function ()
             ChatFrameUtil.PopOutChat(chatFrame, chatType, chatTarget)
           end)
+          -- It opens a new tab in the chat (the separate window is the next
+          -- option): named so
+          if description.AddInitializer then
+            description:AddInitializer(function (button)
+              if button.fontString and button.fontString.SetTextToFit then
+                button.fontString:SetTextToFit(MOVE_TO_TAB)
+              end
+            end)
+          end
         end
       end
 

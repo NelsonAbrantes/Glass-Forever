@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.15.1-forever (beta, unreleased)
+## 0.15.1-forever (beta) (2026-10-14)
 
 ### Added
 - "Open in Separate Window" in a channel's menu (right click "[2]" in the chat): the channel moves to a new window, already out of the chat, unlocked so it can be moved. Where it opens is in Options > General > Separate windows ("Opens at": above the chat by default, right or left of it, or the middle of the screen) (`Hyperlinks.lua`, `OptionsPanel.lua`).
@@ -14,7 +14,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Tabs only light up for guild, officer, party, raid and instance messages (and whispers): say, yell and emotes from anyone nearby lit them all the time (`UIManager.lua`, `OptionsPanel.lua`).
 
 ### Fixed
-- "Move to New Window" in a channel's menu gave an error and left a broken window (named "Chat 6", not filtered, not updating): clicking a link in Glass didn't tell the game which chat window it was in. Links now pass their window, and that menu option gets it (#1) (`MessageLine.lua`, `SlidingMessageFrame.lua`, `Hyperlinks.lua`).
+- "Move to New Window" in a channel's menu gave an error and left a broken window (named "Chat 6", not filtered, not updating): clicking a link in Glass didn't tell the game which chat window it was in. Links now pass their window, and that menu option gets it; it is now called "Move to New Tab", since it opens a tab in the chat (#1) (`MessageLine.lua`, `SlidingMessageFrame.lua`, `Hyperlinks.lua`).
 - "Copy Character Name" in a player's menu opened from the chat gave an error: the game only lets its own menus copy to the clipboard. It now opens the Glass copy window with the name selected (`Hyperlinks.lua`).
 - Text in a window opened with "Move to New Window" was centered (`Fonts.lua`, `SlidingMessageFrame.lua`).
 - The new message line crossed the tab name: the game now and then puts the name back a little lower, and a separate window's tab has another height. The name goes back to its place each time, and the line is placed from the name itself (`ChatTab.lua`).

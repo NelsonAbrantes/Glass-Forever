@@ -1,13 +1,13 @@
-# 0.15.0-forever (beta) (2026-10-14)
+# 0.15.1-forever (beta) (2026-10-14)
 
 What's new
 
-- Tab animations now work on every tab style.
-- "Class color" accent for the selected tab.
-- New message alert under the tab name.
+- "Open in Separate Window" when you right click a channel.
 
 Bug fixes
 
-- Tab names now stay solid with the mouse over the chat.
-- Fixed very high memory use in some situations.
-- Tab names no longer flicker.
+- "Move to New Window" works again (now "Move to New Tab").
+- Separate windows: Glass scroll bar, and messages come back on mouse over.
+- "Copy Character Name" no longer shows an error.
+- Say, yell and emotes no longer light up tabs.
+- The new message line no longer covers the tab name.
