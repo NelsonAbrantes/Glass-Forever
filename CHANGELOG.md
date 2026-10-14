@@ -20,6 +20,8 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Fixed
 - Tab names didn't get solid with the mouse over the chat (the game's own chat window, hidden under Glass, never feels the mouse). They're now fully solid while the mouse is over the chat or the tab bar, and fade with the messages afterwards (`ChatTab.lua`).
 - The tab bar now comes back when the mouse is already over the chat while it fades out (`MainContainerFrame.lua`).
+- Memory jumps of tens of MB: after the chat changed size, the game asks to lay out the tabs every frame (sometimes for good), and Glass measured all the tabs again each time. It now does that only when the tabs really changed (`ChatDock.lua`).
+- Tab names flickered when the mouse came over the chat: while the tab bar fades back in, the game keeps the tabs' old opacity, and Glass kept making them solid. The tabs now wait solid while the bar is hidden, and the game's own fade no longer mixes with Glass's when the mouse leaves (`ChatTab.lua`).
 
 ## 0.14.1-forever (beta) (2026-10-13)
 

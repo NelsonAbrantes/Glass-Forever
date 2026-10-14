@@ -123,10 +123,15 @@ function ChatTabMixin:Init(slidingMessageFrame)
   -- Solid while the mouse is over the chat or the tab bar (see TabsHovered),
   -- whatever opacity the game sets meanwhile
   if not self:IsHooked(self, "SetAlpha") then
-    local function Solid() self:SetAlpha(1) end -- made once, not on every call
+    -- (made once, not on every call)
+    local function Solid() self:SetAlpha(1) end
+    local function KeepFade() self:SetAlpha(self.glassAlpha) end
     self:SecureHook(self, "SetAlpha", function (_, alpha)
       if alpha ~= 1 and TabsHovered() then
         Adjust(Solid)
+      elseif self.glassAlpha and math.abs(alpha - self.glassAlpha) > 0.001 then
+        -- Glass is fading the tab with the chat: the game's fade waits
+        Adjust(KeepFade)
       end
     end)
   end
@@ -333,6 +338,7 @@ local LINE_MOVE_TIME = 0.25     -- seconds to slide to another tab (or open)
 local SelectedLine = {}
 local SelectedBox = {} -- the sliding selected look of Framed, Solid, Pill and Glossy (below)
 local fadingTabs = {} -- tabs whose look is fading now (see FadeLayer)
+local alphaFadingTabs = {} -- tabs fading out with the chat (see UpdateSelected)
 
 function SelectedLine:Create()
   if self.frame then return true end
@@ -513,6 +519,7 @@ end
 -- them every frame)
 Core.Components.TabLineMoving = function ()
   return SelectedLine.movedAt ~= nil or SelectedBox.movedAt ~= nil or next(fadingTabs) ~= nil
+    or next(alphaFadingTabs) ~= nil
 end
 
 -- The line's side follows the tab bar position
@@ -1265,26 +1272,49 @@ function ChatTabMixin:UpdateSelected(selected)
   -- window is hidden under Glass and never feels the mouse.
   local hovered = TabsHovered()
   local now = GetTime()
-  if hovered then
+  local dock = _G.GeneralDockManager
+  if dock and not dock:IsShown() then
+    -- The tab bar is hidden: the tabs wait there solid. While it fades back
+    -- in, the game keeps the opacity the tabs had when it started, so a
+    -- change then didn't hold and the names flickered.
+    self.glassLeftAt, self.glassAlpha, self.glassWasHovered = nil, nil, false
+    alphaFadingTabs[self] = nil
+    if self:GetAlpha() < 0.999 then self:SetAlpha(1) end
+    hovered = false
+  elseif hovered then
+    self.glassAlpha = nil
     if self:GetAlpha() < 0.999 then self:SetAlpha(1) end
     self.glassLeftAt = nil
   elseif self.glassWasHovered then
     self.glassLeftAt = now
+    alphaFadingTabs[self] = true
   end
   self.glassWasHovered = hovered
-  -- The mouse left: the tab fades with the messages, after the same wait and
-  -- over the same time, to the game's own opacity for it
+  -- The mouse left: the tab stays solid for the same wait as the messages,
+  -- then fades over the same time to the game's own opacity for it. The
+  -- game's own fade is kept out meanwhile (the SetAlpha hook): both changing
+  -- the opacity made the tab flicker.
   if self.glassLeftAt then
     local profile = Core.db.profile
     local waited = now - self.glassLeftAt - (profile.chatHoldTime or 0)
+    local alpha, done = 1, false
     if waited >= 0 then
       local target = self.noMouseAlpha or (isSelected and _G.CHAT_FRAME_TAB_SELECTED_NOMOUSE_ALPHA
         or _G.CHAT_FRAME_TAB_NORMAL_NOMOUSE_ALPHA) or 0.4
       local duration = profile.chatFadeOutDuration or 0
       local k = duration > 0 and math.min(1, waited / duration) or 1
-      self:SetAlpha(1 + (target - 1) * k)
-      if k >= 1 then self.glassLeftAt = nil end
+      alpha = 1 + (target - 1) * k
+      done = k >= 1
     end
+    self.glassAlpha = alpha
+    if math.abs(self:GetAlpha() - alpha) > 0.001 then self:SetAlpha(alpha) end
+    if done then
+      self.glassLeftAt = nil
+      self.glassAlpha = nil
+      alphaFadingTabs[self] = nil
+    end
+  else
+    alphaFadingTabs[self] = nil
   end
 
   self:UpdateStyle(isSelected)

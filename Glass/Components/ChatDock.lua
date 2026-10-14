@@ -35,8 +35,24 @@ function ChatDockMixin:Init(parent)
   -- The game lines the tabs up from the left whenever they change (a tab opens,
   -- closes or is moved); move them to the chosen alignment afterwards
   if _G.FCFDock_UpdateTabs and not self:IsHooked("FCFDock_UpdateTabs") then
-    self:SecureHook("FCFDock_UpdateTabs", function (dock)
-      if dock == self then
+    -- The game calls FCFDock_UpdateTabs every frame for a while after the
+    -- chat changes size (sometimes for good), but it only does something when
+    -- the tabs changed. Lay the tabs out only then: doing it every frame was
+    -- tens of MB of garbage a minute.
+    self.glassTabsChanged = true
+    local function TabsChanged(dock)
+      if dock == self then self.glassTabsChanged = true end
+    end
+    for _, name in ipairs({ "FCFDock_SetDirty", "FCFDock_AddChatFrame", "FCFDock_RemoveChatFrame",
+      "FCFDock_SelectWindow", "FCFDock_OnPrimarySizeChanged" }) do
+      if _G[name] and not self:IsHooked(name) then
+        self:SecureHook(name, TabsChanged)
+      end
+    end
+
+    self:SecureHook("FCFDock_UpdateTabs", function (dock, forceUpdate)
+      if dock == self and (forceUpdate or self.glassTabsChanged) then
+        self.glassTabsChanged = false
         -- Whisper tabs share the room left on the bar, which just changed
         for _, chatFrame in ipairs(self.DOCKED_CHAT_FRAMES or {}) do
           local tab = _G[chatFrame:GetName().."Tab"]
