@@ -4,6 +4,9 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ## 0.15.1-forever (beta, unreleased)
 
+### Added
+- "Open in Separate Window" in a channel's menu (right click "[2]" in the chat): the channel moves to a new window, already out of the chat, unlocked so it can be moved. Where it opens is in Options > General > Separate windows ("Opens at": above the chat by default, right or left of it, or the middle of the screen) (`Hyperlinks.lua`, `OptionsPanel.lua`).
+
 ### Changed
 - The new message alert's gleam is part of the line's length, so it runs all along it even on short tabs; its light is no wider than the line, it fades out towards the ends like the line, and it shows as much on bright colors (Guild's green) as on darker ones (`ChatTab.lua`).
 - Separate windows with the Glass look bring their faded messages back while the mouse is over them, like the Glass chat (`UIManager.lua`).

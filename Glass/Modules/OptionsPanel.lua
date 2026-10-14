@@ -250,6 +250,15 @@ local function BuildGeneral(category, layout)
 
   Header(layout, "Separate windows")
   Checkbox(category, "windowStyle", "Glass look", "Tabs dragged out of the chat become windows with the Glass look: no border, the Glass background while the mouse is over them, and messages that fade out. Off: they look like the default chat", "windowStyle")
+  local openSetting = ProfileSetting(category, "windowOpenPosition", Settings.VarType.String, "Opens at")
+  Dropdown(category, openSetting, function ()
+    return {
+      { "above", "Above the chat" },
+      { "right", "Right of the chat" },
+      { "left", "Left of the chat" },
+      { "center", "Middle of the screen" },
+    }
+  end, "Where a window opened with \"Open in Separate Window\" (right click a channel in the chat) appears. It opens unlocked, so it can be moved right away")
 
   Header(layout, "Chat buttons")
   Checkbox(category, "chatButtons", "Show chat buttons", "Show the game's chat buttons (friends, channels and voice chat, emotes and languages) beside the chat. They appear and fade with the tab bar", "chatButtons")

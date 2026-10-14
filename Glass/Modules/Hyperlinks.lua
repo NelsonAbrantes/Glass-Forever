@@ -95,6 +95,60 @@ function Hyperlinks:OnEnable()
     end
   end
 
+  -- "Open in Separate Window": moves the channel to a new window, like "Move
+  -- to New Window", and takes that window out of the dock, beside the chat
+  -- (above it if there's no room on the right). Glass gives it its look.
+  local OPEN_SEPARATE = "Open in Separate Window"
+  local SEPARATE_WIDTH, SEPARATE_HEIGHT, SEPARATE_GAP = 380, 170, 30
+  local function OpenSeparate(chatFrame, chatType, chatTarget)
+    local dock = _G.GENERAL_CHAT_DOCK
+    local before = {}
+    for _, frame in ipairs(dock and dock.DOCKED_CHAT_FRAMES or {}) do before[frame] = true end
+    _G.ChatFrameUtil.PopOutChat(chatFrame, chatType, chatTarget)
+
+    local window
+    for _, frame in ipairs(dock and dock.DOCKED_CHAT_FRAMES or {}) do
+      if not before[frame] then window = frame end
+    end
+    if not window or not _G.FCF_UnDockFrame then return end
+
+    _G.FCF_UnDockFrame(window)
+    window:SetSize(SEPARATE_WIDTH, SEPARATE_HEIGHT)
+
+    -- Where the options say (Options > General > Separate windows), on the
+    -- screen: a side without room falls back to above the chat
+    local screenWidth, screenHeight = _G.UIParent:GetWidth(), _G.UIParent:GetHeight()
+    local x, y = (screenWidth - SEPARATE_WIDTH) / 2, (screenHeight - SEPARATE_HEIGHT) / 2
+    local glass = _G.GlassFrame
+    local where = Core.db.profile.windowOpenPosition or "above"
+    if where ~= "center" and glass and glass:GetRight() then
+      local aboveX, aboveY = glass:GetLeft(), glass:GetTop() + SEPARATE_GAP
+      if where == "right" then
+        x, y = glass:GetRight() + SEPARATE_GAP, glass:GetBottom()
+        if x + SEPARATE_WIDTH > screenWidth then x, y = aboveX, aboveY end
+      elseif where == "left" then
+        x, y = glass:GetLeft() - SEPARATE_GAP - SEPARATE_WIDTH, glass:GetBottom()
+        if x < 0 then x, y = aboveX, aboveY end
+      else
+        x, y = aboveX, aboveY
+      end
+      -- Kept on the screen, with room on the left for the column of buttons
+      -- beside the window (minimize...)
+      local buttons = _G[window:GetName().."ButtonFrame"]
+      local leftRoom = (buttons and buttons:GetWidth() or 30) + 4
+      x = math.max(leftRoom, math.min(x, screenWidth - SEPARATE_WIDTH))
+      y = math.max(0, math.min(y, screenHeight - SEPARATE_HEIGHT - 30))
+    end
+    window:ClearAllPoints()
+    window:SetPoint("BOTTOMLEFT", _G.UIParent, "BOTTOMLEFT", x, y)
+    -- Unlocked, so it can be moved straight away
+    if _G.FCF_SetLocked then _G.FCF_SetLocked(window, false) end
+    -- Its tab above it, as when a tab is dragged out of the dock
+    if _G.FCF_SetTabPosition then _G.FCF_SetTabPosition(window, 0) end
+    if _G.FCF_UpdateButtonSide then _G.FCF_UpdateButtonSide(window) end
+    if _G.FCF_SavePositionAndDimensions then _G.FCF_SavePositionAndDimensions(window) end
+  end
+
   -- "Move to New Window" in a channel's menu opened from the Glass chat: the
   -- game needs the chat window the channel was in (it copies its settings
   -- and moves the channel out of it), which the menu doesn't have here (see
@@ -118,6 +172,16 @@ function Hyperlinks:OnEnable()
           description:SetResponder(function ()
             ChatFrameUtil.PopOutChat(chatFrame, chatType, chatTarget)
           end)
+        end
+      end
+
+      -- The same, straight into a separate window beside the chat
+      if rootDescription.CreateButton then
+        local button = rootDescription:CreateButton(OPEN_SEPARATE, function ()
+          OpenSeparate(chatFrame, chatType, chatTarget)
+        end)
+        if _G.FCF_CanOpenNewWindow and not _G.FCF_CanOpenNewWindow() and button.SetEnabled then
+          button:SetEnabled(false)
         end
       end
     end)

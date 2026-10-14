@@ -52,6 +52,7 @@ Core.defaults = {
     frameWidth = 450,
     frameHeight = 230,
     windowStyle = true, -- separate (undocked) windows get the Glass look
+    windowOpenPosition = "above", -- where "Open in Separate Window" puts the window
     positionAnchor = {
       point = "BOTTOMLEFT",
       xOfs = 20,
