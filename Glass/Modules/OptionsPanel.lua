@@ -409,7 +409,7 @@ local function BuildTabs(category, layout)
   Slider(category, "tabBarOpacity", "Background opacity", 0, 1, 0.05, "Opacity of the tab bar background", "tabBarOpacity")
 
   Header(layout, "Alerts")
-  Checkbox(category, "tabAlerts", "Highlight new messages", "A tab glows in the color of the chat type when a message arrives and the tab is not selected, and the tab bar appears for a few seconds")
+  Checkbox(category, "tabAlerts", "Highlight new messages", "A tab glows in the color of the chat type when a guild, party, raid or whisper message arrives and the tab is not selected, and the tab bar appears for a few seconds")
 end
 
 local function BuildProfiles(category, layout)

@@ -310,10 +310,9 @@ function UIManager:OnEnable()
   -- the FCF_StartAlertFlash hook below for those.
   -- The color itself is applied in ChatTab.lua through tab.glowColor.
   local ALERT_SECONDS = 10 -- how long the dock stays visible after a message
+  -- Only the chats meant for you and your groups: say, yell and emotes from
+  -- anyone nearby lit tabs (white) all the time
   local ALERT_EVENTS = {
-    CHAT_MSG_SAY = "SAY",
-    CHAT_MSG_YELL = "YELL",
-    CHAT_MSG_EMOTE = "EMOTE",
     CHAT_MSG_GUILD = "GUILD",
     CHAT_MSG_OFFICER = "OFFICER",
     CHAT_MSG_PARTY = "PARTY",

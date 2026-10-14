@@ -163,7 +163,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
       if self.textLeft ~= textLeft then
         self.textLeft = textLeft
         self.Text:ClearAllPoints()
-        self.Text:SetPoint("LEFT", textLeft, 0)
+        self.Text:SetPoint("LEFT", self, "LEFT", textLeft, 0)
       end
 
       if math.abs(self:GetWidth() - width) > 0.5 then
@@ -175,6 +175,23 @@ function ChatTabMixin:Init(slidingMessageFrame)
         dock:UpdateOverflow()
         dock:UpdateAlignment()
       end
+    end)
+  end
+
+  -- The game now and then puts the name back where its own tabs have it (a
+  -- little below the middle), and the new message line then crossed it.
+  -- Back to the Glass place each time (in the middle, from the left).
+  if not self:IsHooked(self.Text, "SetPoint") then
+    local function PlaceText()
+      self.Text:ClearAllPoints()
+      self.Text:SetPoint("LEFT", self, "LEFT", self.textLeft or Utils.TabPadding(), 0)
+    end
+    self:SecureHook(self.Text, "SetPoint", function (_, point, relativeTo, _, x, y)
+      if point == "LEFT" and (relativeTo == nil or relativeTo == self) and y == 0
+        and x == (self.textLeft or Utils.TabPadding()) then
+        return -- already the Glass place
+      end
+      Adjust(PlaceText)
     end)
   end
 
@@ -668,8 +685,12 @@ function ChatTabMixin:ShowAlert(color)
   -- Under the name, centered on it, most of the tab's width
   local width = math.max(10, self:GetWidth() * ALERT_WIDTH)
   self.alertWidth = width
+  -- Just under the letters, from the name itself: a separate window's tab
+  -- has the game's height, and a line placed from the tab's bottom crossed
+  -- the name there (on a docked tab this is the same place as before)
+  local textHeight = self.Text:GetStringHeight() or 12
   self.alertBox:ClearAllPoints()
-  self.alertBox:SetPoint("BOTTOM", self, "BOTTOM", 0, 3)
+  self.alertBox:SetPoint("TOP", self.Text, "CENTER", 0, -(textHeight / 2 - 1))
   self.alertBox:SetWidth(width)
   -- The gleam is a part of the line, so it travels on any tab, and its light
   -- is no wider than the line

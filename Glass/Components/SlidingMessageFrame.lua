@@ -567,6 +567,7 @@ function SlidingMessageFrameMixin:ApplyWindowStyle()
       if glass then chatButtons:Restyle(resize, "buttonResize", 16, 14) else chatButtons:Unstyle(resize) end
     end
   end
+  self:StyleScrollBar(glass, chatButtons)
 
   -- The Glass background follows the game's: it fades in and out with the
   -- mouse, the game's own stays invisible
@@ -612,6 +613,108 @@ function SlidingMessageFrameMixin:ApplyWindowStyle()
   end
 
   self:StyleMinimizedFrame()
+end
+
+local SCROLL_LINE_ALPHA = 0.15 -- the thin line along the scroll bar
+local SCROLL_THUMB_WIDTH = 3
+local SCROLL_SETTLE = 0.08 -- seconds the marker must stay put before the Glass one follows
+
+-- Keeps a piece of the game's scroll bar art invisible with the Glass look
+-- (the game shows it again on mouse over), or gives it back
+local function ScrollArt(smf, region, glass)
+  if region.glassOwnArt then return end
+  if not smf:IsHooked(region, "SetAlpha") then
+    smf:SecureHook(region, "SetAlpha", function (_, alpha)
+      if smf:UsesWindowStyle() and alpha ~= 0 then region:SetAlpha(0) end
+    end)
+  end
+  region:SetAlpha(glass and 0 or 1)
+end
+
+---
+-- The scroll bar of a separate window in the Glass look: a thin faint line
+-- with a slim marker in the Glass color (white under the mouse), and arrows
+-- like the chat buttons
+function SlidingMessageFrameMixin:StyleScrollBar(glass, chatButtons)
+  local chatFrame = self.chatFrame
+  local scrollBar = chatFrame.ScrollBar
+  local track = scrollBar and scrollBar.Track
+  local thumb = track and track.Thumb
+
+  if track then
+    for _, region in ipairs({ track:GetRegions() }) do ScrollArt(self, region, glass) end
+    if not track.glassLine then
+      local line = track:CreateTexture(nil, "ARTWORK")
+      line.glassOwnArt = true
+      line:SetColorTexture(1, 1, 1, SCROLL_LINE_ALPHA)
+      line:SetWidth(1)
+      line:SetPoint("TOP", 0, -2)
+      line:SetPoint("BOTTOM", 0, 2)
+      track.glassLine = line
+    end
+    track.glassLine:SetShown(glass)
+  end
+
+  if thumb then
+    for _, region in ipairs({ thumb:GetRegions() }) do ScrollArt(self, region, glass) end
+    if not thumb.glassBar then
+      -- On the line, following the game's marker: a new message moves that
+      -- one for a moment (the window grows before it scrolls down), which
+      -- made this one flicker. A move that doesn't last isn't followed;
+      -- dragging is followed at once.
+      local bar = (track or thumb):CreateTexture(nil, "OVERLAY")
+      bar.glassOwnArt = true
+      bar:SetColorTexture(1, 1, 1, 1)
+      bar:SetWidth(SCROLL_THUMB_WIDTH)
+      bar:SetPoint("TOP", thumb, "TOP", 0, -1)
+      bar:SetPoint("BOTTOM", thumb, "BOTTOM", 0, 1)
+      thumb.glassBar = bar
+      if track then
+        track:HookScript("OnUpdate", function ()
+          if not bar:IsShown() then return end
+          local trackTop, top, bottom = track:GetTop(), thumb:GetTop(), thumb:GetBottom()
+          if not (trackTop and top and bottom) then return end
+          top, bottom = top - trackTop, bottom - trackTop
+          local now = GetTime()
+          if top ~= bar.wantTop or bottom ~= bar.wantBottom then
+            bar.wantTop, bar.wantBottom, bar.wantSince = top, bottom, now
+          end
+          if (top ~= bar.shownTop or bottom ~= bar.shownBottom)
+            and (thumb:IsMouseOver() or now - bar.wantSince >= SCROLL_SETTLE) then
+            bar.shownTop, bar.shownBottom = top, bottom
+            bar:ClearAllPoints()
+            bar:SetPoint("TOP", track, "TOP", 0, top - 1)
+            bar:SetPoint("BOTTOM", track, "TOP", 0, bottom + 1)
+          end
+        end)
+      end
+      local function Color(hover)
+        if hover then
+          bar:SetVertexColor(1, 1, 1, 1)
+        else
+          bar:SetVertexColor(Colors.apache.r, Colors.apache.g, Colors.apache.b, 0.8)
+        end
+      end
+      Color(false)
+      thumb:HookScript("OnEnter", function () Color(true) end)
+      thumb:HookScript("OnLeave", function () Color(false) end)
+    end
+    thumb.glassBar:SetShown(glass)
+  end
+
+  if chatButtons then
+    local buttons = {
+      { scrollBar and scrollBar.Back, "buttonScrollUp", 16, 12 },
+      { scrollBar and scrollBar.Forward, "buttonScrollDown", 16, 12 },
+      { chatFrame.ScrollToBottomButton, "buttonScrollBottom", 16, 14 },
+    }
+    for _, entry in ipairs(buttons) do
+      local button = entry[1]
+      if button then
+        if glass then chatButtons:Restyle(button, entry[2], entry[3], entry[4]) else chatButtons:Unstyle(button) end
+      end
+    end
+  end
 end
 
 local MINIMIZED_ART = { "Left", "Right", "Middle", "HighlightLeft", "HighlightRight", "HighlightMiddle" }
