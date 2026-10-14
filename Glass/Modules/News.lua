@@ -16,7 +16,7 @@ local CHANGELOG = {
     items = {[[
 Bug fixes
 
-- Fixed an error when a new whisper arrived.
+- New whisper tabs no longer show an error and incorrect placing of the window.
     ]]}
   },
   {
