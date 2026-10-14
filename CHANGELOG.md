@@ -15,8 +15,10 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Images sorted into `Assets/Buttons` and `Assets/Tabs`.
 - Less memory churn from the tab animations and alerts: functions, lists and colors are made once and reused (`ChatTab.lua`).
 
+- Lighter when the mouse leaves the chat or a tab is shown: one timer fades all the messages instead of one per message (up to 128 each time); tab width and name color corrections reuse the same functions (`SlidingMessageFrame.lua`, `ChatTab.lua`).
+
 ### Fixed
-- Tab names stayed faded (the game lowers them when it thinks the mouse isn't over the chat); they're now always solid (`ChatTab.lua`).
+- Tab names didn't get solid with the mouse over the chat (the game's own chat window, hidden under Glass, never feels the mouse). They're now fully solid while the mouse is over the chat or the tab bar, and fade with the messages afterwards (`ChatTab.lua`).
 - The tab bar now comes back when the mouse is already over the chat while it fades out (`MainContainerFrame.lua`).
 
 ## 0.14.1-forever (beta) (2026-10-13)

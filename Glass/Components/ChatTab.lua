@@ -15,6 +15,7 @@ local FCF_StopAlertFlash = FCF_StopAlertFlash
 local CreateColor = CreateColor
 local CreateFrame = CreateFrame
 local GetPhysicalScreenSize = GetPhysicalScreenSize
+local GetCursorPosition = GetCursorPosition
 local GetTime = GetTime
 local UnitClass = UnitClass
 local IsCombatLog = IsCombatLog
@@ -31,6 +32,32 @@ local tabTexs = {
 local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\Tabs\\"
 
 local ChatTabMixin = {}
+
+-- True while the mouse is over the chat (Glass's own tracking) or over the
+-- tab bar, even when the bar is faded out (measured on its area). Worked out
+-- once per moment and shared by all the tabs.
+local hoverTime, hoverValue
+local function TabsHovered()
+  local now = GetTime()
+  if now == hoverTime then return hoverValue end
+  hoverTime = now
+  local ui = Core:GetModule("UIManager", true)
+  local container = ui and ui.container
+  local value = container and container.state and container.state.mouseOver or false
+  if not value then
+    local dock = _G.GeneralDockManager
+    local left, right = dock and dock:GetLeft(), dock and dock:GetRight()
+    local top, bottom = dock and dock:GetTop(), dock and dock:GetBottom()
+    if left and right and top and bottom then
+      local x, y = GetCursorPosition()
+      local scale = dock:GetEffectiveScale()
+      x, y = x / scale, y / scale
+      value = x >= left and x <= right and y >= bottom and y <= top
+    end
+  end
+  hoverValue = value
+  return value
+end
 
 -- The soft glow from the selected line into the tab (Minimal style)
 local LINE_GLOW_HEIGHT = 12
@@ -86,12 +113,19 @@ function ChatTabMixin:Init(slidingMessageFrame)
     pcall(fn)
     self.adjusting = false
   end
+  -- Corrections made once and reused (the game resizes and recolors the
+  -- tabs often; a new function each time was garbage)
+  self.applyWidth = self.applyWidth or function () self:SetWidth(self.glassWidth) end
+  self.applyTextColor = self.applyTextColor or function ()
+    self.Text:SetTextColor(self.glassTextR, self.glassTextG, self.glassTextB)
+  end
 
-  -- Tabs never fade
+  -- Solid while the mouse is over the chat or the tab bar (see TabsHovered),
+  -- whatever opacity the game sets meanwhile
   if not self:IsHooked(self, "SetAlpha") then
     local function Solid() self:SetAlpha(1) end -- made once, not on every call
     self:SecureHook(self, "SetAlpha", function (_, alpha)
-      if alpha ~= 1 then
+      if alpha ~= 1 and TabsHovered() then
         Adjust(Solid)
       end
     end)
@@ -128,7 +162,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
       end
 
       if math.abs(self:GetWidth() - width) > 0.5 then
-        Adjust(function () self:SetWidth(width) end)
+        self.glassWidth = width
+        Adjust(self.applyWidth)
       end
       -- Wider or narrower tabs move the others when centered or on the right
       if dock.UpdateAlignment then
@@ -143,7 +178,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
       -- Temporary chat frames (whispers) retain their color
       local r, g, b = self:DesiredTextColor()
       if r then
-        Adjust(function () self.Text:SetTextColor(r, g, b) end)
+        self.glassTextR, self.glassTextG, self.glassTextB = r, g, b
+        Adjust(self.applyTextColor)
       end
     end)
   end
@@ -1224,13 +1260,34 @@ end
 function ChatTabMixin:UpdateSelected(selected)
   local isSelected = (self.chatFrame == selected)
 
-  -- Tabs never fade: the game lowers their opacity when it thinks the mouse
-  -- isn't over the chat (its own chat window is hidden under Glass), and not
-  -- always where the SetAlpha hook catches it. Checked here too (cheap).
-  if self:GetAlpha() < 0.999 then self:SetAlpha(1) end
+  -- Tabs fade like the game does, but are fully solid while the mouse is over
+  -- the chat or the tab bar. The game never does that itself: its own chat
+  -- window is hidden under Glass and never feels the mouse.
+  local hovered = TabsHovered()
+  local now = GetTime()
+  if hovered then
+    if self:GetAlpha() < 0.999 then self:SetAlpha(1) end
+    self.glassLeftAt = nil
+  elseif self.glassWasHovered then
+    self.glassLeftAt = now
+  end
+  self.glassWasHovered = hovered
+  -- The mouse left: the tab fades with the messages, after the same wait and
+  -- over the same time, to the game's own opacity for it
+  if self.glassLeftAt then
+    local profile = Core.db.profile
+    local waited = now - self.glassLeftAt - (profile.chatHoldTime or 0)
+    if waited >= 0 then
+      local target = self.noMouseAlpha or (isSelected and _G.CHAT_FRAME_TAB_SELECTED_NOMOUSE_ALPHA
+        or _G.CHAT_FRAME_TAB_NORMAL_NOMOUSE_ALPHA) or 0.4
+      local duration = profile.chatFadeOutDuration or 0
+      local k = duration > 0 and math.min(1, waited / duration) or 1
+      self:SetAlpha(1 + (target - 1) * k)
+      if k >= 1 then self.glassLeftAt = nil end
+    end
+  end
 
   self:UpdateStyle(isSelected)
-  local now = GetTime()
   self:StepStyleFade(now)
   -- Reading the tab ends its alert (the game doesn't always hide its glow,
   -- e.g. for the alerts Glass lights itself, so it isn't waited for)

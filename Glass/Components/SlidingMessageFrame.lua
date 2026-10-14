@@ -23,10 +23,9 @@ local GetChatWindowInfo = GetChatWindowInfo
 local CreateObjectPool = CreateObjectPool
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local Mixin = Mixin
+local C_Timer = C_Timer
 -- luacheck: pop
 
--- Starts a message's fade out, unless "Fade out" is off in the Messages
--- options (then messages stay visible)
 -- Settings that move or resize the chat without changing the size of the
 -- messages in it
 local RELAYOUT_KEEPS_MESSAGES = {
@@ -35,6 +34,8 @@ local RELAYOUT_KEEPS_MESSAGES = {
   tabBarPosition = true,
 }
 
+-- Starts a message's fade out, unless "Fade out" is off in the Messages
+-- options (then messages stay visible)
 local function FadeOutLater(message)
   if Core.db.profile.messageFade ~= false then
     message:HideDelay(Core.db.profile.chatHoldTime)
@@ -217,9 +218,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
       end
     elseif not self.state.mouseOver then
       -- Messages that arrived while hidden never started fading out
-      for _, message in ipairs(self.state.messages) do
-        FadeOutLater(message)
-      end
+      self:HideMessagesLater()
     end
   end)
 
@@ -284,6 +283,11 @@ function SlidingMessageFrameMixin:Init(chatFrame)
           self.overlay:Show()
         end
 
+        if self.leaveTimer then
+          self.leaveTimer:Cancel()
+          self.leaveTimer = nil
+        end
+
         for _, message in ipairs(self.state.messages) do
           if Core.db.profile.chatShowOnMouseOver then
             message:Show()
@@ -298,9 +302,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
 
         self.overlay:HideDelay(Core.db.profile.chatHoldTime)
 
-        for _, message in ipairs(self.state.messages) do
-          FadeOutLater(message)
-        end
+        self:HideMessagesLater()
       end),
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "messageFade" then
@@ -709,6 +711,25 @@ function SlidingMessageFrameMixin:ApplyGlassFont()
     Core.db.profile.fontFlags
   )
   chatFrame:SetFontObject(font)
+end
+
+---
+-- All the messages fade out after the hold time (the mouse left the chat, or
+-- the tab was shown). One timer for them all instead of one per message (up
+-- to 128 each time); showing them on mouse over cancels it.
+function SlidingMessageFrameMixin:HideMessagesLater()
+  if Core.db.profile.messageFade == false then return end
+  if self.leaveTimer then self.leaveTimer:Cancel() end
+  if not self.hideMessagesCallback then
+    self.hideMessagesCallback = function ()
+      self.leaveTimer = nil
+      if self.state.mouseOver then return end
+      for _, message in ipairs(self.state.messages) do
+        if message:IsShown() then message:Hide() end
+      end
+    end
+  end
+  self.leaveTimer = C_Timer.NewTimer(Core.db.profile.chatHoldTime, self.hideMessagesCallback)
 end
 
 function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, blue, messageId, holdTime)
