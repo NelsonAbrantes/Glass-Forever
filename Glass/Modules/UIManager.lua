@@ -376,6 +376,7 @@ function UIManager:OnEnable()
     end
   end)
 
+
   -- Whispers: the game itself flashes the right tab (the whisper tab of that
   -- person, or a tab that shows whispers). Give that glow the whisper color and
   -- reveal the dock, like the other chat types above.
@@ -422,6 +423,30 @@ function UIManager:OnEnable()
     end
   end
 
+  -- A separate window with the Glass look brings its faded messages back
+  -- while the mouse is over it, like the Glass chat (the game only does that
+  -- when scrolling). Again every second, so they stay while the mouse does.
+  local REVEAL_EVERY = 1
+  local function RevealWindow(smf, now)
+    local chatFrame = smf.chatFrame
+    if not (smf.state and smf.state.detached and chatFrame and chatFrame.ResetAllFadeTimes) then return end
+    if chatFrame:IsVisible() and chatFrame:IsMouseOver() and smf:UsesWindowStyle() then
+      if not smf.revealedAt or now - smf.revealedAt >= REVEAL_EVERY then
+        smf.revealedAt = now
+        chatFrame:ResetAllFadeTimes()
+        -- That only marks the window to be drawn again, which happens when
+        -- it next updates: only now and then while nothing new comes in
+        if chatFrame.RefreshIfNecessary then
+          chatFrame:RefreshIfNecessary()
+        elseif chatFrame.RefreshDisplay then
+          chatFrame:RefreshDisplay()
+        end
+      end
+    else
+      smf.revealedAt = nil
+    end
+  end
+
   -- Start rendering
   self.timeElapsed = 0
   self.tickerFrame:SetScript("OnUpdate", function (_, elapsed)
@@ -446,6 +471,14 @@ function UIManager:OnEnable()
     local selected = _G.SELECTED_CHAT_FRAME
     if FCFDock_GetSelectedWindow and GENERAL_CHAT_DOCK then
       selected = FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK) or selected
+    end
+    -- (its own clock: the tabs' one restarts every frame while a tab alerts)
+    self.revealElapsed = (self.revealElapsed or 0) + elapsed
+    if self.revealElapsed >= TABS_CHECK_EVERY then
+      self.revealElapsed = 0
+      local now = GetTime()
+      for _, smf in pairs(self.state.frames) do RevealWindow(smf, now) end
+      for _, smf in pairs(self.state.temporaryFrames) do RevealWindow(smf, now) end
     end
     -- A newly selected tab shows its messages right away
     if selected ~= self.lastSelected then

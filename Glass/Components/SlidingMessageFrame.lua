@@ -710,6 +710,9 @@ function SlidingMessageFrameMixin:ApplyGlassFont()
     size or Core.db.profile.messageFontSize,
     Core.db.profile.fontFlags
   )
+  -- (left aligned like a chat: a window opened by "Move to New Window" was
+  -- centered)
+  Core:GetModule("Fonts"):AlignLeft(font)
   chatFrame:SetFontObject(font)
 end
 
@@ -741,6 +744,9 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
 
   -- Original text and color, kept so the History module can save them
   message.raw = { text = text, r = red, g = green, b = blue }
+  -- The game's chat window it came from: clicking a link in it tells the
+  -- game where (e.g. "Move to New Window" copies that window's settings)
+  message.chatFrame = self.chatFrame
 
   message.text:SetTextColor(red, green, blue, 1)
   -- The "Previous session" separator has a look of its own (MessageLine.lua)

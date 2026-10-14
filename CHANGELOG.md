@@ -6,6 +6,12 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Changed
 - The new message alert's gleam is part of the line's length, so it runs all along it even on short tabs; its light is no wider than the line, it fades out towards the ends like the line, and it shows as much on bright colors (Guild's green) as on darker ones (`ChatTab.lua`).
+- Separate windows with the Glass look bring their faded messages back while the mouse is over them, like the Glass chat (`UIManager.lua`).
+
+### Fixed
+- "Move to New Window" in a channel's menu gave an error and left a broken window (named "Chat 6", not filtered, not updating): clicking a link in Glass didn't tell the game which chat window it was in. Links now pass their window, and that menu option gets it (#1) (`MessageLine.lua`, `SlidingMessageFrame.lua`, `Hyperlinks.lua`).
+- "Copy Character Name" in a player's menu opened from the chat gave an error: the game only lets its own menus copy to the clipboard. It now opens the Glass copy window with the name selected (`Hyperlinks.lua`).
+- Text in a window opened with "Move to New Window" was centered (`Fonts.lua`, `SlidingMessageFrame.lua`).
 
 ## 0.15.0-forever (beta) (2026-10-14)
 

@@ -63,6 +63,11 @@ function Fonts:Set(name, file, size, flags)
   return font
 end
 
+-- Text written from the left (a new font is centered)
+function Fonts:AlignLeft(font)
+  EachPart(font, function (part) part:SetJustifyH("LEFT") end)
+end
+
 -- The same look for every part of a font
 local function Style(font, shadowAlpha, spacing)
   EachPart(font, function (part)

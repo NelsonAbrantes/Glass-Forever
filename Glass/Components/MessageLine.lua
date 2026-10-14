@@ -129,7 +129,7 @@ function MessageLineMixin:Init()
   self:SetHyperlinksEnabled(true)
 
   self:SetScript("OnHyperlinkClick", function (_, link, text, button)
-    Core:Dispatch(HyperlinkClick({link, text, button}))
+    Core:Dispatch(HyperlinkClick({link, text, button, self.chatFrame}))
   end)
 
   self:SetScript("OnHyperlinkEnter", function (_, link, text)
