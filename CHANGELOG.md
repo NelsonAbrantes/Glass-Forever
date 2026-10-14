@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
-## 0.15.0-forever (beta, unreleased)
+## 0.15.0-forever (beta) (2026-10-14)
 
 ### Added
 - Tab animations for every style ("Selected tab animation", Options > Tabs). Framed, Solid, Pill and Glossy: with Slide the selected look travels from the old tab to the new one, stretching to its size; with Grow it opens from the middle of the new tab with a small pop while it shrinks away on the old one. Their hover look comes and goes softly too. Underline's bar slides or grows like Minimal's line (`ChatTab.lua`, `OptionsPanel.lua`).

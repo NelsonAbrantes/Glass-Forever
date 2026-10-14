@@ -12,6 +12,22 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "0.15.0-forever (beta)",
+    items = {[[
+What's new
+
+- Tab animations now work on every tab style.
+- "Class color" accent for the selected tab.
+- New message alert under the tab name.
+
+Bug fixes
+
+- Tab names now stay solid with the mouse over the chat.
+- Fixed very high memory use in some situations.
+- Tab names no longer flicker.
+    ]]}
+  },
+  {
     name = "0.14.1-forever (beta)",
     items = {[[
 Bug fixes

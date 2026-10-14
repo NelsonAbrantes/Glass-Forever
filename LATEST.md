@@ -1,5 +1,13 @@
-# 0.14.1-forever (beta) (2026-10-13)
+# 0.15.0-forever (beta) (2026-10-14)
+
+What's new
+
+- Tab animations now work on every tab style.
+- "Class color" accent for the selected tab.
+- New message alert under the tab name.
 
 Bug fixes
 
-- New whisper tabs no longer show an error and incorrect placing of the window.
+- Tab names now stay solid with the mouse over the chat.
+- Fixed very high memory use in some situations.
+- Tab names no longer flicker.
