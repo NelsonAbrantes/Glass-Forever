@@ -589,10 +589,17 @@ local ALERT_WIDTH = 0.7         -- fraction of the tab width
 local ALERT_GLOW_HEIGHT = 14
 local ALERT_GLOW_LOW, ALERT_GLOW_HIGH = 0.35, 0.85 -- the glow breathing between these
 local ALERT_BREATH_TIME = 1.6   -- seconds for one breath (bright, faint, bright)
-local ALERT_GLEAM_WIDTH = 34
+local ALERT_GLEAM_PART = 0.4    -- the gleam's length, as a fraction of the line
+local ALERT_GLEAM_MIN = 10      -- and at least this long
 local ALERT_GLEAM_TIME = 1.2    -- seconds to run along the line
 local ALERT_GLEAM_EVERY = 2.6   -- seconds from one gleam to the next
 local ALERT_GLEAM_GLOW = 0.55   -- the soft light around the gleam, at its strongest
+-- Light added to a bright color (the guild's strong green) shows less than on
+-- a darker one (the party's blue), so the gleam gets stronger there. This is
+-- how much room for more light the party's color leaves; the others are
+-- matched to it.
+local ALERT_GLEAM_ROOM = 0.47
+local ALERT_GLEAM_MAX_BOOST = 2.2
 
 local alertingTabs = {} -- tabs with an alert showing
 
@@ -634,7 +641,7 @@ function ChatTabMixin:CreateAlert()
   end
   for _, texture in ipairs({ self.gleamLeft, self.gleamRight }) do
     texture:SetBlendMode("ADD")
-    texture:SetSize(ALERT_GLEAM_WIDTH / 2, 2)
+    texture:SetHeight(2) -- the length follows the line (ShowAlert)
   end
   self.gleamRight:SetPoint("LEFT", self.gleamLeft, "RIGHT")
   -- A soft round light travelling with the gleam (the half-ellipse, flipped)
@@ -642,7 +649,7 @@ function ChatTabMixin:CreateAlert()
   self.gleamGlow:SetTexture(ASSETS.."tabGlow")
   self.gleamGlow:SetBlendMode("ADD")
   self.gleamGlow:SetTexCoord(0, 1, 1, 0)
-  self.gleamGlow:SetSize(ALERT_GLEAM_WIDTH * 1.4, ALERT_GLOW_HEIGHT)
+  self.gleamGlow:SetHeight(ALERT_GLOW_HEIGHT)
   self.gleamGlow:SetPoint("BOTTOM", self.gleamLeft, "RIGHT", 0, 1)
   -- Kept as lists and colors made once, reused on every message (this runs
   -- for each message of an alerted chat, and new ones were garbage)
@@ -664,6 +671,12 @@ function ChatTabMixin:ShowAlert(color)
   self.alertBox:ClearAllPoints()
   self.alertBox:SetPoint("BOTTOM", self, "BOTTOM", 0, 3)
   self.alertBox:SetWidth(width)
+  -- The gleam is a part of the line, so it travels on any tab, and its light
+  -- is no wider than the line
+  local gleam = math.max(ALERT_GLEAM_MIN, width * ALERT_GLEAM_PART)
+  self.gleamLeft:SetWidth(gleam / 2)
+  self.gleamRight:SetWidth(gleam / 2)
+  self.gleamGlow:SetWidth(math.min(width, gleam * 1.4))
 
   self.alertClear:SetRGBA(r, g, b, 0)
   self.alertStrong:SetRGBA(r, g, b, 1)
@@ -673,6 +686,9 @@ function ChatTabMixin:ShowAlert(color)
   c[1], c[2], c[3] = r, g, b
   -- The gleam: almost white, tinted by the color
   gc[1], gc[2], gc[3] = r + (1 - r) * 0.7, g + (1 - g) * 0.7, b + (1 - b) * 0.7
+  -- Stronger on bright colors, so it shows as much on all of them
+  local room = 1 - (0.2126 * r + 0.7152 * g + 0.0722 * b)
+  self.gleamBoost = math.min(ALERT_GLEAM_MAX_BOOST, math.max(1, ALERT_GLEAM_ROOM / math.max(room, 0.05)))
 
   for _, texture in ipairs(self.alertLineParts) do
     texture:Show()
@@ -706,14 +722,18 @@ function ChatTabMixin:StepAlert(now)
   if k < 1 then
     -- An even glide (sine easing), only softened at its start and end
     local ease = 0.5 - 0.5 * math.cos(math.pi * k)
-    local half = ALERT_GLEAM_WIDTH / 2
-    local x = half + (self.alertWidth - ALERT_GLEAM_WIDTH) * ease
+    -- Its middle goes from one end of the line to the other
+    local width = self.alertWidth
+    local x = width * ease
     self.gleamLeft:ClearAllPoints()
     self.gleamLeft:SetPoint("RIGHT", self.alertBox, "LEFT", x, 0)
+    -- As strong as the line where it is: the line fades out to its ends,
+    -- so the gleam does too and never shows past them
+    local strength = 1 - math.abs(x - width / 2) / (width / 2)
+    strength = strength * strength * (3 - 2 * strength)
     -- (the same two color objects every frame, so no garbage)
-    local strength = math.sin(math.pi * k)
     local g = self.gleamColor
-    self.gleamGlow:SetVertexColor(g[1], g[2], g[3], ALERT_GLEAM_GLOW * strength)
+    self.gleamGlow:SetVertexColor(g[1], g[2], g[3], math.min(1, ALERT_GLEAM_GLOW * strength * self.gleamBoost))
     self.gleamClear = self.gleamClear or CreateColor(0, 0, 0, 0)
     self.gleamStrong = self.gleamStrong or CreateColor(0, 0, 0, 0)
     self.gleamClear:SetRGBA(g[1], g[2], g[3], 0)

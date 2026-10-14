@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## 0.15.1-forever (beta, unreleased)
+
+### Changed
+- The new message alert's gleam is part of the line's length, so it runs all along it even on short tabs; its light is no wider than the line, it fades out towards the ends like the line, and it shows as much on bright colors (Guild's green) as on darker ones (`ChatTab.lua`).
+
 ## 0.15.0-forever (beta) (2026-10-14)
 
 ### Added
