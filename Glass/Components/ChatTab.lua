@@ -688,7 +688,8 @@ function ChatTabMixin:ShowAlert(color)
   -- Just under the letters, from the name itself: a separate window's tab
   -- has the game's height, and a line placed from the tab's bottom crossed
   -- the name there (on a docked tab this is the same place as before)
-  local textHeight = self.Text:GetStringHeight() or 12
+  local textHeight = self.Text:GetStringHeight()
+  if not textHeight or textHeight <= 0 then textHeight = 12 end -- (a name not drawn yet)
   self.alertBox:ClearAllPoints()
   self.alertBox:SetPoint("TOP", self.Text, "CENTER", 0, -(textHeight / 2 - 1))
   self.alertBox:SetWidth(width)
