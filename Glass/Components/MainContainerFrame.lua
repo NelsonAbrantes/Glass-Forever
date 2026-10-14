@@ -49,6 +49,14 @@ function MainContainerFrameMixin:OnFrame()
     end
 
     self.state.mouseOver = not self.state.mouseOver
+  elseif mouseOver then
+    -- Already over the chat while the tab bar fades out (e.g. after a new
+    -- message alert): it comes back, without waiting for the mouse to leave
+    -- and enter again
+    local dock = _G.GeneralDockManager
+    if dock and dock.hideAg and (dock.hideAg:IsPlaying() or not dock:IsShown()) then
+      dock:Show()
+    end
   end
 end
 

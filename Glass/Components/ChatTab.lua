@@ -28,7 +28,7 @@ local tabTexs = {
   "HighlightLeft", "HighlightMiddle", "HighlightRight"
 }
 
-local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\"
+local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\Tabs\\"
 
 local ChatTabMixin = {}
 
@@ -89,9 +89,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
 
   -- Tabs never fade
   if not self:IsHooked(self, "SetAlpha") then
+    local function Solid() self:SetAlpha(1) end -- made once, not on every call
     self:SecureHook(self, "SetAlpha", function (_, alpha)
       if alpha ~= 1 then
-        Adjust(function () self:SetAlpha(1) end)
+        Adjust(Solid)
       end
     end)
   end
@@ -159,32 +160,34 @@ function ChatTabMixin:Init(slidingMessageFrame)
 
       -- Tint the glow with the color of the chat type that triggered it.
       -- Desaturate first, otherwise the texture's own tint mixes with the color.
+      -- Lit with a chat type color: the game's glow stays invisible and the
+      -- Glass alert shows instead (ShowAlert)
       local color = self.glowColor
       if color then
-        self.glow:SetDesaturated(true)
-        Adjust(function () self.glow:SetVertexColor(GlowColor(color)) end)
+        Adjust(function () self.glow:SetAlpha(0) end)
+        self:ShowAlert(color)
       else
         self.glow:SetDesaturated(false)
       end
     end)
   end
 
-  -- Keep the glow fully visible while it's lit with a chat type color. The game
-  -- animates whisper alerts by fading the glow, which ended up invisible.
-  if not self:IsHooked(self.glow, "SetAlpha") then
-    self:SecureHook(self.glow, "SetAlpha", function (_, alpha)
-      if self.glowColor and self.glow:IsShown() and alpha ~= 1 then
-        Adjust(function () self.glow:SetAlpha(1) end)
-      end
+  -- The alert goes with the glow (the tab was read)
+  if not self:IsHooked(self.glow, "Hide") then
+    self:SecureHook(self.glow, "Hide", function ()
+      self:HideAlert()
     end)
   end
 
-  -- Keep the glow in the chat type color even if Blizzard resets it
-  if not self:IsHooked(self.glow, "SetVertexColor") then
-    self:SecureHook(self.glow, "SetVertexColor", function ()
-      local color = self.glowColor
-      if color then
-        Adjust(function () self.glow:SetVertexColor(GlowColor(color)) end)
+  -- While the Glass alert shows, the game's own glow stays invisible (the
+  -- game also fades it in and out for whispers)
+  -- (the function is made once: the game fades whisper glows every frame,
+  -- and a new one each time was garbage)
+  if not self:IsHooked(self.glow, "SetAlpha") then
+    local function HideGlow() self.glow:SetAlpha(0) end
+    self:SecureHook(self.glow, "SetAlpha", function (_, alpha)
+      if self.glowColor and self.glow:IsShown() and alpha ~= 0 then
+        Adjust(HideGlow)
       end
     end)
   end
@@ -225,7 +228,9 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self.styleShine = self:CreateTexture(nil, "BACKGROUND", nil, -7)
     self.styleBorder = self:CreateTexture(nil, "BACKGROUND", nil, -6)
 
-    for _, texture in ipairs({ self.styleBg, self.styleShine, self.styleBorder }) do
+    -- (kept as a list: built once, not on every fade step)
+    self.styleLayers = { self.styleBg, self.styleShine, self.styleBorder }
+    for _, texture in ipairs(self.styleLayers) do
       -- A small gap so neighbouring tabs don't touch
       texture:SetPoint("TOPLEFT", 2, -1)
       texture:SetPoint("BOTTOMRIGHT", -2, 1)
@@ -526,7 +531,167 @@ function ChatTabMixin:ShowSteadyGlow(color)
   end
 
   glow:Show()
-  glow:SetAlpha(1)
+  glow:SetAlpha(0) -- the Glass alert shows instead (ShowAlert)
+end
+
+----
+-- New message alert, drawn by Glass (like the selected tab line): a thin line
+-- under the name in the chat type color, fading out to its ends, with a glow
+-- rising from it that breathes softly, and a gleam of light running along the
+-- line every couple of seconds, while the tab is unread. Moved by Glass from
+-- the tab updates (UIManager updates every frame while an alert shows): a few
+-- changes per frame for each tab with an alert, nothing otherwise.
+
+local ALERT_WIDTH = 0.7         -- fraction of the tab width
+local ALERT_GLOW_HEIGHT = 14
+local ALERT_GLOW_LOW, ALERT_GLOW_HIGH = 0.35, 0.85 -- the glow breathing between these
+local ALERT_BREATH_TIME = 1.6   -- seconds for one breath (bright, faint, bright)
+local ALERT_GLEAM_WIDTH = 34
+local ALERT_GLEAM_TIME = 1.2    -- seconds to run along the line
+local ALERT_GLEAM_EVERY = 2.6   -- seconds from one gleam to the next
+local ALERT_GLEAM_GLOW = 0.55   -- the soft light around the gleam, at its strongest
+
+local alertingTabs = {} -- tabs with an alert showing
+
+local function Unsnapped(texture)
+  if texture.SetSnapToPixelGrid then
+    texture:SetSnapToPixelGrid(false)
+    texture:SetTexelSnappingBias(0)
+  end
+  return texture
+end
+
+function ChatTabMixin:CreateAlert()
+  if self.alertBox then return end
+  -- An invisible box for the line, under the name
+  local box = self:CreateTexture(nil, "OVERLAY")
+  box:SetColorTexture(1, 1, 1, 0)
+  box:SetHeight(2)
+  self.alertBox = box
+
+  self.alertLeft = Unsnapped(self:CreateTexture(nil, "OVERLAY"))
+  self.alertLeft:SetPoint("TOPLEFT", box)
+  self.alertLeft:SetPoint("BOTTOMRIGHT", box, "BOTTOM")
+  self.alertRight = Unsnapped(self:CreateTexture(nil, "OVERLAY"))
+  self.alertRight:SetPoint("TOPLEFT", box, "TOP")
+  self.alertRight:SetPoint("BOTTOMRIGHT", box)
+  -- The glow rising from the line (the half-ellipse image, flipped)
+  self.alertGlow = Unsnapped(self:CreateTexture(nil, "ARTWORK"))
+  self.alertGlow:SetTexture(ASSETS.."tabGlow")
+  self.alertGlow:SetBlendMode("ADD")
+  self.alertGlow:SetTexCoord(0, 1, 1, 0)
+  self.alertGlow:SetHeight(ALERT_GLOW_HEIGHT)
+  self.alertGlow:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -6, 0)
+  self.alertGlow:SetPoint("BOTTOMRIGHT", box, "TOPRIGHT", 6, 0)
+  -- The gleam: a short bright stretch of the line, strongest in its middle
+  self.gleamLeft = Unsnapped(self:CreateTexture(nil, "OVERLAY", nil, 1))
+  self.gleamRight = Unsnapped(self:CreateTexture(nil, "OVERLAY", nil, 1))
+  for _, texture in ipairs({ self.alertLeft, self.alertRight, self.gleamLeft, self.gleamRight }) do
+    texture:SetColorTexture(1, 1, 1, 1)
+  end
+  for _, texture in ipairs({ self.gleamLeft, self.gleamRight }) do
+    texture:SetBlendMode("ADD")
+    texture:SetSize(ALERT_GLEAM_WIDTH / 2, 2)
+  end
+  self.gleamRight:SetPoint("LEFT", self.gleamLeft, "RIGHT")
+  -- A soft round light travelling with the gleam (the half-ellipse, flipped)
+  self.gleamGlow = Unsnapped(self:CreateTexture(nil, "ARTWORK", nil, 1))
+  self.gleamGlow:SetTexture(ASSETS.."tabGlow")
+  self.gleamGlow:SetBlendMode("ADD")
+  self.gleamGlow:SetTexCoord(0, 1, 1, 0)
+  self.gleamGlow:SetSize(ALERT_GLEAM_WIDTH * 1.4, ALERT_GLOW_HEIGHT)
+  self.gleamGlow:SetPoint("BOTTOM", self.gleamLeft, "RIGHT", 0, 1)
+  -- Kept as lists and colors made once, reused on every message (this runs
+  -- for each message of an alerted chat, and new ones were garbage)
+  self.alertParts = { self.alertLeft, self.alertRight, self.alertGlow, self.gleamLeft, self.gleamRight, self.gleamGlow }
+  self.alertLineParts = { self.alertLeft, self.alertRight, self.alertGlow }
+  self.alertColor, self.gleamColor = { 0, 0, 0 }, { 0, 0, 0 }
+  self.alertClear, self.alertStrong = CreateColor(0, 0, 0, 0), CreateColor(0, 0, 0, 1)
+  for _, texture in ipairs(self.alertParts) do
+    texture:Hide()
+  end
+end
+
+function ChatTabMixin:ShowAlert(color)
+  self:CreateAlert()
+  local r, g, b = GlowColor(color)
+  -- Under the name, centered on it, most of the tab's width
+  local width = math.max(10, self:GetWidth() * ALERT_WIDTH)
+  self.alertWidth = width
+  self.alertBox:ClearAllPoints()
+  self.alertBox:SetPoint("BOTTOM", self, "BOTTOM", 0, 3)
+  self.alertBox:SetWidth(width)
+
+  self.alertClear:SetRGBA(r, g, b, 0)
+  self.alertStrong:SetRGBA(r, g, b, 1)
+  self.alertLeft:SetGradient("HORIZONTAL", self.alertClear, self.alertStrong)
+  self.alertRight:SetGradient("HORIZONTAL", self.alertStrong, self.alertClear)
+  local c, gc = self.alertColor, self.gleamColor
+  c[1], c[2], c[3] = r, g, b
+  -- The gleam: almost white, tinted by the color
+  gc[1], gc[2], gc[3] = r + (1 - r) * 0.7, g + (1 - g) * 0.7, b + (1 - b) * 0.7
+
+  for _, texture in ipairs(self.alertLineParts) do
+    texture:Show()
+  end
+  if not alertingTabs[self] then
+    alertingTabs[self] = true
+    self.alertStart = GetTime()
+  end
+  self:StepAlert(GetTime())
+end
+
+function ChatTabMixin:HideAlert()
+  alertingTabs[self] = nil
+  if not self.alertBox or not self.alertLeft:IsShown() then return end
+  for _, texture in ipairs(self.alertParts) do
+    texture:Hide()
+  end
+end
+
+-- One step of the breathing glow and the running gleam
+function ChatTabMixin:StepAlert(now)
+  if not alertingTabs[self] then return end
+  local t = now - self.alertStart
+  -- Breathing: a soft wave between faint and bright
+  local wave = 0.5 - 0.5 * math.cos(2 * math.pi * t / ALERT_BREATH_TIME)
+  local c = self.alertColor
+  self.alertGlow:SetVertexColor(c[1], c[2], c[3], ALERT_GLOW_LOW + (ALERT_GLOW_HIGH - ALERT_GLOW_LOW) * wave)
+  -- The gleam: runs along the line, staying inside it, and fades in and out
+  -- at its ends like the line does; then it's hidden until the next one
+  local k = (t % ALERT_GLEAM_EVERY) / ALERT_GLEAM_TIME
+  if k < 1 then
+    -- An even glide (sine easing), only softened at its start and end
+    local ease = 0.5 - 0.5 * math.cos(math.pi * k)
+    local half = ALERT_GLEAM_WIDTH / 2
+    local x = half + (self.alertWidth - ALERT_GLEAM_WIDTH) * ease
+    self.gleamLeft:ClearAllPoints()
+    self.gleamLeft:SetPoint("RIGHT", self.alertBox, "LEFT", x, 0)
+    -- (the same two color objects every frame, so no garbage)
+    local strength = math.sin(math.pi * k)
+    local g = self.gleamColor
+    self.gleamGlow:SetVertexColor(g[1], g[2], g[3], ALERT_GLEAM_GLOW * strength)
+    self.gleamClear = self.gleamClear or CreateColor(0, 0, 0, 0)
+    self.gleamStrong = self.gleamStrong or CreateColor(0, 0, 0, 0)
+    self.gleamClear:SetRGBA(g[1], g[2], g[3], 0)
+    self.gleamStrong:SetRGBA(g[1], g[2], g[3], strength)
+    self.gleamLeft:SetGradient("HORIZONTAL", self.gleamClear, self.gleamStrong)
+    self.gleamRight:SetGradient("HORIZONTAL", self.gleamStrong, self.gleamClear)
+    if not self.gleamLeft:IsShown() then
+      self.gleamLeft:Show()
+      self.gleamRight:Show()
+      self.gleamGlow:Show()
+    end
+  elseif self.gleamLeft:IsShown() then
+    self.gleamLeft:Hide()
+    self.gleamRight:Hide()
+    self.gleamGlow:Hide()
+  end
+end
+
+-- True while any tab shows an alert (UIManager then updates every frame)
+Core.Components.TabAlerting = function ()
+  return next(alertingTabs) ~= nil
 end
 
 -- Accent colors (Tabs options). "default" uses each style's own color.
@@ -932,7 +1097,7 @@ function ChatTabMixin:StepStyleFade(now)
   if done then k = 1 end
   if k < 0 then k = 0 end -- still waiting (hand-off to the Grow ghost)
   local ease = k * k * (3 - 2 * k)
-  for _, texture in ipairs({ self.styleBg, self.styleShine, self.styleBorder }) do
+  for _, texture in ipairs(self.styleLayers) do
     local from, to = texture.glassFrom, texture.glassTo
     if from and to then
       local c = texture.glassColor
@@ -1059,8 +1224,22 @@ end
 function ChatTabMixin:UpdateSelected(selected)
   local isSelected = (self.chatFrame == selected)
 
+  -- Tabs never fade: the game lowers their opacity when it thinks the mouse
+  -- isn't over the chat (its own chat window is hidden under Glass), and not
+  -- always where the SetAlpha hook catches it. Checked here too (cheap).
+  if self:GetAlpha() < 0.999 then self:SetAlpha(1) end
+
   self:UpdateStyle(isSelected)
-  self:StepStyleFade(GetTime())
+  local now = GetTime()
+  self:StepStyleFade(now)
+  -- Reading the tab ends its alert (the game doesn't always hide its glow,
+  -- e.g. for the alerts Glass lights itself, so it isn't waited for)
+  if isSelected and alertingTabs[self] then
+    self.glowColor = nil
+    self.glow:Hide()
+    self:HideAlert()
+  end
+  self:StepAlert(now)
   if not isSelected then return end
 
   -- The shared line: Minimal's line always, Underline's bar when animated.

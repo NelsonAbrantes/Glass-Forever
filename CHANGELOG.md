@@ -8,8 +8,16 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Tab animations for every style ("Selected tab animation", Options > Tabs). Framed, Solid, Pill and Glossy: with Slide the selected look travels from the old tab to the new one, stretching to its size; with Grow it opens from the middle of the new tab with a small pop while it shrinks away on the old one. Their hover look comes and goes softly too. Underline's bar slides or grows like Minimal's line (`ChatTab.lua`, `OptionsPanel.lua`).
 - "Class color" accent for the selected tab: the color of your character's class, in every style (`ChatTab.lua`, `OptionsPanel.lua`).
 
+- New message alert drawn by Glass: a line under the tab name in the chat type color, with a glow that breathes softly and a gleam of light running along it while the tab is unread. It goes away as soon as the tab is read (`ChatTab.lua`, `UIManager.lua`).
+
 ### Changed
 - Underline's selected bar has softened ends and a glow rising from it that lights the tab name from below (`ChatTab.lua`).
+- Images sorted into `Assets/Buttons` and `Assets/Tabs`.
+- Less memory churn from the tab animations and alerts: functions, lists and colors are made once and reused (`ChatTab.lua`).
+
+### Fixed
+- Tab names stayed faded (the game lowers them when it thinks the mouse isn't over the chat); they're now always solid (`ChatTab.lua`).
+- The tab bar now comes back when the mouse is already over the chat while it fades out (`MainContainerFrame.lua`).
 
 ## 0.14.1-forever (beta) (2026-10-13)
 

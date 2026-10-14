@@ -442,6 +442,7 @@ function UIManager:OnEnable()
     self.tabsElapsed = (self.tabsElapsed or 0) + elapsed
     local tabsDue = self.tabsElapsed >= TABS_CHECK_EVERY
       or (Core.Components.TabLineMoving and Core.Components.TabLineMoving())
+      or (Core.Components.TabAlerting and Core.Components.TabAlerting())
     local selected = _G.SELECTED_CHAT_FRAME
     if FCFDock_GetSelectedWindow and GENERAL_CHAT_DOCK then
       selected = FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK) or selected

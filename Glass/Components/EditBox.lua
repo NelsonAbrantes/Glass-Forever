@@ -11,7 +11,7 @@ local CreateColor = CreateColor
 local Mixin = Mixin
 -- luacheck: pop
 
-local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\"
+local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\Tabs\\" -- the edit box styles use the tab shapes
 local SLICE_MARGIN = 8 -- size of the rounded corners in the shape files
 
 -- Sets a rounded shape that keeps its corners however wide the box is

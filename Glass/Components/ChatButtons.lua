@@ -25,7 +25,7 @@ local BUTTONS = {
   { "ChatFrameMenuButton", "buttonMenu" },                -- emotes, languages...
 }
 
-local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\"
+local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\Buttons\\"
 local BUTTON_SIZE = 22
 local ICON_SIZE = 16
 local OUTLINE_ALPHA = 0.85 -- the dark outline around the icons
