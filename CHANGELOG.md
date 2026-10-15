@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
 
+## Next version (beta, unreleased)
+
+### Changed
+- Players from your Recent Allies list get a Glass icon after their name in the chat (one person, in the Glass gold) instead of the game's yellow one (`TextProcessing.lua`, `Assets/allyIcon.tga`).
+
 ## 0.15.1-forever (beta) (2026-10-14)
 
 ### Added
