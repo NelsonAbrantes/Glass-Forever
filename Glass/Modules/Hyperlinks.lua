@@ -28,6 +28,28 @@ local linkTypes = {
   battlepet = true,
 }
 
+---
+-- Right click on a recipe someone linked from their profession window (e.g.
+-- "[Alchemy: Greater Healing Potion]"): a menu to track it in the objective
+-- tracker (its reagents show there), or stop tracking it. Returns false when
+-- the game has no recipe tracking, so the click goes on as usual.
+local function RecipeMenu(recipeID, text)
+  local TradeSkill, MenuUtil = _G.C_TradeSkillUI, _G.MenuUtil
+  if not (TradeSkill and TradeSkill.SetRecipeTracked and TradeSkill.IsRecipeTracked
+    and MenuUtil and MenuUtil.CreateContextMenu) then
+    return false
+  end
+  local name = type(text) == "string" and strmatch(text, "%[(.-)%]") or nil
+  MenuUtil.CreateContextMenu(nil, function (_, rootDescription)
+    if name then rootDescription:CreateTitle(name) end
+    local tracked = TradeSkill.IsRecipeTracked(recipeID, false)
+    rootDescription:CreateButton(tracked and "Untrack Recipe" or "Track Recipe", function ()
+      TradeSkill.SetRecipeTracked(recipeID, not tracked, false)
+    end)
+  end)
+  return true
+end
+
 function Hyperlinks:OnInitialize()
   self.state = {
     showingTooltip = nil
@@ -53,6 +75,12 @@ function Hyperlinks:OnEnable()
     if url then
       Core:Dispatch(OpenCopy({ title = "Glass Forever: Copy link", text = url, height = 140 }))
       return
+    end
+
+    -- A linked recipe, right clicked: track it (see RecipeMenu)
+    if button == "RightButton" then
+      local recipeID = tonumber(strmatch(link, "^enchant:(%d+)"))
+      if recipeID and RecipeMenu(recipeID, text) then return end
     end
 
     -- Use global reference in case some addon has hooked into it for custom
