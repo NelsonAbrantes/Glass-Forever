@@ -820,18 +820,22 @@ function SlidingMessageFrameMixin:ApplyGlassFont()
 end
 
 ---
--- All the messages fade out after the hold time (the mouse left the chat, or
--- the tab was shown). One timer for them all instead of one per message (up
--- to 128 each time); showing them on mouse over cancels it.
+-- The messages shown now fade out after the hold time (the mouse left the
+-- chat, or the tab was shown). One timer for them all instead of one per
+-- message (up to 128 each time); showing them on mouse over cancels it.
+-- Messages that arrive meanwhile fade out on their own time: the timer used
+-- to take them too, so in a busy chat everything vanished at once.
 function SlidingMessageFrameMixin:HideMessagesLater()
   if Core.db.profile.messageFade == false then return end
   if self.leaveTimer then self.leaveTimer:Cancel() end
+  self.hideUpTo = GetTime()
   if not self.hideMessagesCallback then
     self.hideMessagesCallback = function ()
       self.leaveTimer = nil
       if self.state.mouseOver then return end
+      local upTo = self.hideUpTo or math.huge
       for _, message in ipairs(self.state.messages) do
-        if message:IsShown() then message:Hide() end
+        if message:IsShown() and (message.glassArrivedAt or 0) <= upTo then message:Hide() end
       end
     end
   end
@@ -979,8 +983,10 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
     end
   end
 
+  local now = GetTime()
   for _, message in ipairs(newMessages) do
     message:Show()
+    message.glassArrivedAt = now -- (see HideMessagesLater)
     if not self.state.mouseOver then
       FadeOutLater(message)
     end

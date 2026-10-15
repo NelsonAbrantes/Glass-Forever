@@ -199,6 +199,15 @@ local function allyProcessor(text)
   return text
 end
 
+-- The same in a whisper tab's name, where the game puts it first
+function TP:AllyIconInTabName(text)
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
+  local swapped = text:gsub("^|A:[^|]*|a", ALLY_ICON):gsub("^|T[^|]*|t", function (icon)
+    return icon == ALLY_ICON and icon or ALLY_ICON
+  end)
+  return swapped
+end
+
 ---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {

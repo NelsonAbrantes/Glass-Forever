@@ -178,6 +178,26 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end)
   end
 
+  -- A whisper tab with someone from your Recent Allies list: the game's
+  -- yellow icon in front of the name becomes the Glass one, as in the chat
+  if not self:IsHooked(self, "SetText") then
+    -- (its own guard, not Adjust: skipped inside another correction, the
+    -- game's icon would stay)
+    local swapping = false
+    local function SwapIcon()
+      if swapping then return end
+      local text = self:GetText()
+      local swapped = Core:GetModule("TextProcessing"):AllyIconInTabName(text)
+      if swapped ~= text then
+        swapping = true
+        self:SetText(swapped)
+        swapping = false
+      end
+    end
+    self:SecureHook(self, "SetText", SwapIcon)
+    SwapIcon()
+  end
+
   -- The game now and then puts the name back where its own tabs have it (a
   -- little below the middle), and the new message line then crossed it.
   -- Back to the Glass place each time (in the middle, from the left).
