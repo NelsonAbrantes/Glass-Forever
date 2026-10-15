@@ -183,8 +183,26 @@ local function channelProcessor(text)
 end
 
 ---
+-- The game marks the players of your Recent Allies list with a small yellow
+-- person right after their name. That one becomes a Glass one (one person,
+-- in the Glass gold). (The only icon the game puts right after a name: the
+-- Discord, GM and mobile ones go before it, Timerunning's inside the name.)
+local ALLY_ICON = "|TInterface\\AddOns\\Glass\\Glass\\Assets\\allyIcon:0:0:0:0:32:32:0:32:0:32:223:186:105|t"
+local function allyProcessor(text)
+  -- Most messages have no icon: nothing to look at then
+  if not text:find("|Hplayer:", 1, true)
+    or not (text:find("|A:", 1, true) or text:find("|T", 1, true)) then
+    return text
+  end
+  text = text:gsub("(|Hplayer:[^|]*|h.-|h)(%s?)|A:[^|]*|a", "%1%2"..ALLY_ICON)
+  text = text:gsub("(|Hplayer:[^|]*|h.-|h)(%s?)|T[^|]*|t", "%1%2"..ALLY_ICON)
+  return text
+end
+
+---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {
+  allyProcessor,
   textureProcessor,
   channelProcessor,
   urlProcessor,
