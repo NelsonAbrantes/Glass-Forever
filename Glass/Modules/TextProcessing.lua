@@ -184,10 +184,10 @@ end
 
 ---
 -- The game marks the players of your Recent Allies list with a small yellow
--- person right after their name. That one becomes the Glass friends icon, in
--- the Glass gold. (The only icon the game puts right after a name: the
+-- person right after their name. That one becomes a Glass one (one person,
+-- in the Glass gold). (The only icon the game puts right after a name: the
 -- Discord, GM and mobile ones go before it, Timerunning's inside the name.)
-local ALLY_ICON = "|TInterface\\AddOns\\Glass\\Glass\\Assets\\Buttons\\buttonSocial:0:0:0:0:32:32:0:32:0:32:223:186:105|t"
+local ALLY_ICON = "|TInterface\\AddOns\\Glass\\Glass\\Assets\\allyIcon:0:0:0:0:32:32:0:32:0:32:223:186:105|t"
 local function allyProcessor(text)
   -- Most messages have no icon: nothing to look at then
   if not text:find("|Hplayer:", 1, true)
