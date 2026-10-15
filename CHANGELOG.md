@@ -90,6 +90,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Added
 - Edit box styles (Options > Edit Box > Style, also in Edit Mode): Minimal, the new default, fades out at the ends like the messages, with a thin line in the color of the chat you're typing in (say, party, whisper...); Solid is the previous plain dark box; Framed has rounded corners and a border in the chat's color (`EditBox.lua`, `OptionsPanel.lua`, `EditMode.lua`).
 - Glass Forever shows its logo in the game's AddOns list (`Glass.toc`, `logo.tga`).
+- Guild and Party tabs: the first time you log in with a character, Glass offers to create them. Guild and party messages then move out of General into their own tabs, and the interface reloads. Asked once per character, and not if the tabs already exist (`DefaultTabs.lua`, `Button.lua`).
 
 ### Fixed
 - The game's own edit box border could show again behind the Glass edit box (`EditBox.lua`).
