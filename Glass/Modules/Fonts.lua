@@ -63,11 +63,6 @@ function Fonts:Set(name, file, size, flags)
   return font
 end
 
--- Text written from the left (a new font is centered)
-function Fonts:AlignLeft(font)
-  EachPart(font, function (part) part:SetJustifyH("LEFT") end)
-end
-
 -- The same look for every part of a font
 local function Style(font, shadowAlpha, spacing)
   EachPart(font, function (part)
@@ -77,6 +72,12 @@ local function Style(font, shadowAlpha, spacing)
     part:SetJustifyV("MIDDLE")
     part:SetSpacing(spacing)
   end)
+end
+
+-- A separate window's font with the look of the chat messages: shadow,
+-- line spacing, written from the left (a new font is centered)
+function Fonts:StyleLikeMessages(font)
+  Style(font, 1, Core.db.profile.messageLeading)
 end
 
 local function Fetch(font)

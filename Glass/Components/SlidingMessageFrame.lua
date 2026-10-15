@@ -316,7 +316,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         end
 
         -- Separate windows follow the Glass font too
-        if key == "font" then
+        if key == "font" or key == "messageLeading" then
           self:ApplyGlassFont()
         end
 
@@ -501,9 +501,9 @@ end
 local WINDOW_FADE_RATIO = 0.3
 local WINDOW_BG_PAD_X = 10
 local WINDOW_BG_PAD_Y = 4
--- The background fills the whole window, not only behind messages like in the
--- main chat, so it uses less of the chat background opacity to look as light
-local WINDOW_BG_STRENGTH = 0.4
+-- How much of the chat background opacity the window uses: all of it, so it
+-- looks like the main chat (less looked lighter)
+local WINDOW_BG_STRENGTH = 1
 
 local function WindowFade(chatFrame)
   return math.max(40, math.floor(chatFrame:GetWidth() * WINDOW_FADE_RATIO))
@@ -813,9 +813,9 @@ function SlidingMessageFrameMixin:ApplyGlassFont()
     size or Core.db.profile.messageFontSize,
     Core.db.profile.fontFlags
   )
-  -- (left aligned like a chat: a window opened by "Move to New Window" was
-  -- centered)
-  Core:GetModule("Fonts"):AlignLeft(font)
+  -- The look of the chat messages (shadow, line spacing, left aligned: a
+  -- window opened by "Move to New Window" was centered)
+  Core:GetModule("Fonts"):StyleLikeMessages(font)
   chatFrame:SetFontObject(font)
 end
 

@@ -143,6 +143,11 @@ function Hyperlinks:OnEnable()
 
     _G.FCF_UnDockFrame(window)
     window:SetSize(SEPARATE_WIDTH, SEPARATE_HEIGHT)
+    -- The size of the chat messages (a new window has the game's own); saved
+    -- by the game, so it can still be changed from the tab menu
+    if _G.FCF_SetChatWindowFontSize then
+      _G.FCF_SetChatWindowFontSize(nil, window, Core.db.profile.messageFontSize)
+    end
 
     -- Where the options say (Options > General > Separate windows), on the
     -- screen: a side without room falls back to above the chat

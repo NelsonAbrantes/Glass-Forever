@@ -10,6 +10,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 
 ### Changed
 - Players from your Recent Allies list get a Glass icon after their name in the chat (one person, in the Glass gold) instead of the game's yellow one (`TextProcessing.lua`, `Assets/allyIcon.tga`).
+- Separate windows look like the main chat: the same font, shadow and line spacing, the full chat background opacity (they looked lighter), and a window opened with "Open in Separate Window" gets the chat's font size (`SlidingMessageFrame.lua`, `Fonts.lua`, `Hyperlinks.lua`).
 
 ## 0.15.1-forever (beta) (2026-10-14)
 
