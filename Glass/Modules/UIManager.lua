@@ -424,13 +424,18 @@ function UIManager:OnEnable()
 
   -- A separate window with the Glass look brings its faded messages back
   -- while the mouse is over it, like the Glass chat (the game only does that
-  -- when scrolling). Again every second, so they stay while the mouse does.
-  local REVEAL_EVERY = 1
+  -- when scrolling). Again before they would fade, so they stay while the
+  -- mouse does.
+  -- Redrawing the window as a link is clicked lost the click (the tooltip
+  -- didn't open): it's done as seldom as possible, just before the messages
+  -- would fade, and never while a mouse button is held down.
   local function RevealWindow(smf, now)
     local chatFrame = smf.chatFrame
     if not (smf.state and smf.state.detached and chatFrame and chatFrame.ResetAllFadeTimes) then return end
     if chatFrame:IsVisible() and chatFrame:IsMouseOver() and smf:UsesWindowStyle() then
-      if not smf.revealedAt or now - smf.revealedAt >= REVEAL_EVERY then
+      local every = math.max(2, (Core.db.profile.chatHoldTime or 10) - 1)
+      if (not smf.revealedAt or now - smf.revealedAt >= every)
+        and not IsMouseButtonDown("LeftButton") and not IsMouseButtonDown("RightButton") then
         smf.revealedAt = now
         chatFrame:ResetAllFadeTimes()
         -- That only marks the window to be drawn again, which happens when

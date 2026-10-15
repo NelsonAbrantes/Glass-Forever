@@ -12,6 +12,10 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Players from your Recent Allies list get a Glass icon after their name in the chat (one person, in the Glass gold) instead of the game's yellow one (`TextProcessing.lua`, `Assets/allyIcon.tga`).
 - Separate windows look like the main chat: the same font, shadow and line spacing, the full chat background opacity (they looked lighter), and a window opened with "Open in Separate Window" gets the chat's font size (`SlidingMessageFrame.lua`, `Fonts.lua`, `Hyperlinks.lua`).
 
+### Fixed
+- Links in a separate window often needed several clicks to open: Glass redrew the window every second while the mouse was over it, which lost the click. It now redraws only just before the messages would fade, and never while a mouse button is held (`UIManager.lua`).
+- The game's own orange tab glow could show under the Glass alert when many messages came in a row. Its art is removed; the Glass alert is the only one (`ChatTab.lua`).
+
 ## 0.15.1-forever (beta) (2026-10-14)
 
 ### Added

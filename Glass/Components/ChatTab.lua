@@ -206,6 +206,12 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end)
   end
 
+  -- The game's own glow never shows: the Glass alert (ShowAlert) takes its
+  -- place. Its art is taken away, so it can't come through when the game
+  -- lights it many times in a row (an orange glow under the Glass one); the
+  -- hooks below still follow when it's lit and put out.
+  self.glow:SetTexture(nil)
+
   -- Don't highlight when frame is already visible
   if not self:IsHooked(self.glow, "Show") then
     self:SecureHook(self.glow, "Show", function ()
