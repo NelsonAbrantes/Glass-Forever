@@ -7,6 +7,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Added
 - Guild and Party tabs: the first time you log in with a character, Glass offers to create them. Guild, officer and party, raid and instance messages then move out of General into their own tabs, and the interface reloads. Asked once per character, and not if the tabs already exist (`DefaultTabs.lua`, `Button.lua`).
 - Track a recipe from the chat: right click a recipe someone linked from their profession window (e.g. "[Alchemy: Greater Healing Potion]") and choose "Track Recipe" (or "Untrack Recipe") (`Hyperlinks.lua`).
+- Emotes: :) :( :D ;) :P :O :| :/ xD and <3 in a message show as small faces, in the chat and in separate windows. Options > Messages > Emotes: Glass (gold outlines, the default), Classic (yellow faces) or Off. Only players with Glass see them (`TextProcessing.lua`, `OptionsPanel.lua`, `UIManager.lua`, `Assets/Emotes`).
 
 ### Changed
 - Players from your Recent Allies list get a Glass icon after their name in the chat (one person, in the Glass gold) instead of the game's yellow one, also in front of their name on a whisper tab (`TextProcessing.lua`, `ChatTab.lua`, `Assets/allyIcon.tga`).

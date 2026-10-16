@@ -105,6 +105,7 @@ Core.defaults = {
 
     indentWordWrap = true,
     shortChannelNames = false,
+    emoteStyle = "glass", -- ":)" and friends as faces: "glass", "classic" or "off"
     keepHistory = true,
     arrowKeyHistory = true, -- Up/Down arrows go through what you typed, no Alt
     spamFilter = true, -- hide messages with any of spamWords

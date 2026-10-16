@@ -37,6 +37,17 @@ function UIManager:OnInitialize()
   }
 end
 
+-- True for a chat window taken out of the Glass chat (a separate window)
+function UIManager:IsSeparateWindow(chatFrame)
+  for _, smf in pairs(self.state.frames) do
+    if smf.chatFrame == chatFrame then return smf.state and smf.state.detached or false end
+  end
+  for _, smf in pairs(self.state.temporaryFrames) do
+    if smf.chatFrame == chatFrame then return smf.state and smf.state.detached or false end
+  end
+  return false
+end
+
 function UIManager:OnEnable()
   self.tickerFrame = CreateFrame("Frame", "GlassUpdaterFrame", UIParent)
 

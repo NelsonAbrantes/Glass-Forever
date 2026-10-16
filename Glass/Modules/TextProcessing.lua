@@ -199,6 +199,77 @@ local function allyProcessor(text)
   return text
 end
 
+---
+-- Emotes: ":)", ":D", "<3"... written as a word of their own become small
+-- faces (Options > Messages > Emotes): outlines in the Glass gold, or classic
+-- yellow faces. Only players with Glass see them; the others see the text.
+local EMOTE_PATH = "Interface\\AddOns\\Glass\\Glass\\Assets\\Emotes\\"
+local EMOTES = {
+  [":)"] = "smile", [":-)"] = "smile",
+  [":("] = "sad", [":-("] = "sad",
+  [":D"] = "grin", [":-D"] = "grin",
+  [";)"] = "wink", [";-)"] = "wink",
+  [":P"] = "tongue", [":p"] = "tongue", [":-P"] = "tongue", [":-p"] = "tongue",
+  [":O"] = "wow", [":o"] = "wow", [":-O"] = "wow", [":-o"] = "wow",
+  -- (a typed "|" arrives doubled: it starts the game's text codes)
+  [":||"] = "neutral", [":-||"] = "neutral",
+  [":/"] = "meh", [":-/"] = "meh",
+  ["xD"] = "laugh", ["XD"] = "laugh",
+  ["<3"] = "heart",
+}
+local emoteMarkup = { glass = {}, classic = {} } -- made once per face and style
+local emoteStyle
+
+local function EmoteMarkup(name)
+  local cache = emoteMarkup[emoteStyle]
+  if not cache[name] then
+    if emoteStyle == "glass" then
+      cache[name] = "|T"..EMOTE_PATH.."glass_"..name..":0:0:0:0:32:32:0:32:0:32:223:186:105|t"
+    else
+      cache[name] = "|T"..EMOTE_PATH.."classic_"..name..":0:0:0:0:32:32:0:32:0:32|t"
+    end
+  end
+  return cache[name]
+end
+
+local function emoteWord(word)
+  local name = EMOTES[word]
+  if name then return EmoteMarkup(name) end
+  -- At the end of a sentence: ":)." or "<3!!"
+  local core, trail = word:match("^(.-)([%.,!%?]+)$")
+  name = core and EMOTES[core]
+  if name then return EmoteMarkup(name)..trail end
+end
+
+local function emoteSegment(segment)
+  return (segment:gsub("%S+", emoteWord))
+end
+
+local function emoteProcessor(text)
+  emoteStyle = Core.db.profile.emoteStyle
+  if emoteStyle ~= "glass" and emoteStyle ~= "classic" then return text end
+  -- A quick look first: most messages have no emote
+  if not (strfind(text, "[:;]%-?[%)%(DPpOo/|]") or strfind(text, "<3", 1, true)
+    or strfind(text, "[xX]D")) then
+    return text
+  end
+
+  -- Only the text between links (items, players...): their names stay
+  local parts = {}
+  local cursor = 1
+  while true do
+    local mStart, mEnd = strfind(text, "|H.-|h.-|h", cursor)
+    if not mStart then
+      table.insert(parts, emoteSegment(strsub(text, cursor)))
+      break
+    end
+    table.insert(parts, emoteSegment(strsub(text, cursor, mStart - 1)))
+    table.insert(parts, strsub(text, mStart, mEnd))
+    cursor = mEnd + 1
+  end
+  return table.concat(parts)
+end
+
 -- The same in a whisper tab's name, where the game puts it first
 function TP:AllyIconInTabName(text)
   if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
@@ -209,9 +280,41 @@ function TP:AllyIconInTabName(text)
 end
 
 ---
+-- Emotes in the separate windows too: those are the game's own chat windows,
+-- so the faces go into the messages on their way there, through the game's
+-- message filters. Only for windows out of the Glass chat (the Glass chat
+-- adds them itself, see emoteProcessor).
+local EMOTE_EVENTS = {
+  "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER",
+  "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
+  "CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
+  "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER",
+  "CHAT_MSG_BN_WHISPER_INFORM", "CHAT_MSG_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL",
+}
+
+local function SeparateWindowEmotes(chatFrame, _, text, ...)
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return false end
+  local ui = Core:GetModule("UIManager", true)
+  if not (ui and ui.IsSeparateWindow and ui:IsSeparateWindow(chatFrame)) then return false end
+  local ok, changed = pcall(emoteProcessor, text)
+  if ok and changed ~= text then return false, changed, ... end
+  return false
+end
+
+function TP:OnEnable()
+  local AddFilter = (_G.ChatFrameUtil and _G.ChatFrameUtil.AddMessageEventFilter)
+    or _G.ChatFrame_AddMessageEventFilter
+  if not AddFilter then return end
+  for _, event in ipairs(EMOTE_EVENTS) do
+    AddFilter(event, SeparateWindowEmotes)
+  end
+end
+
+---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {
   allyProcessor,
+  emoteProcessor,
   textureProcessor,
   channelProcessor,
   urlProcessor,
