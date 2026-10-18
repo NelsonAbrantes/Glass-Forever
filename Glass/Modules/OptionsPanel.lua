@@ -441,6 +441,164 @@ local function BuildTabs(category, layout)
   Checkbox(category, "tabUnreadCount", "Unread count", "A small number by the name of a tab you're not looking at: how many messages came in since you last looked", "tabUnreadCount")
 end
 
+----
+-- Profile as text (Profiles page): Export shows the active profile as one
+-- line of text to copy and share; Import reads such a line back into the
+-- active profile. Only letters and digits, so it survives being pasted
+-- anywhere; reading it never runs any code.
+local EXPORT_PREFIX = "GlassForever1:"
+local MAX_DEPTH = 10
+
+local function Hex(text)
+  return (text:gsub(".", function (c) return string.format("%02x", c:byte()) end))
+end
+
+local function Serialize(value, out, depth)
+  local kind = type(value)
+  if kind == "string" then
+    out[#out + 1] = "s"..Hex(value)..";"
+  elseif kind == "number" then
+    out[#out + 1] = "n"..Hex(tostring(value))..";"
+  elseif kind == "boolean" then
+    out[#out + 1] = value and "T" or "F"
+  elseif kind == "table" and depth < MAX_DEPTH then
+    out[#out + 1] = "{"
+    for key, inner in pairs(value) do
+      local keyKind, innerKind = type(key), type(inner)
+      if (keyKind == "string" or keyKind == "number")
+        and (innerKind == "string" or innerKind == "number" or innerKind == "boolean" or innerKind == "table") then
+        Serialize(key, out, depth + 1)
+        Serialize(inner, out, depth + 1)
+      end
+    end
+    out[#out + 1] = "}"
+  end
+end
+
+local function ExportProfile()
+  local out = {}
+  Serialize(Core.db.profile, out, 0)
+  return EXPORT_PREFIX..table.concat(out)
+end
+
+-- Reads one value from position i; returns it and the next position, or nil
+local function Parse(text, i, depth)
+  local c = text:sub(i, i)
+  if c == "s" or c == "n" then
+    local stop = text:find(";", i + 1, true)
+    local hex = stop and text:sub(i + 1, stop - 1)
+    if not hex or #hex % 2 == 1 or hex:find("[^%x]") then return nil end
+    local raw = hex:gsub("%x%x", function (h) return string.char(tonumber(h, 16)) end)
+    if c == "n" then
+      local number = tonumber(raw)
+      if not number then return nil end
+      return number, stop + 1
+    end
+    return raw, stop + 1
+  elseif c == "T" then
+    return true, i + 1
+  elseif c == "F" then
+    return false, i + 1
+  elseif c == "{" and depth < MAX_DEPTH then
+    local result = {}
+    i = i + 1
+    while text:sub(i, i) ~= "}" do
+      if i > #text then return nil end
+      local key, nextI = Parse(text, i, depth + 1)
+      if key == nil or (type(key) ~= "string" and type(key) ~= "number") then return nil end
+      local inner
+      inner, nextI = Parse(text, nextI, depth + 1)
+      if inner == nil then return nil end
+      result[key] = inner
+      i = nextI
+    end
+    return result, i + 1
+  end
+  return nil
+end
+
+local function ImportProfile(text)
+  text = (text or ""):gsub("%s", "")
+  if text:sub(1, #EXPORT_PREFIX) ~= EXPORT_PREFIX then return false end
+  local data, nextI = Parse(text, #EXPORT_PREFIX + 1, 0)
+  if type(data) ~= "table" or nextI ~= #text + 1 then return false end
+  local profile = Core.db.profile
+  for key in pairs(profile) do profile[key] = nil end -- back to the defaults
+  for key, value in pairs(data) do profile[key] = value end
+  return true
+end
+
+local importWindow
+local function OpenImport()
+  if not importWindow then
+    local frame = CreateFrame("Frame", "GlassImportFrame", _G.UIParent, "DefaultPanelFlatTemplate")
+    frame:SetSize(520, 220)
+    frame:SetPoint("CENTER")
+    frame:SetFrameStrata("DIALOG")
+    frame:SetToplevel(true)
+    frame:EnableMouse(true)
+    frame:SetMovable(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    table.insert(_G.UISpecialFrames, "GlassImportFrame")
+    frame:SetTitle("Glass Forever: Import profile")
+    local bg = frame:CreateTexture(nil, "BACKGROUND")
+    bg:SetPoint("TOPLEFT", 7, -3)
+    bg:SetPoint("BOTTOMRIGHT", -3, 3)
+    bg:SetColorTexture(0.08, 0.08, 0.08, 1)
+    local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    close:SetFrameLevel((frame.TitleContainer or frame):GetFrameLevel() + 10)
+    close:SetPoint("TOPRIGHT")
+    local hint = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    hint:SetPoint("TOPLEFT", 18, -34)
+    hint:SetPoint("TOPRIGHT", -18, -34)
+    hint:SetJustifyH("LEFT")
+    hint:SetText("Paste a profile (Ctrl+V). It replaces the settings of the active profile.")
+    local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 18, -56)
+    scroll:SetPoint("BOTTOMRIGHT", -36, 44)
+    local input = CreateFrame("EditBox", nil, scroll)
+    input:SetMultiLine(true)
+    input:SetAutoFocus(false)
+    input:SetFontObject("ChatFontNormal")
+    input:SetWidth(scroll:GetWidth())
+    input:SetScript("OnEscapePressed", function () frame:Hide() end)
+    scroll:SetScrollChild(input)
+    scroll:SetScript("OnSizeChanged", function (_, width) input:SetWidth(width) end)
+    local status = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    status:SetPoint("BOTTOMLEFT", 18, 18)
+    local apply = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    apply:SetSize(120, 22)
+    apply:SetPoint("BOTTOMRIGHT", -14, 12)
+    apply:SetText("Import")
+    apply:SetScript("OnClick", function ()
+      if ImportProfile(input:GetText()) then
+        frame:Hide()
+        _G.StaticPopup_Show("GLASS_PROFILE_IMPORTED")
+      else
+        status:SetText("|cffff6060That isn't a Glass Forever profile.|r")
+      end
+    end)
+    frame.input, frame.status = input, status
+    importWindow = frame
+  end
+  importWindow.input:SetText("")
+  importWindow.status:SetText("")
+  importWindow:Show()
+  importWindow.input:SetFocus()
+end
+
+_G.StaticPopupDialogs["GLASS_PROFILE_IMPORTED"] = {
+  text = "Glass Forever: profile imported. Reload the interface to use it?",
+  button1 = _G.ACCEPT or "Reload",
+  button2 = _G.CANCEL or "Later",
+  OnAccept = function () _G.ReloadUI() end,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+}
+
 local function BuildProfiles(category, layout)
   local Settings = _G.Settings
   local db = Core.db
@@ -466,6 +624,15 @@ local function BuildProfiles(category, layout)
   Button(layout, "Reset the active profile", "Reset profile", function ()
     db:ResetProfile()
   end, "Puts all settings of the active profile back to their defaults")
+
+  Button(layout, "Share your settings", "Export profile", function ()
+    Core:Dispatch(Constants.ACTIONS.OpenCopy({
+      title = "Glass Forever: Export profile", text = ExportProfile(), height = 220,
+    }))
+  end, "Shows the active profile as text: copy it (Ctrl+C) to keep it or share it")
+
+  Button(layout, "Use shared settings", "Import profile", OpenImport,
+    "Paste a profile made with Export profile; it replaces the settings of the active profile")
 end
 
 ----
