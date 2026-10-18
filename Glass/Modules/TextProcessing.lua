@@ -216,20 +216,29 @@ local EMOTES = {
   [":/"] = "meh", [":-/"] = "meh",
   ["xD"] = "laugh", ["XD"] = "laugh",
   ["<3"] = "heart",
+  ["D:"] = "horror",
+  [":S"] = "confused", [":s"] = "confused", [":-S"] = "confused", [":-s"] = "confused",
+  [":*"] = "kiss", [":-*"] = "kiss",
+  ["B)"] = "cool", ["B-)"] = "cool",
+  [":'("] = "cry",
+  [">:("] = "angry", [">:-("] = "angry",
 }
-local emoteMarkup = { glass = {}, classic = {} } -- made once per face and style
-local emoteStyle
+local EMOTE_SCALE = 1.15 -- the faces are this much taller than the text
+local emoteMarkup = { glass = {}, classic = {} } -- made once per face, style and size
+local emoteStyle, emoteSize
 
 local function EmoteMarkup(name)
   local cache = emoteMarkup[emoteStyle]
-  if not cache[name] then
+  local key = name..emoteSize
+  if not cache[key] then
+    local size = emoteSize..":"..emoteSize
     if emoteStyle == "glass" then
-      cache[name] = "|T"..EMOTE_PATH.."glass_"..name..":0:0:0:0:32:32:0:32:0:32:223:186:105|t"
+      cache[key] = "|T"..EMOTE_PATH.."glass_"..name..":"..size..":0:0:64:64:0:64:0:64:223:186:105|t"
     else
-      cache[name] = "|T"..EMOTE_PATH.."classic_"..name..":0:0:0:0:32:32:0:32:0:32|t"
+      cache[key] = "|T"..EMOTE_PATH.."classic_"..name..":"..size..":0:0:64:64:0:64:0:64|t"
     end
   end
-  return cache[name]
+  return cache[key]
 end
 
 local function emoteWord(word)
@@ -249,10 +258,11 @@ local function emoteProcessor(text)
   emoteStyle = Core.db.profile.emoteStyle
   if emoteStyle ~= "glass" and emoteStyle ~= "classic" then return text end
   -- A quick look first: most messages have no emote
-  if not (strfind(text, "[:;]%-?[%)%(DPpOo/|]") or strfind(text, "<3", 1, true)
-    or strfind(text, "[xX]D")) then
+  if not (strfind(text, "[:;]'?%-?[%)%(DPpOoSs/|%*]") or strfind(text, "<3", 1, true)
+    or strfind(text, "[xX]D") or strfind(text, "D:", 1, true) or strfind(text, "B%-?%)")) then
     return text
   end
+  emoteSize = math.floor((Core.db.profile.messageFontSize or 14) * EMOTE_SCALE + 0.5)
 
   -- Only the text between links (items, players...): their names stay
   local parts = {}
