@@ -427,6 +427,7 @@ local function BuildTabs(category, layout)
 
   Header(layout, "Alerts")
   Checkbox(category, "tabAlerts", "Highlight new messages", "A tab glows in the color of the chat type when a guild, party, raid or whisper message arrives and the tab is not selected, and the tab bar appears for a few seconds")
+  Checkbox(category, "tabUnreadCount", "Unread count", "A small number by the name of a tab you're not looking at: how many messages came in since you last looked", "tabUnreadCount")
 end
 
 local function BuildProfiles(category, layout)

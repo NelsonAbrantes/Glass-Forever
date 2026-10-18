@@ -71,6 +71,7 @@ Core.defaults = {
     tabPadding = 15,
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
+    tabUnreadCount = true, -- how many new messages, by the name of a tab you're not looking at
     tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glossy or classic
     tabAccent = "default", -- accent color of the selected tab; "default" = the style's own
     tabLineAnimation = "slide", -- selected line (Minimal): "slide", "grow" or "off"

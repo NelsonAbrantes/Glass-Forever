@@ -872,6 +872,10 @@ function SlidingMessageFrameMixin:AddMessage(...)
   local args = {...}
   if SpamFilter:IsSpam(args[2]) then return end
   table.insert(self.state.incomingMessages, args)
+  -- A message for a tab you're not looking at: its tab counts it
+  if self.glassTab and not self:IsShown() and not self.state.detached then
+    self.glassTab:CountUnread()
+  end
 end
 
 function SlidingMessageFrameMixin:BackFillMessage(...)

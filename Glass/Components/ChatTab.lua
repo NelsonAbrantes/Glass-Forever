@@ -83,6 +83,9 @@ end
 
 function ChatTabMixin:Init(slidingMessageFrame)
   self.slidingMessageFrame = slidingMessageFrame
+  slidingMessageFrame.glassTab = self -- (it tells the tab about new messages)
+  self.unread = 0
+  self:UpdateUnread()
   self.chatFrame = slidingMessageFrame.chatFrame
 
   -- Remember the game's own tab textures (for the "Classic" tab style), then
@@ -341,6 +344,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
           or key == "tabBarPosition" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
+        end
+
+        if key == "tabUnreadCount" or key == "tabFont" or key == "tabFontSize" then
+          self:UpdateUnread()
         end
 
         if key == "tabStyle" or key == "tabAccent" or key == "tabTextColor" or key == "font"
@@ -798,6 +805,40 @@ function ChatTabMixin:StepAlert(now)
     self.gleamRight:Hide()
     self.gleamGlow:Hide()
   end
+end
+
+---
+-- Unread count (Tabs options): a small number by the name of a tab you're
+-- not looking at, with how many messages came in since. Not counted for a
+-- moment after logging in or a loading screen, when the game puts back the
+-- earlier messages.
+local UNREAD_MAX = 99
+local countFrom = math.huge
+local countClock = CreateFrame("Frame")
+countClock:RegisterEvent("PLAYER_ENTERING_WORLD")
+countClock:SetScript("OnEvent", function () countFrom = GetTime() + 3 end)
+
+function ChatTabMixin:CountUnread()
+  if not Core.db.profile.tabUnreadCount or GetTime() < countFrom then return end
+  self.unread = (self.unread or 0) + 1
+  self:UpdateUnread()
+end
+
+function ChatTabMixin:UpdateUnread()
+  local count = Core.db.profile.tabUnreadCount and self.unread or 0
+  if count <= 0 then
+    if self.unreadText then self.unreadText:Hide() end
+    return
+  end
+  if not self.unreadText then
+    self.unreadText = self:CreateFontString(nil, "OVERLAY")
+    self.unreadText:SetPoint("BOTTOMLEFT", self.Text, "TOPRIGHT", 0, -6)
+  end
+  local font, size, flags = self.Text:GetFont()
+  if font then self.unreadText:SetFont(font, math.max(8, math.floor((size or 12) * 0.75)), flags) end
+  self.unreadText:SetTextColor(Colors.apache.r, Colors.apache.g, Colors.apache.b)
+  self.unreadText:SetText(count > UNREAD_MAX and UNREAD_MAX.."+" or count)
+  self.unreadText:Show()
 end
 
 -- True while any tab shows an alert (UIManager then updates every frame)
@@ -1393,6 +1434,10 @@ function ChatTabMixin:UpdateSelected(selected)
     self.glowColor = nil
     self.glow:Hide()
     self:HideAlert()
+  end
+  if isSelected and self.unread > 0 then
+    self.unread = 0
+    self:UpdateUnread()
   end
   self:StepAlert(now)
   if not isSelected then return end
