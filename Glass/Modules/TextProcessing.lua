@@ -209,6 +209,7 @@ local RACE_ATLAS = {
   HighmountainTauren = "highmountain", MagharOrc = "magharorc", ZandalariTroll = "zandalari",
   EarthenDwarf = "earthen", KulTiran = "kultiran",
 }
+local RACE_ICON = { Skyborne = 132845 } -- races with no race picture: an icon instead
 local atlasMarkup = {} -- atlas -> markup, or false when the game doesn't have it
 
 local function AtlasIcon(atlas, size)
@@ -231,8 +232,14 @@ local function SenderIcons(lineID, size)
   if not ok2 then return "" end
   local icons = ""
   if profile.chatRaceIcons and type(race) == "string" and not (issecretvalue and issecretvalue(race)) then
-    local name = RACE_ATLAS[race] or race:lower()
-    icons = icons..AtlasIcon("raceicon128-"..name.."-"..(sex == 3 and "female" or "male"), size)
+    local name = (RACE_ATLAS[race] or race:lower()).."-"..(sex == 3 and "female" or "male")
+    local icon = AtlasIcon("raceicon128-"..name, size)
+    if icon == "" then icon = AtlasIcon("raceicon-"..name, size) end
+    -- Races the game has no race picture for (WoW Forever's Skyborne): an icon
+    if icon == "" and RACE_ICON[race] then
+      icon = "|T"..RACE_ICON[race]..":"..size..":"..size..":0:0:64:64:5:59:5:59|t"
+    end
+    icons = icons..icon
   end
   if profile.chatClassIcons and type(class) == "string" and not (issecretvalue and issecretvalue(class)) then
     icons = icons..AtlasIcon("classicon-"..class:lower(), size)
