@@ -67,6 +67,94 @@ function EditBoxMixin:UpdateBorderColor()
 end
 
 
+---
+-- The emote button (with Messages > Emotes on): a small face at the right of
+-- the box. A click shows all the faces; a click on one writes its code where
+-- you're typing, so you don't have to remember them.
+local PICKER_COLUMNS, PICKER_CELL, PICKER_ICON, PICKER_PAD = 5, 26, 20, 6
+
+function EditBoxMixin:CreateEmotePicker()
+  local TP = Core:GetModule("TextProcessing")
+  local picks = TP.EMOTE_PICKS
+  if not picks then return end
+
+  local button = _G.CreateFrame("Button", nil, self)
+  button:SetSize(16, 16)
+  button:SetPoint("RIGHT", -6, 0)
+  button.icon = button:CreateTexture(nil, "ARTWORK")
+  button.icon:SetAllPoints()
+  self.emoteButton = button
+
+  local panel = _G.CreateFrame("Frame", nil, self)
+  panel:SetFrameStrata("DIALOG")
+  panel:EnableMouse(true)
+  local rows = math.ceil(#picks / PICKER_COLUMNS)
+  panel:SetSize(PICKER_COLUMNS * PICKER_CELL + PICKER_PAD * 2, rows * PICKER_CELL + PICKER_PAD * 2)
+  panel:SetPoint("BOTTOMRIGHT", button, "TOPRIGHT", PICKER_PAD, 8)
+  panel:Hide()
+  local panelBg = panel:CreateTexture(nil, "BACKGROUND")
+  panelBg:SetAllPoints()
+  SetShape(panelBg, "tabBackground")
+  panelBg:SetVertexColor(Colors.codGray.r, Colors.codGray.g, Colors.codGray.b, 0.92)
+  local panelBorder = panel:CreateTexture(nil, "BORDER")
+  panelBorder:SetAllPoints()
+  SetShape(panelBorder, "tabBorder")
+  panelBorder:SetVertexColor(Colors.apache.r, Colors.apache.g, Colors.apache.b, 0.6)
+
+  local icons = {}
+  for i, pick in ipairs(picks) do
+    local cell = _G.CreateFrame("Button", nil, panel)
+    cell:SetSize(PICKER_CELL, PICKER_CELL)
+    cell:SetPoint("TOPLEFT", PICKER_PAD + ((i - 1) % PICKER_COLUMNS) * PICKER_CELL,
+      -PICKER_PAD - math.floor((i - 1) / PICKER_COLUMNS) * PICKER_CELL)
+    local highlight = cell:CreateTexture(nil, "HIGHLIGHT")
+    highlight:SetAllPoints()
+    highlight:SetColorTexture(1, 1, 1, 0.12)
+    local icon = cell:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(PICKER_ICON, PICKER_ICON)
+    icon:SetPoint("CENTER")
+    icons[i] = icon
+    cell:SetScript("OnClick", function ()
+      self:Insert(pick[2].." ")
+      self:SetFocus()
+    end)
+    cell:SetScript("OnEnter", function ()
+      _G.GameTooltip:SetOwner(cell, "ANCHOR_TOP")
+      _G.GameTooltip:SetText(pick[2])
+      _G.GameTooltip:Show()
+    end)
+    cell:SetScript("OnLeave", function () _G.GameTooltip:Hide() end)
+  end
+
+  -- The faces in the chosen style; no button with emotes off
+  local function Refresh()
+    local on = Core.db.profile.emoteStyle == "glass" or Core.db.profile.emoteStyle == "classic"
+    button:SetShown(on)
+    if not on then panel:Hide() end
+    local path, r, g, b = TP:EmoteTexture("smile")
+    button.icon:SetTexture(path)
+    button.icon:SetVertexColor(r or 1, g or 1, b or 1)
+    for i, pick in ipairs(picks) do
+      local file, ir, ig, ib = TP:EmoteTexture(pick[1])
+      icons[i]:SetTexture(file)
+      icons[i]:SetVertexColor(ir or 1, ig or 1, ib or 1)
+    end
+    self:SetTextInsets()
+  end
+
+  button:SetScript("OnClick", function () panel:SetShown(not panel:IsShown()) end)
+  button:SetScript("OnEnter", function () button.icon:SetAlpha(1) end)
+  button:SetScript("OnLeave", function () button.icon:SetAlpha(0.75) end)
+  button.icon:SetAlpha(0.75)
+  -- Closes with the box (the frame's own HookScript: AceHook's has the same name)
+  getmetatable(self).__index.HookScript(self, "OnHide", function () panel:Hide() end)
+
+  Core:Subscribe(UPDATE_CONFIG, function (key)
+    if key == "emoteStyle" then Refresh() end
+  end)
+  Refresh()
+end
+
 function EditBoxMixin:Init(parent)
   -- Hide default styling. The game shows these again in several ways (Show,
   -- SetShown, SetAlpha), so they're kept fully transparent as well.
@@ -139,13 +227,16 @@ function EditBoxMixin:Init(parent)
 
   self:RawHook(self, "SetTextInsets", function ()
     Ypadding = self.header:GetLineHeight() * 0.66
+    -- (room on the right for the emote button)
+    local emoteRoom = self.emoteButton and self.emoteButton:IsShown() and 20 or 0
     self.hooks[self].SetTextInsets(
       self,
       self.header:GetStringWidth() + 8,
-      8, Ypadding, Ypadding
+      8 + emoteRoom, Ypadding, Ypadding
     )
   end, true)
 
+  self:CreateEmotePicker()
   self:SetTextInsets()
 
   -- Animations

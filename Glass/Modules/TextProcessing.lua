@@ -223,6 +223,23 @@ local EMOTES = {
   [":'("] = "cry",
   [">:("] = "angry", [">:-("] = "angry",
 }
+-- The faces offered by the emote button of the chat box, with the code each
+-- one writes (":|" isn't offered: a "|" written by an addon would start one of
+-- the game's text codes)
+TP.EMOTE_PICKS = {
+  { "smile", ":)" }, { "grin", ":D" }, { "laugh", "xD" }, { "wink", ";)" },
+  { "tongue", ":P" }, { "cool", "B)" }, { "kiss", ":*" }, { "heart", "<3" },
+  { "wow", ":O" }, { "meh", ":/" }, { "confused", ":S" }, { "sad", ":(" },
+  { "cry", ":'(" }, { "horror", "D:" }, { "angry", ">:(" },
+}
+
+-- A face's picture for the current style: file, then the tint (Glass gold)
+function TP:EmoteTexture(name)
+  local style = Core.db.profile.emoteStyle
+  if style == "classic" then return EMOTE_PATH.."classic_"..name end
+  return EMOTE_PATH.."glass_"..name, 223 / 255, 186 / 255, 105 / 255
+end
+
 local EMOTE_SCALE = 1.15 -- the faces are this much taller than the text
 local emoteMarkup = { glass = {}, classic = {} } -- made once per face, style and size
 local emoteStyle, emoteSize

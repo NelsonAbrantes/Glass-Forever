@@ -340,7 +340,7 @@ local function BuildMessages(category, layout)
   Header(layout, "Misc")
   Checkbox(category, "indentWordWrap", "Indent on line wrap", "Adds an indent when a message wraps beyond a single line", "indentWordWrap")
   Checkbox(category, "shortChannelNames", "Short channel names", "[1] instead of [1. General], [P] instead of [Party], and so on. Applies to new messages")
-  local emoteSetting = ProfileSetting(category, "emoteStyle", _G.Settings.VarType.String, "Emotes")
+  local emoteSetting = ProfileSetting(category, "emoteStyle", _G.Settings.VarType.String, "Emotes", "emoteStyle")
   Dropdown(category, emoteSetting, function ()
     return {
       { "glass", "Glass (gold outlines)" },
