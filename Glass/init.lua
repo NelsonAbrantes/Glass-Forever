@@ -107,6 +107,7 @@ Core.defaults = {
     indentWordWrap = true,
     shortChannelNames = false,
     emoteStyle = "glass", -- ":)" and friends as faces: "glass", "classic" or "off"
+    timestamps = "off", -- the time in front of messages: "off", "hm" (17:49) or "hms" (17:49:05)
     keepHistory = true,
     arrowKeyHistory = true, -- Up/Down arrows go through what you typed, no Alt
     spamFilter = true, -- hide messages with any of spamWords

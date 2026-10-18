@@ -858,7 +858,12 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
   message.text:SetTextColor(red, green, blue, 1)
   -- The "Previous session" separator has a look of its own (MessageLine.lua)
   local separator = Core.Components.SeparatorText(text)
-  message.text:SetText(separator or TP:ProcessText(text))
+  local shown = separator or TP:ProcessText(text)
+  -- When it arrived (saved with the history too), and its time in front of
+  -- it with Messages > Timestamps on
+  message.glassTime = not separator and self.pendingTime or nil
+  if message.glassTime then shown = TP:Timestamp(message.glassTime, text)..shown end
+  message.text:SetText(shown)
   message:SetSeparator(separator ~= nil)
 
   -- Adjust height to contain text
@@ -871,6 +876,7 @@ function SlidingMessageFrameMixin:AddMessage(...)
   -- Enqueue messages to be displayed. The second argument is the text.
   local args = {...}
   if SpamFilter:IsSpam(args[2]) then return end
+  args.glassTime = time() -- when it arrived (Timestamps, History)
   table.insert(self.state.incomingMessages, args)
   -- A message for a tab you're not looking at: its tab counts it
   if self.glassTab and not self:IsShown() and not self.state.detached then
@@ -881,6 +887,14 @@ end
 function SlidingMessageFrameMixin:BackFillMessage(...)
   local args = {...}
   if SpamFilter:IsSpam(args[2]) then return end
+  table.insert(self.state.incomingScrollbackMessages, args)
+end
+
+-- The same for a saved message with the time it arrived (History)
+function SlidingMessageFrameMixin:BackFillMessageAt(savedTime, ...)
+  local args = {...}
+  if SpamFilter:IsSpam(args[2]) then return end
+  args.glassTime = savedTime
   table.insert(self.state.incomingScrollbackMessages, args)
 end
 
@@ -914,7 +928,9 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
   local newMessages = {}
 
   for _, message in ipairs(incoming) do
+    self.pendingTime = message.glassTime
     local messageFrame = self:CreateMessageFrame(unpack(message))
+    self.pendingTime = nil
     messageFrame:SetPoint("BOTTOMLEFT")
 
     -- Attach previous messageFrame to this one

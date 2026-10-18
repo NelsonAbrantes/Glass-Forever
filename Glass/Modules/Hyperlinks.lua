@@ -77,6 +77,29 @@ function Hyperlinks:OnEnable()
       return
     end
 
+    -- A timestamp (Messages > Timestamps): Shift+click writes its message in
+    -- the chat box, a click opens it in the copy window
+    local stamp = strmatch(link, "^glasstime:(%d+)$")
+    if stamp then
+      local text = Core:GetModule("TextProcessing"):StampText(stamp)
+      if not text then return end
+      if _G.IsShiftKeyDown() then
+        local escaped = text:gsub("|", "||") -- (a "|" starts the game's text codes)
+        local ChatUtil = _G.ChatFrameUtil
+        local GetActive = (ChatUtil and ChatUtil.GetActiveWindow) or _G.ChatEdit_GetActiveWindow
+        local active = GetActive and GetActive()
+        if active then
+          active:Insert(escaped)
+        else
+          local OpenChat = (ChatUtil and ChatUtil.OpenChat) or _G.ChatFrame_OpenChat
+          if OpenChat then OpenChat(escaped) end
+        end
+      else
+        Core:Dispatch(OpenCopy({ title = "Glass Forever: Copy message", text = text, height = 140 }))
+      end
+      return
+    end
+
     -- A linked recipe, right clicked: track it (see RecipeMenu)
     if button == "RightButton" then
       local recipeID = tonumber(strmatch(link, "^enchant:(%d+)"))

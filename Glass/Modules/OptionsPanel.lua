@@ -348,6 +348,14 @@ local function BuildMessages(category, layout)
       { "off", "Off (text)" },
     }
   end, ":) :( :D ;) :P :O :| :/ xD <3 D: :S :* B) :'( >:( written in a message show as small faces. Only players with Glass see them; the others see the text. Applies to new messages")
+  local timeSetting = ProfileSetting(category, "timestamps", _G.Settings.VarType.String, "Timestamps")
+  Dropdown(category, timeSetting, function ()
+    return {
+      { "off", "Off" },
+      { "hm", "17:49" },
+      { "hms", "17:49:05" },
+    }
+  end, "The time a message arrived, in front of it. Shift+click the time to write the message in the chat box (nothing is sent), click it to copy it. Applies to new messages")
   Checkbox(category, "keepHistory", "Keep chat history", "Saves the last 50 messages of each tab and shows them again when you log back in")
   Checkbox(category, "arrowKeyHistory", "Arrow keys history", "Up and Down arrows in the chat box go through what you typed, even before logging out or /reload, without holding Alt")
   Checkbox(category, "mouseOverTooltips", "Mouse over tooltips", "Show tooltips when hovering over chat links")

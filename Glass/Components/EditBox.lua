@@ -78,15 +78,23 @@ function EditBoxMixin:CreateEmotePicker()
   local picks = TP.EMOTE_PICKS
   if not picks then return end
 
-  local button = _G.CreateFrame("Button", nil, self)
+  -- The button lets the click through to the box: a click anywhere else takes
+  -- the focus away from the box, and the game then closes it. The box tells
+  -- when it's clicked over the face (below).
+  local button = _G.CreateFrame("Frame", nil, self)
   button:SetSize(16, 16)
   button:SetPoint("RIGHT", -6, 0)
+  button:EnableMouse(false)
   button.icon = button:CreateTexture(nil, "ARTWORK")
   button.icon:SetAllPoints()
+  button.icon:SetAlpha(0.8)
   self.emoteButton = button
 
-  local panel = _G.CreateFrame("Frame", nil, self)
+  -- The panel is on the screen, not in the box: clicking it closes the box
+  -- (same reason), and a face chosen opens the box again to write its code
+  local panel = _G.CreateFrame("Frame", "GlassEmotePicker", _G.UIParent)
   panel:SetFrameStrata("DIALOG")
+  table.insert(_G.UISpecialFrames, "GlassEmotePicker") -- Escape closes it
   panel:EnableMouse(true)
   local rows = math.ceil(#picks / PICKER_COLUMNS)
   panel:SetSize(PICKER_COLUMNS * PICKER_CELL + PICKER_PAD * 2, rows * PICKER_CELL + PICKER_PAD * 2)
@@ -115,8 +123,13 @@ function EditBoxMixin:CreateEmotePicker()
     icon:SetPoint("CENTER")
     icons[i] = icon
     cell:SetScript("OnClick", function ()
-      self:Insert(pick[2].." ")
+      panel:Hide()
+      if not self:IsShown() then
+        local Activate = (_G.ChatFrameUtil and _G.ChatFrameUtil.ActivateChat) or _G.ChatEdit_ActivateChat
+        if Activate then Activate(self) else self:Show() end
+      end
       self:SetFocus()
+      self:Insert(pick[2].." ")
     end)
     cell:SetScript("OnEnter", function ()
       _G.GameTooltip:SetOwner(cell, "ANCHOR_TOP")
@@ -142,12 +155,17 @@ function EditBoxMixin:CreateEmotePicker()
     self:SetTextInsets()
   end
 
-  button:SetScript("OnClick", function () panel:SetShown(not panel:IsShown()) end)
-  button:SetScript("OnEnter", function () button.icon:SetAlpha(1) end)
-  button:SetScript("OnLeave", function () button.icon:SetAlpha(0.75) end)
-  button.icon:SetAlpha(0.75)
-  -- Closes with the box (the frame's own HookScript: AceHook's has the same name)
-  getmetatable(self).__index.HookScript(self, "OnHide", function () panel:Hide() end)
+  -- A click on the box over the face opens or closes the panel (the frame's
+  -- own HookScript: AceHook's has the same name)
+  local hookScript = getmetatable(self).__index.HookScript
+  hookScript(self, "OnMouseUp", function ()
+    if button:IsShown() and button:IsMouseOver() then
+      panel:SetShown(not panel:IsShown())
+    end
+  end)
+  -- Sending the message closes it too
+  hookScript(self, "OnEnterPressed", function () panel:Hide() end)
+  hookScript(self, "OnEscapePressed", function () panel:Hide() end)
 
   Core:Subscribe(UPDATE_CONFIG, function (key)
     if key == "emoteStyle" then Refresh() end

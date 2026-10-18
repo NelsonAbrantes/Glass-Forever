@@ -70,7 +70,8 @@ local function Save()
           -- Text the game marks as secret can't be saved
           if raw and type(raw.text) == "string"
             and not (issecretvalue and issecretvalue(raw.text)) then
-            table.insert(lines, { raw.text, raw.r, raw.g, raw.b })
+            -- (with the time it arrived, for Timestamps)
+            table.insert(lines, { raw.text, raw.r, raw.g, raw.b, message.glassTime })
           end
         end
 
@@ -143,7 +144,7 @@ local function Restore()
       smf:BackFillMessage(nil, separator, SEPARATOR_COLOR, SEPARATOR_COLOR, SEPARATOR_COLOR)
       for i = #lines, 1, -1 do
         local line = lines[i]
-        smf:BackFillMessage(nil, line[1], line[2], line[3], line[4])
+        smf:BackFillMessageAt(line[5], nil, line[1], line[2], line[3], line[4])
       end
     end
   end

@@ -1,4 +1,4 @@
-local Core = unpack(select(2, ...))
+local Core, _, Utils = unpack(select(2, ...))
 local TP = Core:GetModule("TextProcessing")
 
 -- luacheck: push ignore 113
@@ -295,6 +295,32 @@ local function emoteProcessor(text)
     cursor = mEnd + 1
   end
   return table.concat(parts)
+end
+
+---
+-- Timestamps (Messages > Timestamps): the time a message arrived, in a dim
+-- color in front of it. It's a link: Shift+click writes the message in the
+-- chat box (nothing is sent), a click opens it in the copy window. The texts
+-- are kept for the last messages only.
+local TIME_COLOR = "|cff8a8a8a"
+local TIME_FORMATS = { hm = "%H:%M", hms = "%H:%M:%S" }
+local TIME_KEEP = 600
+local stampTexts, stampCount = {}, 0
+
+function TP:Timestamp(t, text)
+  local format = TIME_FORMATS[Core.db.profile.timestamps]
+  if not format then return "" end
+  stampCount = stampCount + 1
+  stampTexts[stampCount] = text
+  stampTexts[stampCount - TIME_KEEP] = nil
+  return TIME_COLOR.."|Hglasstime:"..stampCount.."|h["..date(format, t).."]|h|r "
+end
+
+-- The message a timestamp belongs to, as plain text
+function TP:StampText(id)
+  local text = stampTexts[tonumber(id)]
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return nil end
+  return Utils.PlainText(text)
 end
 
 -- The same in a whisper tab's name, where the game puts it first
