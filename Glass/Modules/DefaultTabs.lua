@@ -145,7 +145,31 @@ local function CreateDialog(tabs)
   return dialog
 end
 
+----
+-- Whispers in their own tabs: a new account shows them in General. The first
+-- time Glass runs on an account, that game option (Options > Social > New
+-- Whispers) is set to "New Tab", and a line in the chat says so. Only once:
+-- whoever sets it back keeps it.
+local function WhispersInTabs()
+  if Core.db.global.whispersInTabs then return end
+  Core.db.global.whispersInTabs = true
+  local GetCVar = C_CVar and C_CVar.GetCVar or _G.GetCVar
+  local SetCVar = C_CVar and C_CVar.SetCVar or _G.SetCVar
+  if not (GetCVar and SetCVar) then return end
+  local changed = false
+  for _, cvar in ipairs({ "whisperMode", "bnWhisperMode" }) do
+    if GetCVar(cvar) == "inline" then
+      changed = pcall(SetCVar, cvar, "popout") or changed
+    end
+  end
+  if changed then
+    print("|cffdfba69Glass Forever|r: whispers now open in their own tab. To change it: Options > Social > New Whispers.")
+  end
+end
+
 function DefaultTabs:OnEnable()
+  C_Timer.After(3, WhispersInTabs)
+
   if Core.db.char.defaultTabsOffered then return end
 
   -- Wait for the game to finish setting up the chat windows
