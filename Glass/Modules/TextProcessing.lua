@@ -200,6 +200,62 @@ local function allyProcessor(text)
 end
 
 ---
+-- Players' names (Messages options): their class and race icons in front of
+-- them, and first names only ("Aehya" for "Aehya Bfc"; whispers still go to
+-- the full name). A name in the chat is a link with the chat line it came
+-- from, and the game tells who sent that line.
+local RACE_ATLAS = {
+  Scourge = "undead", LightforgedDraenei = "lightforged", DarkIronDwarf = "darkiron",
+  HighmountainTauren = "highmountain", MagharOrc = "magharorc", ZandalariTroll = "zandalari",
+  EarthenDwarf = "earthen", KulTiran = "kultiran",
+}
+local atlasMarkup = {} -- atlas -> markup, or false when the game doesn't have it
+
+local function AtlasIcon(atlas, size)
+  local key = atlas..size
+  if atlasMarkup[key] == nil then
+    local info = _G.C_Texture and _G.C_Texture.GetAtlasInfo and _G.C_Texture.GetAtlasInfo(atlas)
+    atlasMarkup[key] = info and ("|A:"..atlas..":"..size..":"..size.."|a") or false
+  end
+  return atlasMarkup[key] or ""
+end
+
+local function SenderIcons(lineID, size)
+  local profile = Core.db.profile
+  local GetGUID = _G.C_ChatInfo and _G.C_ChatInfo.GetChatLineSenderGUID
+  lineID = tonumber(lineID)
+  if not (GetGUID and lineID and _G.GetPlayerInfoByGUID) then return "" end
+  local ok, guid = pcall(GetGUID, lineID)
+  if not ok or type(guid) ~= "string" or (issecretvalue and issecretvalue(guid)) or guid == "" then return "" end
+  local ok2, _, class, _, race, sex = pcall(_G.GetPlayerInfoByGUID, guid)
+  if not ok2 then return "" end
+  local icons = ""
+  if profile.chatRaceIcons and type(race) == "string" and not (issecretvalue and issecretvalue(race)) then
+    local name = RACE_ATLAS[race] or race:lower()
+    icons = icons..AtlasIcon("raceicon128-"..name.."-"..(sex == 3 and "female" or "male"), size)
+  end
+  if profile.chatClassIcons and type(class) == "string" and not (issecretvalue and issecretvalue(class)) then
+    icons = icons..AtlasIcon("classicon-"..class:lower(), size)
+  end
+  return icons ~= "" and (icons.." ") or ""
+end
+
+local function nameProcessor(text)
+  local profile = Core.db.profile
+  local icons = profile.chatClassIcons or profile.chatRaceIcons
+  if not (icons or profile.firstNamesOnly) or not strfind(text, "|Hplayer:", 1, true) then return text end
+  local size = math.floor((profile.messageFontSize or 14) + 0.5)
+  return (text:gsub("(|Hplayer:([^|]*)|h)(.-)(|h)", function (open, data, shown, close)
+    if profile.firstNamesOnly then
+      -- The first word of the name, its color codes kept
+      shown = shown:gsub("^(.-%a)%s+[^%s|%]]+", "%1", 1)
+    end
+    local prefix = icons and SenderIcons(data:match("^[^:]*:(%d+)"), size) or ""
+    return prefix..open..shown..close
+  end))
+end
+
+---
 -- Emotes: ":)", ":D", "<3"... written as a word of their own become small
 -- faces (Options > Messages > Emotes): outlines in the Glass gold, or classic
 -- yellow faces. Only players with Glass see them; the others see the text.
@@ -366,6 +422,7 @@ end
 ---
 -- Text processing pipeline
 local TEXT_PROCESSORS = {
+  nameProcessor,
   allyProcessor,
   emoteProcessor,
   textureProcessor,

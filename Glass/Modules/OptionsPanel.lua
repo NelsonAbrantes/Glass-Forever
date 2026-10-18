@@ -356,6 +356,9 @@ local function BuildMessages(category, layout)
       { "hms", "17:49:05" },
     }
   end, "The time a message arrived, in front of it. Shift+click the time to write the message in the chat box (nothing is sent), click it to copy it. Applies to new messages")
+  Checkbox(category, "chatClassIcons", "Class icons", "A small class icon in front of players' names. Applies to new messages")
+  Checkbox(category, "chatRaceIcons", "Race icons", "A small race icon in front of players' names (races the game has no icon for get none). Applies to new messages")
+  Checkbox(category, "firstNamesOnly", "First names only", "\"Aehya\" instead of \"Aehya Bfc\": shorter names in the chat. Whispers still go to the full name. Applies to new messages")
   Checkbox(category, "keepHistory", "Keep chat history", "Saves the last 50 messages of each tab and shows them again when you log back in")
   Checkbox(category, "arrowKeyHistory", "Arrow keys history", "Up and Down arrows in the chat box go through what you typed, even before logging out or /reload, without holding Alt")
   Checkbox(category, "mouseOverTooltips", "Mouse over tooltips", "Show tooltips when hovering over chat links")
