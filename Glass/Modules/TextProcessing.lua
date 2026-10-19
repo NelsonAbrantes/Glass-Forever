@@ -222,6 +222,13 @@ local EMOTES = {
   ["B)"] = "cool", ["B-)"] = "cool",
   [":'("] = "cry",
   [">:("] = "angry", [">:-("] = "angry",
+  ["^^"] = "joy", ["^_^"] = "joy",
+  ["-_-"] = "unamused",
+  ["o.O"] = "wtf", ["O.o"] = "wtf",
+  [":3"] = "cat",
+  ["</3"] = "brokenheart",
+  ["T_T"] = "sob",
+  [":$"] = "blush",
 }
 local EMOTE_SCALE = 1.15 -- the faces are this much taller than the text
 local emoteMarkup = { glass = {}, classic = {} } -- made once per face, style and size
@@ -233,9 +240,9 @@ local function EmoteMarkup(name)
   if not cache[key] then
     local size = emoteSize..":"..emoteSize
     if emoteStyle == "glass" then
-      cache[key] = "|T"..EMOTE_PATH.."glass_"..name..":"..size..":0:0:64:64:0:64:0:64:223:186:105|t"
+      cache[key] = "|T"..EMOTE_PATH.."glass_"..name..":"..size..":0:0:32:32:0:32:0:32:223:186:105|t"
     else
-      cache[key] = "|T"..EMOTE_PATH.."classic_"..name..":"..size..":0:0:64:64:0:64:0:64|t"
+      cache[key] = "|T"..EMOTE_PATH.."classic_"..name..":"..size..":0:0:32:32:0:32:0:32|t"
     end
   end
   return cache[key]
@@ -258,8 +265,10 @@ local function emoteProcessor(text)
   emoteStyle = Core.db.profile.emoteStyle
   if emoteStyle ~= "glass" and emoteStyle ~= "classic" then return text end
   -- A quick look first: most messages have no emote
-  if not (strfind(text, "[:;]'?%-?[%)%(DPpOoSs/|%*]") or strfind(text, "<3", 1, true)
-    or strfind(text, "[xX]D") or strfind(text, "D:", 1, true) or strfind(text, "B%-?%)")) then
+  if not (strfind(text, "[:;]'?%-?[%)%(DPpOoSs/|%*3%$]") or strfind(text, "<3", 1, true)
+    or strfind(text, "[xX]D") or strfind(text, "D:", 1, true) or strfind(text, "B%-?%)")
+    or strfind(text, "%^_?%^") or strfind(text, "-_-", 1, true) or strfind(text, "[oO]%.[oO]")
+    or strfind(text, "T_T", 1, true) or strfind(text, "</3", 1, true)) then
     return text
   end
   emoteSize = math.floor((Core.db.profile.messageFontSize or 14) * EMOTE_SCALE + 0.5)

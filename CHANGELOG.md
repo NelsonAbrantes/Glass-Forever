@@ -7,7 +7,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 ### Added
 - Guild and Party tabs: the first time you log in with a character, Glass offers to create them. Guild, officer and party, raid and instance messages then move out of General into their own tabs, and the interface reloads. Asked once per character, and not if the tabs already exist (`DefaultTabs.lua`, `Button.lua`).
 - Track a recipe from the chat: right click a recipe someone linked from their profession window (e.g. "[Alchemy: Greater Healing Potion]") and choose "Track Recipe" (or "Untrack Recipe") (`Hyperlinks.lua`).
-- Emotes: :) :( :D ;) :P :O :| :/ xD <3 D: :S :* B) :'( and >:( in a message show as small faces (a little taller than the text), in the chat and in separate windows. Options > Messages > Emotes: Glass (gold outlines, the default), Classic (yellow faces) or Off. Only players with Glass see them (`TextProcessing.lua`, `OptionsPanel.lua`, `UIManager.lua`, `Assets/Emotes`).
+- Emotes: :) :( :D ;) :P :O :| :/ xD <3 </3 D: :S :* B) :'( >:( ^^ -_- o.O :3 T_T and :$ in a message show as small faces (a little taller than the text), in the chat and in separate windows. Options > Messages > Emotes: Glass (gold outlines, the default), Classic (yellow faces) or Off. Only players with Glass see them (`TextProcessing.lua`, `OptionsPanel.lua`, `UIManager.lua`, `Assets/Emotes`).
 
 ### Changed
 - Whispers open in their own tab: the first time Glass runs on an account, the game option New Whispers (Options > Social) goes from In-line to New Tab, once, with a line in the chat saying how to change it back (`DefaultTabs.lua`).
