@@ -347,7 +347,7 @@ local function BuildMessages(category, layout)
       { "classic", "Classic (yellow faces)" },
       { "off", "Off (text)" },
     }
-  end, ":) :( :D ;) :P :O :| :/ xD <3 D: :S :* B) :'( >:( written in a message show as small faces. Only players with Glass see them; the others see the text. Applies to new messages")
+  end, ":) :( :D ;) :P :O :| :/ xD <3 </3 D: :S :* B) :'( >:( ^^ -_- o.O :3 T_T :$ written in a message show as small faces. Only players with Glass see them; the others see the text. Applies to new messages")
   local timeSetting = ProfileSetting(category, "timestamps", _G.Settings.VarType.String, "Timestamps")
   Dropdown(category, timeSetting, function ()
     return {

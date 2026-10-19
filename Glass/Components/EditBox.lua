@@ -71,7 +71,7 @@ end
 -- The emote button (with Messages > Emotes on): a small face at the right of
 -- the box. A click shows all the faces; a click on one writes its code where
 -- you're typing, so you don't have to remember them.
-local PICKER_COLUMNS, PICKER_CELL, PICKER_ICON, PICKER_PAD = 5, 26, 20, 6
+local PICKER_COLUMNS, PICKER_CELL, PICKER_ICON, PICKER_PAD = 6, 26, 20, 6
 
 function EditBoxMixin:CreateEmotePicker()
   local TP = Core:GetModule("TextProcessing")
