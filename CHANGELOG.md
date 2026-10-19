@@ -10,6 +10,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Emotes: :) :( :D ;) :P :O :| :/ xD <3 </3 D: :S :* B) :'( >:( ^^ -_- o.O :3 T_T and :$ in a message show as small faces (a little taller than the text), in the chat and in separate windows. Options > Messages > Emotes: Glass (gold outlines, the default), Classic (yellow faces) or Off. Only players with Glass see them (`TextProcessing.lua`, `OptionsPanel.lua`, `UIManager.lua`, `Assets/Emotes`).
 
 ### Changed
+- The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - Whispers open in their own tab: the first time Glass runs on an account, the game option New Whispers (Options > Social) goes from In-line to New Tab, once, with a line in the chat saying how to change it back (`DefaultTabs.lua`).
 - Players from your Recent Allies list get a Glass icon after their name in the chat (one person, in the Glass gold) instead of the game's yellow one, also in front of their name on a whisper tab (`TextProcessing.lua`, `ChatTab.lua`, `Assets/allyIcon.tga`).
 - Separate windows look like the main chat: the same font, shadow and line spacing, the full chat background opacity (they looked lighter), and a window opened with "Open in Separate Window" gets the chat's font size (`SlidingMessageFrame.lua`, `Fonts.lua`, `Hyperlinks.lua`).
@@ -25,6 +26,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - "Open in Separate Window" in a channel's menu (right click "[2]" in the chat): the channel moves to a new window, already out of the chat, unlocked so it can be moved. Where it opens is in Options > General > Separate windows ("Opens at": above the chat by default, right or left of it, or the middle of the screen) (`Hyperlinks.lua`, `OptionsPanel.lua`).
 
 ### Changed
+- The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - The new message alert's gleam is part of the line's length, so it runs all along it even on short tabs; its light is no wider than the line, it fades out towards the ends like the line, and it shows as much on bright colors (Guild's green) as on darker ones (`ChatTab.lua`).
 - Separate windows with the Glass look bring their faded messages back while the mouse is over them, like the Glass chat (`UIManager.lua`).
 - Separate windows' scroll bar in the Glass look: a thin faint line with a slim marker in the Glass color, and arrows and a "scroll to bottom" button like the chat buttons. The marker no longer jumps for a moment when a message arrives (`SlidingMessageFrame.lua`, `Assets/Buttons`).
@@ -45,6 +47,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - New message alert drawn by Glass: a line under the tab name in the chat type color, with a glow that breathes softly and a gleam of light running along it while the tab is unread. It goes away as soon as the tab is read (`ChatTab.lua`, `UIManager.lua`).
 
 ### Changed
+- The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - Underline's selected bar has softened ends and a glow rising from it that lights the tab name from below (`ChatTab.lua`).
 - Images sorted into `Assets/Buttons` and `Assets/Tabs`.
 - Less memory churn from the tab animations and alerts: functions, lists and colors are made once and reused (`ChatTab.lua`).
@@ -69,6 +72,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - A thin dark outline around the chat button icons and the separate window buttons, so they stand out on any background (`ChatButtons.lua`, new `*Outline.tga` images).
 
 ### Changed
+- The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - The selected tab line (Minimal style) fades out towards its ends and has a soft glow into the tab. It's now one line for the whole tab bar, so it's never cut off (`ChatTab.lua`, new `tabGlow.tga`).
 - Less memory churn in busy chats: no new timer function per message, no copies of message text without codes, no copied message queues (`FadingFrame.lua`, `utils.lua`, `SlidingMessageFrame.lua`).
 - Lighter every frame: the selected tab and its line are checked about 30 times a second instead of every frame (every frame only while the line slides), and tab styles are compared without building text (`UIManager.lua`, `ChatTab.lua`).
@@ -143,6 +147,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while
 - Tabs (including whispers) can be dragged out of the dock to become separate chat windows, and dragged back to join Glass again, as in the default chat. Separate windows use the Glass font and keep their place after logging out (`UIManager.lua`, `SlidingMessageFrame.lua`, `ChatDock.lua`).
 
 ### Changed
+- The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - The Copy window, the "unlocked" dialog and the option buttons use the current game style (bronze border, red buttons) instead of the old Classic look (`Copy.lua`, `MoverDialog.lua`, `Button.lua`).
 - The chat position (X/Y offset, anchor) is no longer in the options; move the chat in Edit Mode or with "Unlock frame".
 - "Unlock frame" highlights the chat with the Edit Mode look (blue border) instead of a green box (`MoverFrame.lua`).

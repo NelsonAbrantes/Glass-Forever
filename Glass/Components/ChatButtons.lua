@@ -252,10 +252,14 @@ end
 -- - next: how each button attaches to the one before it
 -- - reverse: the row grows to the left, so it's laid out from the last button
 --   to keep the same order on screen
+-- Beside the chat, the column goes a little into the chat's edge, where the
+-- background fades and the text doesn't reach yet (it starts TEXT_XPADDING
+-- in): right outside, it left too wide a gap before the text
+local SIDE_INSET = 8
 local POSITIONS = {
-  left = { holder = { "TOPRIGHT", "TOPLEFT", -MARGIN, 0 }, first = "TOPRIGHT",
+  left = { holder = { "TOPRIGHT", "TOPLEFT", SIDE_INSET - MARGIN, 0 }, first = "TOPRIGHT",
     next = { "TOP", "BOTTOM", 0, -GAP } },
-  right = { holder = { "TOPLEFT", "TOPRIGHT", MARGIN, 0 }, first = "TOPLEFT",
+  right = { holder = { "TOPLEFT", "TOPRIGHT", MARGIN - SIDE_INSET, 0 }, first = "TOPLEFT",
     next = { "TOP", "BOTTOM", 0, -GAP } },
   topleft = { holder = { "BOTTOMLEFT", "TOPLEFT", 0, MARGIN }, first = "BOTTOMLEFT",
     next = { "LEFT", "RIGHT", GAP, 0 } },
