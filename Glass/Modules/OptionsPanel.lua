@@ -348,6 +348,7 @@ local function BuildMessages(category, layout)
       { "off", "Off (text)" },
     }
   end, ":) :( :D ;) :P :O :| :/ xD <3 </3 D: :S :* B) :'( >:( ^^ -_- o.O :3 T_T :$ written in a message show as small faces. Only players with Glass see them; the others see the text. Applies to new messages")
+  Checkbox(category, "emoteButton", "Emote button", "A small face at the right of the chat box: click it to pick an emote. The emotes still show in the chat without it", "emoteButton")
   local timeSetting = ProfileSetting(category, "timestamps", _G.Settings.VarType.String, "Timestamps")
   Dropdown(category, timeSetting, function ()
     return {
@@ -599,6 +600,46 @@ _G.StaticPopupDialogs["GLASS_PROFILE_IMPORTED"] = {
   hideOnEscape = true,
 }
 
+-- "Create profile": asks for the new profile's name (this character's name
+-- is written in to start with)
+local function PopupEditBox(dialog)
+  return dialog.editBox or dialog.EditBox or (dialog.GetEditBox and dialog:GetEditBox())
+end
+
+local function CreateNamedProfile(dialog)
+  local box = PopupEditBox(dialog)
+  local name = box and strtrim(box:GetText() or "")
+  if name and name ~= "" then
+    Core.db:SetProfile(name)
+  end
+end
+
+_G.StaticPopupDialogs["GLASS_NEW_PROFILE"] = {
+  text = "Glass Forever: name of the new profile",
+  button1 = _G.CREATE or "Create",
+  button2 = _G.CANCEL or "Cancel",
+  hasEditBox = true,
+  maxLetters = 48,
+  OnShow = function (self)
+    local box = PopupEditBox(self)
+    if box then
+      box:SetText(Core.db.keys.char)
+      box:HighlightText()
+      box:SetFocus()
+    end
+  end,
+  OnAccept = CreateNamedProfile,
+  EditBoxOnEnterPressed = function (self)
+    local dialog = self:GetParent()
+    CreateNamedProfile(dialog)
+    dialog:Hide()
+  end,
+  EditBoxOnEscapePressed = function (self) self:GetParent():Hide() end,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+}
+
 local function BuildProfiles(category, layout)
   local Settings = _G.Settings
   local db = Core.db
@@ -617,9 +658,9 @@ local function BuildProfiles(category, layout)
     return list
   end, "Settings are saved in profiles. Characters can share a profile or have their own.")
 
-  Button(layout, "Own settings for this character", "Create profile", function ()
-    db:SetProfile(db.keys.char)
-  end, "Creates a profile named after this character and switches to it")
+  Button(layout, "New profile", "Create profile", function ()
+    _G.StaticPopup_Show("GLASS_NEW_PROFILE")
+  end, "Asks for a name, then creates a profile with that name (with the default settings) and switches to it")
 
   Button(layout, "Reset the active profile", "Reset profile", function ()
     db:ResetProfile()

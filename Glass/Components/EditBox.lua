@@ -141,7 +141,8 @@ function EditBoxMixin:CreateEmotePicker()
 
   -- The faces in the chosen style; no button with emotes off
   local function Refresh()
-    local on = Core.db.profile.emoteStyle == "glass" or Core.db.profile.emoteStyle == "classic"
+    local on = (Core.db.profile.emoteStyle == "glass" or Core.db.profile.emoteStyle == "classic")
+      and Core.db.profile.emoteButton
     button:SetShown(on)
     if not on then panel:Hide() end
     local path, r, g, b = TP:EmoteTexture("smile")
@@ -168,7 +169,7 @@ function EditBoxMixin:CreateEmotePicker()
   hookScript(self, "OnEscapePressed", function () panel:Hide() end)
 
   Core:Subscribe(UPDATE_CONFIG, function (key)
-    if key == "emoteStyle" then Refresh() end
+    if key == "emoteStyle" or key == "emoteButton" then Refresh() end
   end)
   Refresh()
 end

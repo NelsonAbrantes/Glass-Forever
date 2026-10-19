@@ -107,6 +107,7 @@ Core.defaults = {
     indentWordWrap = true,
     shortChannelNames = false,
     emoteStyle = "glass", -- ":)" and friends as faces: "glass", "classic" or "off"
+    emoteButton = false, -- the face at the right of the chat box that opens the emote list
     timestamps = "off", -- the time in front of messages: "off", "hm" (17:49) or "hms" (17:49:05)
     chatClassIcons = false, -- class icon in front of players' names
     chatRaceIcons = false, -- race icon in front of players' names
