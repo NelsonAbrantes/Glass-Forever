@@ -1,17 +1,20 @@
-# Glass Forever (beta)
+# Glass Forever
 
 Minimal chat that slides in and fades away. A fork of [Glass](https://github.com/mixxorz/Glass) by Mitchel Cabuloy, updated for **WoW: Forever**.
 
-> **Status: beta.** Tested on WoW: Forever only. Bug reports are welcome in [Issues](https://github.com/NelsonAbrantes/Glass-Forever/issues).
+Made and tested for WoW: Forever. Bug reports are welcome in [Issues](https://github.com/NelsonAbrantes/Glass-Forever/issues).
 
 ## Features
 
 **Chat**
 - Messages slide in and fade out when you're not using the chat; they come back on mouse over.
+- Emotes: `:)` `:D` `<3` and 20 more show as small faces, in the Glass gold or classic yellow.
+- Timestamps, class and race icons, and first names only, each one an option.
 - Chat history: the last messages of each tab come back after logging out or `/reload`.
+- Search a tab's messages, and copy chat text, from the tab's menu.
 - Arrow keys history: Up and Down in the chat box go through what you typed.
 - Spam filter with an editable list of blocked words.
-- Clickable web links, and "Copy chat text" from a tab's menu.
+- Clickable web links; right click a linked recipe to track it.
 - Short channel names (`[1]`, `[P]`...), optional.
 - Chinese, Korean and Russian letters shown with the game's fonts.
 
@@ -19,16 +22,18 @@ Minimal chat that slides in and fades away. A fork of [Glass](https://github.com
 - Seven styles: Minimal, Framed, Solid, Underline, Pill, Glossy and Classic.
 - Accent color (including your class color) and tab name color.
 - Animated selected tab: slides or grows from tab to tab.
-- New message alert in the color of the chat type.
+- New message alert in the color of the chat type, and an unread count.
+- Guild and Party tabs offered the first time you log in; whispers in their own tabs.
 - Tab bar position, alignment, size, spacing and fade options.
 
 **Windows and edit box**
-- Separate chat windows with the Glass look, kept where you left them.
-- Edit box styles: Minimal, Solid and Framed.
+- Separate chat windows with the Glass look: "Open in Separate Window" when you right click a channel.
+- Edit box styles: Minimal, Solid and Framed, with an optional emote button.
 - Chat buttons (friends, channels, voice, emotes) with icons in the Glass style.
 
 **Everything else**
 - Options in the game's Options window (Options > AddOns > Glass Forever) or `/glass`.
+- Profiles, with export and import as text to share your settings.
 - Edit Mode support: position, size, fonts and more.
 - Update notice when someone in your guild or group has a newer version.
 

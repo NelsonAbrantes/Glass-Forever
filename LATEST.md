@@ -1,13 +1,23 @@
-# 0.15.1-forever (beta) (2026-10-14)
+# 1.0.0-forever (2026-10-19)
 
 What's new
 
-- "Open in Separate Window" when you right click a channel.
+- Emotes: smileys like :) show as small faces.
+- Timestamps, class and race icons, first names only (options).
+- Unread count on tabs.
+- Search a tab's messages (right click the tab).
+- Guild and Party tabs offered on first login.
+- Track a linked recipe (right click it).
+- Export and import profiles.
+
+Changes
+
+- Whispers open in their own tab.
+- Separate windows look like the main chat.
+- Glass icon for Recent Allies.
 
 Bug fixes
 
-- "Move to New Window" works again (now "Move to New Tab").
-- Separate windows: Glass scroll bar, and messages come back on mouse over.
-- "Copy Character Name" no longer shows an error.
-- Say, yell and emotes no longer light up tabs.
-- The new message line no longer covers the tab name.
+- Links in separate windows open on the first click.
+- Busy chats no longer vanish all at once.
+- No more orange glow on tabs.

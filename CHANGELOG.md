@@ -1,8 +1,8 @@
 # Changelog
 
-Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` while in beta, `1.0.0-forever` will be the first stable release.
+Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
-## Next version (unreleased)
+## 1.0.0-forever (2026-10-19)
 
 ### Added
 - Guild and Party tabs: the first time you log in with a character, Glass offers to create them. Guild, officer and party, raid and instance messages then move out of General into their own tabs, and the interface reloads. Asked once per character, and not if the tabs already exist (`DefaultTabs.lua`, `Button.lua`).
