@@ -9,13 +9,14 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were 
 - Track a recipe from the chat: right click a recipe someone linked from their profession window (e.g. "[Alchemy: Greater Healing Potion]") and choose "Track Recipe" (or "Untrack Recipe") (`Hyperlinks.lua`).
 - Emotes: :) :( :D ;) :P :O :| :/ xD <3 </3 D: :S :* B) :'( >:( ^^ -_- o.O :3 T_T and :$ in a message show as small faces (a little taller than the text), in the chat and in separate windows. Options > Messages > Emotes: Glass (gold outlines, the default), Classic (yellow faces) or Off. Only players with Glass see them (`TextProcessing.lua`, `OptionsPanel.lua`, `UIManager.lua`, `Assets/Emotes`).
 - Emote button (Messages > Emote button, off by default): a small face at the right of the chat box opens the list of emotes; a click writes one where you type (`EditBox.lua`).
-- Unread count (Tabs > Unread count, on by default): a small number by the name of a tab you're not looking at, with how many messages came in since (`ChatTab.lua`, `SlidingMessageFrame.lua`).
+- Unread count (Tabs > Unread count, off by default): a small number by the name of a tab you're not looking at, with how many messages came in since (`ChatTab.lua`, `SlidingMessageFrame.lua`).
 - Search messages: in a tab's right-click menu, a window to search that tab's messages as you type (`Copy.lua`).
 - Timestamps (Messages > Timestamps: off by default, 17:49 or 17:49:05): the time in front of each message, kept with the history. Shift+click the time to write the message in the chat box, click it to copy it (`TextProcessing.lua`, `SlidingMessageFrame.lua`, `History.lua`, `Hyperlinks.lua`).
 - Class icons and race icons in front of players' names, and first names only ("Aehya" for "Aehya Bfc"), each one an option in Messages, off by default. Skyborne get an icon too (`TextProcessing.lua`).
 - Export and import profiles as text (Profiles page), to keep or share your settings (`OptionsPanel.lua`).
 
 ### Changed
+- Short channel names ([1], [G], [P]...) are on by default (`init.lua`).
 - "Create profile" asks for the new profile's name (`OptionsPanel.lua`).
 - The chat buttons beside the chat sit a little closer to it (`ChatButtons.lua`).
 - Whispers open in their own tab: the first time Glass runs on an account, the game option New Whispers (Options > Social) goes from In-line to New Tab, once, with a line in the chat saying how to change it back (`DefaultTabs.lua`).
