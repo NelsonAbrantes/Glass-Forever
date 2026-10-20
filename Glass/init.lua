@@ -71,7 +71,7 @@ Core.defaults = {
     tabPadding = 15,
     tabBarOpacity = 0.4,
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
-    tabUnreadCount = true, -- how many new messages, by the name of a tab you're not looking at
+    tabUnreadCount = false, -- how many new messages, by the name of a tab you're not looking at
     tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glossy or classic
     tabAccent = "default", -- accent color of the selected tab; "default" = the style's own
     tabLineAnimation = "slide", -- selected line (Minimal): "slide", "grow" or "off"
@@ -105,7 +105,7 @@ Core.defaults = {
     chatSlideInDuration = 0.3,
 
     indentWordWrap = true,
-    shortChannelNames = false,
+    shortChannelNames = true,
     emoteStyle = "glass", -- ":)" and friends as faces: "glass", "classic" or "off"
     emoteButton = false, -- the face at the right of the chat box that opens the emote list
     timestamps = "off", -- the time in front of messages: "off", "hm" (17:49) or "hms" (17:49:05)
