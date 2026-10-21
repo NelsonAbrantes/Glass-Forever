@@ -14,6 +14,7 @@ local CreateSlidingMessageFramePool = Core.Components.CreateSlidingMessageFrameP
 local BNToastFrame = BNToastFrame
 local ChatAlertFrame = ChatAlertFrame
 local CreateFrame = CreateFrame
+local hooksecurefunc = hooksecurefunc
 local FCFDock_GetSelectedWindow = FCFDock_GetSelectedWindow
 local FCF_RestorePositionAndDimensions = FCF_RestorePositionAndDimensions
 local GENERAL_CHAT_DOCK = GENERAL_CHAT_DOCK
@@ -281,6 +282,16 @@ function UIManager:OnEnable()
 
   ChatAlertFrame:ClearAllPoints()
   ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
+  -- The game puts the alerts back beside its own chat buttons now and then
+  -- (when it updates the chat's button side): back in the Glass box each time
+  local placingAlerts = false
+  hooksecurefunc(ChatAlertFrame, "SetPoint", function (_, _, relativeTo)
+    if placingAlerts or relativeTo == self.alertMover then return end
+    placingAlerts = true
+    ChatAlertFrame:ClearAllPoints()
+    ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
+    placingAlerts = false
+  end)
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option
