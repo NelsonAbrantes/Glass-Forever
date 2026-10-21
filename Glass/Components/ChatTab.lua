@@ -724,17 +724,20 @@ function ChatTabMixin:ShowAlert(color)
   -- get narrower, the box can be wider than the name, and the line was off
   -- to the right
   local y = -(textHeight / 2 + 1)
+  -- The name's width ends with a little room after its last letter (and its
+  -- shadow), so the letters themselves sit a bit left of its middle
+  local inkShift = -textHeight * 0.12
   local stringWidth = self.Text:GetStringWidth()
   local justify = self.Text:GetJustifyH()
   self.alertBox:ClearAllPoints()
   if (issecretvalue and issecretvalue(stringWidth)) or justify == "CENTER" or not stringWidth then
-    self.alertBox:SetPoint("TOP", self.Text, "CENTER", 0, y)
+    self.alertBox:SetPoint("TOP", self.Text, "CENTER", inkShift, y)
   else
     stringWidth = math.min(stringWidth, self.Text:GetWidth())
     if justify == "RIGHT" then
-      self.alertBox:SetPoint("TOP", self.Text, "RIGHT", -stringWidth / 2, y)
+      self.alertBox:SetPoint("TOP", self.Text, "RIGHT", -stringWidth / 2 + inkShift, y)
     else
-      self.alertBox:SetPoint("TOP", self.Text, "LEFT", stringWidth / 2, y)
+      self.alertBox:SetPoint("TOP", self.Text, "LEFT", stringWidth / 2 + inkShift, y)
     end
   end
   self.alertBox:SetWidth(width)
