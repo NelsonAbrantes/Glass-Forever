@@ -1,24 +1,15 @@
-# 1.0.0-forever (2026-10-19)
+# 1.0.5-forever (2026-10-21)
 
 What's new
 
-- Emotes: smileys like :) show as small faces.
-- Timestamps, class and race icons, first names only (options).
-- Unread count on tabs (option).
-- Search a tab's messages (right click the tab).
-- Guild and Party tabs offered on first login.
-- Track a linked recipe (right click it).
-- Export and import profiles.
+- Whisper tabs stay open after a reload, until you close them.
+- Move the Battle.net alerts in Edit Mode.
 
 Changes
 
-- Whispers open in their own tab.
-- Separate windows look like the main chat.
-- Glass icon for Recent Allies.
-- Short channel names on by default.
+- New look for the new message alert on tabs.
+- Separate windows show earlier messages too.
 
 Bug fixes
 
-- Links in separate windows open on the first click.
-- Busy chats no longer vanish all at once.
-- No more orange glow on tabs.
+- Tabs dragged out of the chat keep the chat's font size.
