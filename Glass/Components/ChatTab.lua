@@ -81,6 +81,19 @@ local function GlowColor(color)
   return r, g, b
 end
 
+---
+-- The name's width ends with a little room after its last letter (and its
+-- shadow), so the letters sit a bit left of its middle. Names are moved right
+-- by this much, so the letters are in the middle of the tab, under the
+-- selected line, and over the new message line.
+local function InkShift(tab)
+  local height = tab.Text:GetStringHeight()
+  if not height or (issecretvalue and issecretvalue(height)) or height <= 0 then
+    height = Core.db.profile.tabFontSize or 12
+  end
+  return height * 0.22
+end
+
 function ChatTabMixin:Init(slidingMessageFrame)
   self.slidingMessageFrame = slidingMessageFrame
   slidingMessageFrame.glassTab = self -- (it tells the tab about new messages)
@@ -163,6 +176,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
         self.Text:SetWidth(math.max(1, shrunkWidth - textLeft - minPadding))
         width = shrunkWidth
       end
+      textLeft = textLeft + InkShift(self)
       if self.textLeft ~= textLeft then
         self.textLeft = textLeft
         self.Text:ClearAllPoints()
@@ -724,9 +738,8 @@ function ChatTabMixin:ShowAlert(color)
   -- get narrower, the box can be wider than the name, and the line was off
   -- to the right
   local y = -(textHeight / 2 + 1)
-  -- The name's width ends with a little room after its last letter (and its
-  -- shadow), so the letters themselves sit a bit left of its middle
-  local inkShift = -textHeight * 0.12
+  -- Centered on the letters (see InkShift)
+  local inkShift = -InkShift(self)
   local stringWidth = self.Text:GetStringWidth()
   local justify = self.Text:GetJustifyH()
   self.alertBox:ClearAllPoints()
