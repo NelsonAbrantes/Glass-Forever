@@ -48,6 +48,19 @@ function UIManager:IsSeparateWindow(chatFrame)
   return false
 end
 
+-- Where the Battle.net alerts show: where they were put in Edit Mode, or
+-- above the chat
+function UIManager:PlaceAlerts()
+  local mover = self.alertMover
+  local saved = Core.db.profile.alertPosition
+  mover:ClearAllPoints()
+  if saved and saved.point then
+    mover:SetPoint(saved.point, _G.UIParent, saved.point, saved.x or 0, saved.y or 0)
+  else
+    mover:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", 15, 10)
+  end
+end
+
 function UIManager:OnEnable()
   self.tickerFrame = CreateFrame("Frame", "GlassUpdaterFrame", UIParent)
 
@@ -256,12 +269,18 @@ function UIManager:OnEnable()
   -- Edit box
   self.editBox = CreateEditBox(self.container)
 
-  -- Fix Battle.net Toast frame position
+  -- Battle.net alerts (a friend coming online...): in a box of their own,
+  -- above the chat unless moved in Edit Mode ("Battle.net Alerts")
   BNToastFrame:ClearAllPoints()
   BNToastFrame:SetPoint("BOTTOMLEFT", ChatAlertFrame, "BOTTOMLEFT", 0, 0)
 
+  local toastWidth, toastHeight = BNToastFrame:GetSize()
+  self.alertMover = CreateFrame("Frame", "GlassAlertMover", _G.UIParent)
+  self.alertMover:SetSize(toastWidth > 0 and toastWidth or 250, toastHeight > 0 and toastHeight or 50)
+  self:PlaceAlerts()
+
   ChatAlertFrame:ClearAllPoints()
-  ChatAlertFrame:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", 15, 10)
+  ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option

@@ -6,6 +6,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were 
 
 ### Added
 - Whisper tabs stay open after a reload or logging out, with their messages, until you close them (Battle.net whispers excepted) (`History.lua`).
+- Battle.net alerts (a friend coming online...) can be moved in Edit Mode ("Battle.net Alerts"); until then they stay above the chat (`UIManager.lua`, `EditMode.lua`).
 
 ### Changed
 - New message alert: a softer glow around the line, blending into it, with smooth ends; centered on the tab name and just under it (`ChatTab.lua`, `Assets/Tabs/alertGlow.tga`, `alertLine.tga`).

@@ -55,6 +55,25 @@ function EditMode:OnEnable()
     end
   end, { point = defaultAnchor.point, x = defaultAnchor.xOfs, y = defaultAnchor.yOfs }, "Glass Forever")
 
+  -- The Battle.net alerts (a friend coming online...), above the chat until
+  -- moved. "Reset position" puts them back above the chat, following it.
+  local ui = Core:GetModule("UIManager")
+  if ui.alertMover then
+    local alertDefault = {
+      point = "BOTTOMLEFT",
+      x = math.floor((ui.alertMover:GetLeft() or 35) + 0.5),
+      y = math.floor((ui.alertMover:GetBottom() or 480) + 0.5),
+    }
+    LEM:AddFrame(ui.alertMover, function (_, _, point, x, y)
+      if point == alertDefault.point and x == alertDefault.x and y == alertDefault.y then
+        Core.db.profile.alertPosition = nil
+      else
+        Core.db.profile.alertPosition = { point = point, x = x, y = y }
+      end
+      ui:PlaceAlerts()
+    end, alertDefault, "Battle.net Alerts")
+  end
+
   -- Settings shown in the Edit Mode dialog
   LEM:AddFrameSettings(moverFrame, {
     {
