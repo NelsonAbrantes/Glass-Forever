@@ -1095,6 +1095,7 @@ local function CreateSlidingMessageFramePool(parent)
         smf:Unhook(smf.chatFrame, "AddMessage")
         smf:Unhook(smf.chatFrame, "Show")
         smf:Unhook(smf.chatFrame, "Hide")
+        smf:Unhook(smf.chatFrame, "RefreshDisplay")
         -- Remove the historyBuffer hook too, so a reused chat window (e.g. a
         -- whisper tab) can be initialized again without "rehook" errors.
         if smf.chatFrame.historyBuffer then

@@ -56,41 +56,60 @@ local function CleanUp(lines)
   return cleaned
 end
 
+-- The newest messages of a tab, as saved
+local function Lines(smf)
+  local lines = {}
+  for _, message in ipairs(smf.state.messages) do
+    local raw = message.raw
+    -- Text the game marks as secret can't be saved
+    if raw and type(raw.text) == "string"
+      and not (issecretvalue and issecretvalue(raw.text)) then
+      -- (with the time it arrived, for Timestamps)
+      table.insert(lines, { raw.text, raw.r, raw.g, raw.b, message.glassTime })
+    end
+  end
+
+  -- Keep only the newest lines
+  lines = CleanUp(lines)
+  while #lines > MAX_LINES do
+    table.remove(lines, 1)
+  end
+  return CleanUp(lines)
+end
+
 local function Save()
   local history = {}
+  local whisperTabs = {}
   local total = 0
 
   if Core.db.profile.keepHistory ~= false then
     for _, smf in pairs(GetFrames()) do
       local chatFrame = smf.chatFrame
       if chatFrame and smf.state and not smf.state.isCombatLog then
-        local lines = {}
-        for _, message in ipairs(smf.state.messages) do
-          local raw = message.raw
-          -- Text the game marks as secret can't be saved
-          if raw and type(raw.text) == "string"
-            and not (issecretvalue and issecretvalue(raw.text)) then
-            -- (with the time it arrived, for Timestamps)
-            table.insert(lines, { raw.text, raw.r, raw.g, raw.b, message.glassTime })
-          end
-        end
-
-        -- Keep only the newest lines
-        lines = CleanUp(lines)
-        while #lines > MAX_LINES do
-          table.remove(lines, 1)
-        end
-        lines = CleanUp(lines)
-
+        local lines = Lines(smf)
         if #lines > 0 then
           history[chatFrame:GetName()] = lines
           total = total + #lines
         end
       end
     end
+
+    -- Whisper tabs: the game forgets them, so they'd vanish with what was
+    -- said. Kept until they're closed. (Battle.net whispers can't be: their
+    -- names change every session.)
+    for _, smf in pairs(Core:GetModule("UIManager").state.temporaryFrames) do
+      local chatFrame = smf.chatFrame
+      if chatFrame and smf.state and chatFrame.chatType == "WHISPER"
+        and type(chatFrame.chatTarget) == "string" and chatFrame.chatTarget ~= "" then
+        local lines = Lines(smf)
+        table.insert(whisperTabs, { target = chatFrame.chatTarget, lines = lines })
+        total = total + #lines
+      end
+    end
   end
 
   Core.db.char.history = history
+  Core.db.char.whisperTabs = whisperTabs
   Core.db.char.historySavedAt = time()
   return total
 end
@@ -142,6 +161,22 @@ local function Restore()
     and string.format(SEPARATOR, date("%d %b, %H:%M", savedAt))
     or string.format(SEPARATOR, "earlier")
 
+  -- Back-filled messages are stacked on top of the current ones, so they're
+  -- added newest first to keep the original order. The separator goes first:
+  -- it ends up between the old messages and the new ones. It is saved with
+  -- the messages, so each earlier session keeps its own.
+  local function Fill(smf, lines)
+    smf:BackFillMessage(nil, separator, SEPARATOR_COLOR, SEPARATOR_COLOR, SEPARATOR_COLOR)
+    local window = { WindowSeparator(separator) }
+    for i = #lines, 1, -1 do
+      local line = lines[i]
+      smf:BackFillMessageAt(line[5], nil, line[1], line[2], line[3], line[4])
+      table.insert(window, line)
+    end
+    -- Also in the game's window, shown when the tab is a separate window
+    smf:BackFillWindow(window)
+  end
+
   for _, smf in pairs(GetFrames()) do
     local chatFrame = smf.chatFrame
     local lines = chatFrame and history[chatFrame:GetName()]
@@ -149,19 +184,36 @@ local function Restore()
     -- separators in tabs with no messages
     lines = lines and CleanUp(lines)
     if lines and #lines > 0 and smf.state and not smf.state.didBackfill and not AlreadyShown(smf, lines) then
-      -- Back-filled messages are stacked on top of the current ones, so
-      -- add them newest first to keep the original order. The separator
-      -- goes first: it ends up between the old messages and the new ones.
-      -- It is saved with the messages, so each earlier session keeps its own.
-      smf:BackFillMessage(nil, separator, SEPARATOR_COLOR, SEPARATOR_COLOR, SEPARATOR_COLOR)
-      local window = { WindowSeparator(separator) }
-      for i = #lines, 1, -1 do
-        local line = lines[i]
-        smf:BackFillMessageAt(line[5], nil, line[1], line[2], line[3], line[4])
-        table.insert(window, line)
+      Fill(smf, lines)
+    end
+  end
+
+  -- The whisper tabs that were open, with their messages, without selecting
+  -- them. One already open again (a whisper came meanwhile) only gets the
+  -- messages.
+  local whisperTabs = Core.db.char.whisperTabs
+  if not whisperTabs or not _G.FCF_OpenTemporaryWindow then return end
+  local temporaryFrames = Core:GetModule("UIManager").state.temporaryFrames
+  local function FindTab(target)
+    for _, smf in pairs(temporaryFrames) do
+      local chatFrame = smf.chatFrame
+      if chatFrame and chatFrame.chatType == "WHISPER" and type(chatFrame.chatTarget) == "string"
+        and chatFrame.chatTarget:lower() == target:lower() then
+        return smf
       end
-      -- Also in the game's window, shown when the tab is a separate window
-      smf:BackFillWindow(window)
+    end
+  end
+  for _, tab in ipairs(whisperTabs) do
+    if type(tab.target) == "string" then
+      local smf = FindTab(tab.target)
+      if not smf then
+        pcall(_G.FCF_OpenTemporaryWindow, "WHISPER", tab.target, nil, false)
+        smf = FindTab(tab.target)
+      end
+      local lines = tab.lines and CleanUp(tab.lines)
+      if smf and smf.state and lines and #lines > 0 and not AlreadyShown(smf, lines) then
+        Fill(smf, lines)
+      end
     end
   end
 end

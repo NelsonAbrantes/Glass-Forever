@@ -4,8 +4,15 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were 
 
 ## Next version
 
+### Added
+- Whisper tabs stay open after a reload or logging out, with their messages, until you close them (Battle.net whispers excepted) (`History.lua`).
+
+### Changed
+- New message alert: a softer glow around the line, blending into it, with smooth ends; centered on the tab name and just under it (`ChatTab.lua`, `Assets/Tabs/alertGlow.tga`, `alertLine.tga`).
+
 ### Fixed
 - A tab dragged out of the chat kept the game's own font size for that window, often bigger than the chat's: it now gets the chat's size, and the tab menu can still change it (`UIManager.lua`, `SlidingMessageFrame.lua`).
+- Reusing a whisper window (a whisper after closing one) showed an error ("rehook") (`SlidingMessageFrame.lua`).
 - Separate windows now show the messages from earlier sessions too, with the "Previous session" line drawn like in the chat (`History.lua`, `SlidingMessageFrame.lua`, `MessageLine.lua`).
 
 ## 1.0.0-forever (2026-10-19)

@@ -636,8 +636,8 @@ end
 -- changes per frame for each tab with an alert, nothing otherwise.
 
 local ALERT_WIDTH = 0.7         -- fraction of the tab width
-local ALERT_GLOW_HEIGHT = 14
-local ALERT_GLOW_LOW, ALERT_GLOW_HIGH = 0.35, 0.85 -- the glow breathing between these
+local ALERT_GLOW_HEIGHT = 26     -- the glow around the line, as much below it as above
+local ALERT_GLOW_LOW, ALERT_GLOW_HIGH = 0.5, 1 -- the glow breathing between these
 local ALERT_BREATH_TIME = 1.6   -- seconds for one breath (bright, faint, bright)
 local ALERT_GLEAM_PART = 0.4    -- the gleam's length, as a fraction of the line
 local ALERT_GLEAM_MIN = 10      -- and at least this long
@@ -669,24 +669,23 @@ function ChatTabMixin:CreateAlert()
   box:SetHeight(2)
   self.alertBox = box
 
-  self.alertLeft = Unsnapped(self:CreateTexture(nil, "OVERLAY"))
-  self.alertLeft:SetPoint("TOPLEFT", box)
-  self.alertLeft:SetPoint("BOTTOMRIGHT", box, "BOTTOM")
-  self.alertRight = Unsnapped(self:CreateTexture(nil, "OVERLAY"))
-  self.alertRight:SetPoint("TOPLEFT", box, "TOP")
-  self.alertRight:SetPoint("BOTTOMRIGHT", box)
-  -- The glow rising from the line (the half-ellipse image, flipped)
+  -- The line, fading out smoothly to its ends (an image of that fade)
+  self.alertLine = Unsnapped(self:CreateTexture(nil, "OVERLAY"))
+  self.alertLine:SetTexture(ASSETS.."alertLine")
+  self.alertLine:SetAllPoints(box)
+  -- A soft glow around the line, strongest on it and fading out in every
+  -- direction, so the line and its light blend into each other (a glow only
+  -- above it showed an edge there, and other ends than the line's)
   self.alertGlow = Unsnapped(self:CreateTexture(nil, "ARTWORK"))
-  self.alertGlow:SetTexture(ASSETS.."tabGlow")
+  self.alertGlow:SetTexture(ASSETS.."alertGlow")
   self.alertGlow:SetBlendMode("ADD")
-  self.alertGlow:SetTexCoord(0, 1, 1, 0)
   self.alertGlow:SetHeight(ALERT_GLOW_HEIGHT)
-  self.alertGlow:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -6, 0)
-  self.alertGlow:SetPoint("BOTTOMRIGHT", box, "TOPRIGHT", 6, 0)
+  self.alertGlow:SetPoint("LEFT", box, "LEFT")
+  self.alertGlow:SetPoint("RIGHT", box, "RIGHT")
   -- The gleam: a short bright stretch of the line, strongest in its middle
   self.gleamLeft = Unsnapped(self:CreateTexture(nil, "OVERLAY", nil, 1))
   self.gleamRight = Unsnapped(self:CreateTexture(nil, "OVERLAY", nil, 1))
-  for _, texture in ipairs({ self.alertLeft, self.alertRight, self.gleamLeft, self.gleamRight }) do
+  for _, texture in ipairs({ self.gleamLeft, self.gleamRight }) do
     texture:SetColorTexture(1, 1, 1, 1)
   end
   for _, texture in ipairs({ self.gleamLeft, self.gleamRight }) do
@@ -694,19 +693,17 @@ function ChatTabMixin:CreateAlert()
     texture:SetHeight(2) -- the length follows the line (ShowAlert)
   end
   self.gleamRight:SetPoint("LEFT", self.gleamLeft, "RIGHT")
-  -- A soft round light travelling with the gleam (the half-ellipse, flipped)
+  -- A soft light travelling with the gleam, around it like the line's
   self.gleamGlow = Unsnapped(self:CreateTexture(nil, "ARTWORK", nil, 1))
-  self.gleamGlow:SetTexture(ASSETS.."tabGlow")
+  self.gleamGlow:SetTexture(ASSETS.."alertGlow")
   self.gleamGlow:SetBlendMode("ADD")
-  self.gleamGlow:SetTexCoord(0, 1, 1, 0)
   self.gleamGlow:SetHeight(ALERT_GLOW_HEIGHT)
-  self.gleamGlow:SetPoint("BOTTOM", self.gleamLeft, "RIGHT", 0, 1)
+  self.gleamGlow:SetPoint("CENTER", self.gleamLeft, "RIGHT")
   -- Kept as lists and colors made once, reused on every message (this runs
   -- for each message of an alerted chat, and new ones were garbage)
-  self.alertParts = { self.alertLeft, self.alertRight, self.alertGlow, self.gleamLeft, self.gleamRight, self.gleamGlow }
-  self.alertLineParts = { self.alertLeft, self.alertRight, self.alertGlow }
+  self.alertParts = { self.alertLine, self.alertGlow, self.gleamLeft, self.gleamRight, self.gleamGlow }
+  self.alertLineParts = { self.alertLine, self.alertGlow }
   self.alertColor, self.gleamColor = { 0, 0, 0 }, { 0, 0, 0 }
-  self.alertClear, self.alertStrong = CreateColor(0, 0, 0, 0), CreateColor(0, 0, 0, 1)
   for _, texture in ipairs(self.alertParts) do
     texture:Hide()
   end
@@ -723,8 +720,23 @@ function ChatTabMixin:ShowAlert(color)
   -- the name there (on a docked tab this is the same place as before)
   local textHeight = self.Text:GetStringHeight()
   if not textHeight or textHeight <= 0 then textHeight = 12 end -- (a name not drawn yet)
+  -- Centered on the letters, not on the name's box: when tabs don't fit and
+  -- get narrower, the box can be wider than the name, and the line was off
+  -- to the right
+  local y = -(textHeight / 2 + 1)
+  local stringWidth = self.Text:GetStringWidth()
+  local justify = self.Text:GetJustifyH()
   self.alertBox:ClearAllPoints()
-  self.alertBox:SetPoint("TOP", self.Text, "CENTER", 0, -(textHeight / 2 - 1))
+  if (issecretvalue and issecretvalue(stringWidth)) or justify == "CENTER" or not stringWidth then
+    self.alertBox:SetPoint("TOP", self.Text, "CENTER", 0, y)
+  else
+    stringWidth = math.min(stringWidth, self.Text:GetWidth())
+    if justify == "RIGHT" then
+      self.alertBox:SetPoint("TOP", self.Text, "RIGHT", -stringWidth / 2, y)
+    else
+      self.alertBox:SetPoint("TOP", self.Text, "LEFT", stringWidth / 2, y)
+    end
+  end
   self.alertBox:SetWidth(width)
   -- The gleam is a part of the line, so it travels on any tab, and its light
   -- is no wider than the line
@@ -733,10 +745,7 @@ function ChatTabMixin:ShowAlert(color)
   self.gleamRight:SetWidth(gleam / 2)
   self.gleamGlow:SetWidth(math.min(width, gleam * 1.4))
 
-  self.alertClear:SetRGBA(r, g, b, 0)
-  self.alertStrong:SetRGBA(r, g, b, 1)
-  self.alertLeft:SetGradient("HORIZONTAL", self.alertClear, self.alertStrong)
-  self.alertRight:SetGradient("HORIZONTAL", self.alertStrong, self.alertClear)
+  self.alertLine:SetVertexColor(r, g, b, 1)
   local c, gc = self.alertColor, self.gleamColor
   c[1], c[2], c[3] = r, g, b
   -- The gleam: almost white, tinted by the color
@@ -757,7 +766,7 @@ end
 
 function ChatTabMixin:HideAlert()
   alertingTabs[self] = nil
-  if not self.alertBox or not self.alertLeft:IsShown() then return end
+  if not self.alertBox or not self.alertLine:IsShown() then return end
   for _, texture in ipairs(self.alertParts) do
     texture:Hide()
   end
@@ -784,8 +793,7 @@ function ChatTabMixin:StepAlert(now)
     self.gleamLeft:SetPoint("RIGHT", self.alertBox, "LEFT", x, 0)
     -- As strong as the line where it is: the line fades out to its ends,
     -- so the gleam does too and never shows past them
-    local strength = 1 - math.abs(x - width / 2) / (width / 2)
-    strength = strength * strength * (3 - 2 * strength)
+    local strength = math.sin(math.pi * x / width) ^ 2
     -- (the same two color objects every frame, so no garbage)
     local g = self.gleamColor
     self.gleamGlow:SetVertexColor(g[1], g[2], g[3], math.min(1, ALERT_GLEAM_GLOW * strength * self.gleamBoost))
