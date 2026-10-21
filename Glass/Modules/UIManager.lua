@@ -292,6 +292,16 @@ function UIManager:OnEnable()
     ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
     placingAlerts = false
   end)
+  -- Some game versions place the alert itself elsewhere (top right of the
+  -- screen) when it shows: into the Glass box too
+  local placingToast = false
+  hooksecurefunc(BNToastFrame, "SetPoint", function (_, _, relativeTo)
+    if placingToast or relativeTo == ChatAlertFrame then return end
+    placingToast = true
+    BNToastFrame:ClearAllPoints()
+    BNToastFrame:SetPoint("BOTTOMLEFT", ChatAlertFrame, "BOTTOMLEFT", 0, 0)
+    placingToast = false
+  end)
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option
