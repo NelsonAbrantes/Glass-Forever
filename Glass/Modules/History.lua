@@ -1,4 +1,4 @@
-local Core = unpack(select(2, ...))
+local Core, Constants = unpack(select(2, ...))
 local History = Core:GetModule("History")
 
 -- luacheck: push ignore 113
@@ -121,6 +121,18 @@ local function AlreadyShown(smf, lines)
   return found > 0 and found >= math.min(3, checked)
 end
 
+-- The separator in a separate window: its text in the dim gold. The window
+-- draws it like the chat does, between two fading lines
+-- (SlidingMessageFrame:DrawWindowSeparators).
+local function WindowSeparator(separator)
+  local gold = Constants.COLORS.apache
+  local text = Core.Components.SeparatorText(separator) or separator
+  return {
+    text,
+    gold.r * 0.85, gold.g * 0.85, gold.b * 0.85,
+  }
+end
+
 local function Restore()
   local history = Core.db.char.history
   if not history or Core.db.profile.keepHistory == false then return end
@@ -142,10 +154,14 @@ local function Restore()
       -- goes first: it ends up between the old messages and the new ones.
       -- It is saved with the messages, so each earlier session keeps its own.
       smf:BackFillMessage(nil, separator, SEPARATOR_COLOR, SEPARATOR_COLOR, SEPARATOR_COLOR)
+      local window = { WindowSeparator(separator) }
       for i = #lines, 1, -1 do
         local line = lines[i]
         smf:BackFillMessageAt(line[5], nil, line[1], line[2], line[3], line[4])
+        table.insert(window, line)
       end
+      -- Also in the game's window, shown when the tab is a separate window
+      smf:BackFillWindow(window)
     end
   end
 end

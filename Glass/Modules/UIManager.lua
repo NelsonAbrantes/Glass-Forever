@@ -174,7 +174,11 @@ function UIManager:OnEnable()
     local smf = FindFrame(chatFrame)
     if not smf or not smf.state or smf.state.isCombatLog or smf.state.detached then return end
 
-    smf:ReleaseChatFrame()
+    -- The size of the chat messages: the window kept the game's own size,
+    -- often bigger. Saved for the game, so the tab menu can still change it
+    local size = Core.db.profile.messageFontSize
+    if _G.SetChatWindowSize then _G.SetChatWindowSize(chatFrame:GetID(), size) end
+    smf:ReleaseChatFrame(size)
 
     -- Wait a moment: if the game is closing the window, it's gone by then
     C_Timer.After(0, function ()

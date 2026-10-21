@@ -12,6 +12,7 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 local CreateColor = CreateColor
 local CreateFrame = CreateFrame
 local CreateObjectPool = CreateObjectPool
+local hooksecurefunc = hooksecurefunc
 local Mixin = Mixin
 -- luacheck: pop
 
@@ -196,14 +197,68 @@ local SEPARATOR_GAP = 8      -- between the text and each line
 local SEPARATOR_ALPHA = 0.55 -- the lines at their strongest, next to the text
 
 -- The separator's text, or nil if this isn't one. Older versions saved it as
--- "-------- Previous session, ended 12 Oct, 14:30 --------".
+-- "-------- Previous session, ended 12 Oct, 14:30 --------". A separate
+-- window's copy (between dashes, or images in a test version), brought back by the
+-- game after a reload, is one too.
 local function SeparatorText(text)
   if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return nil end
+  if not text:find("Previous session", 1, true) then return nil end
   local core = text:match("^%-*%s*(Previous session.-)%s*%-*$")
+  if not core and (text:find("separatorLine", 1, true) or text:find("\226\128\148", 1, true)) then
+    text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    core = text:match("(Previous session.-%d%d:%d%d)") or text:match("(Previous session.-earlier)")
+  end
   if not core then return nil end
   return (core:gsub(", ended ", " · "))
 end
 Core.Components.SeparatorText = SeparatorText
+
+-- The separator's lines beside a line of a separate window (one of the game's
+-- own text lines): the same lines as the chat's, fading in and out with it
+local function DrawSeparatorLines(fontString, show)
+  if not show then
+    if fontString.glassLineLeft then
+      fontString.glassLineLeft:Hide()
+      fontString.glassLineRight:Hide()
+    end
+    return
+  end
+
+  if not fontString.glassLineLeft then
+    for _, side in ipairs({ "Left", "Right" }) do
+      local line = fontString:GetParent():CreateTexture(nil, "ARTWORK")
+      line:SetColorTexture(1, 1, 1, 1)
+      line:SetHeight(1)
+      fontString["glassLine"..side] = line
+    end
+    -- The game fades its lines out by their opacity
+    hooksecurefunc(fontString, "SetAlpha", function (_, alpha)
+      if fontString.glassSeparator then
+        fontString.glassLineLeft:SetAlpha(alpha)
+        fontString.glassLineRight:SetAlpha(alpha)
+      end
+    end)
+  end
+
+  local gold = Colors.apache
+  local half = fontString:GetStringWidth() / 2 + SEPARATOR_GAP
+  local left, right = fontString.glassLineLeft, fontString.glassLineRight
+  left:ClearAllPoints()
+  left:SetPoint("LEFT", fontString, "LEFT")
+  left:SetPoint("RIGHT", fontString, "CENTER", -half, 0)
+  left:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, 0), CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA))
+  right:ClearAllPoints()
+  right:SetPoint("LEFT", fontString, "CENTER", half, 0)
+  right:SetPoint("RIGHT", fontString, "RIGHT")
+  right:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA), CreateColor(gold.r, gold.g, gold.b, 0))
+  for _, line in ipairs({ left, right }) do
+    line:SetAlpha(fontString:GetAlpha())
+    line:Show()
+  end
+end
+Core.Components.DrawSeparatorLines = DrawSeparatorLines
 
 function MessageLineMixin:LayoutSeparator()
   local gold = Colors.apache

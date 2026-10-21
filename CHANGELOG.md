@@ -2,6 +2,12 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## Next version
+
+### Fixed
+- A tab dragged out of the chat kept the game's own font size for that window, often bigger than the chat's: it now gets the chat's size, and the tab menu can still change it (`UIManager.lua`, `SlidingMessageFrame.lua`).
+- Separate windows now show the messages from earlier sessions too, with the "Previous session" line drawn like in the chat (`History.lua`, `SlidingMessageFrame.lua`, `MessageLine.lua`).
+
 ## 1.0.0-forever (2026-10-19)
 
 ### Added

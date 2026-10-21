@@ -250,7 +250,15 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     self:AddMessage(...)
   end)
 
+  if chatFrame.RefreshDisplay then
+    self:SecureHook(chatFrame, "RefreshDisplay", function ()
+      self:DrawWindowSeparators()
+    end)
+  end
+
   self:SecureHook(chatFrame.historyBuffer, "PushBack", function (_, message)
+    -- Glass' own history, put in the window (BackFillWindow)
+    if self.state.fillingWindow then return end
     -- The game restored old messages itself (History won't add its own)
     self.state.didBackfill = true
     self:BackFillMessage(nil, message.message, message.r, message.g, message.b)
@@ -481,7 +489,7 @@ end
 -- Gives the chat frame back to the game, as a normal chat window. Used when
 -- its tab is dragged out of the Glass dock. Messages keep arriving here, so
 -- they are still there when the tab is docked again (TakeOverChatFrame).
-function SlidingMessageFrameMixin:ReleaseChatFrame()
+function SlidingMessageFrameMixin:ReleaseChatFrame(fontSize)
   local chatFrame = self.chatFrame
 
   -- The hooks stay, but do nothing while detached
@@ -492,8 +500,29 @@ function SlidingMessageFrameMixin:ReleaseChatFrame()
   chatFrame:SetResizable(true)
 
   self:Hide()
-  self:ApplyGlassFont()
+  self:ApplyGlassFont(fontSize)
   self:ApplyWindowStyle()
+  self:DrawWindowSeparators()
+end
+
+---
+-- The "Previous session" lines of a separate window look like the chat's:
+-- the text centered between two thin fading lines. The window's own lines
+-- are drawn by the game, so each time it draws them, Glass finds the
+-- separators among them.
+function SlidingMessageFrameMixin:DrawWindowSeparators()
+  local lines = self.chatFrame.visibleLines
+  if not lines then return end
+  local detached = self.state.detached
+  for _, fontString in ipairs(lines) do
+    local isSeparator = detached and fontString:IsShown()
+      and Core.Components.SeparatorText(fontString:GetText()) ~= nil or false
+    if isSeparator or fontString.glassSeparator then
+      fontString.glassSeparator = isSeparator
+      fontString:SetJustifyH(isSeparator and "CENTER" or "LEFT")
+      Core.Components.DrawSeparatorLines(fontString, isSeparator)
+    end
+  end
 end
 
 -- The background of a separate window: how much of the width fades in at each
@@ -799,12 +828,13 @@ end
 
 ---
 -- Gives a separate chat window the Glass font and outline. The size stays the
--- window's own, so it can still be changed from the tab menu (Font Size).
-function SlidingMessageFrameMixin:ApplyGlassFont()
+-- window's own, so it can still be changed from the tab menu (Font Size),
+-- unless a size is given.
+function SlidingMessageFrameMixin:ApplyGlassFont(size)
   if not self.state.detached then return end
 
   local chatFrame = self.chatFrame
-  local _, size = chatFrame:GetFont()
+  size = size or select(2, chatFrame:GetFont())
   -- A font of its own (with the game's fonts for Chinese, Korean and Russian
   -- letters, like the main chat), named after the window
   local font = Core:GetModule("Fonts"):Set(
@@ -888,6 +918,22 @@ function SlidingMessageFrameMixin:BackFillMessage(...)
   local args = {...}
   if SpamFilter:IsSpam(args[2]) then return end
   table.insert(self.state.incomingScrollbackMessages, args)
+end
+
+---
+-- Puts old messages ({ text, r, g, b }, newest first) above the ones of the
+-- game's own window too, which is what a separate window shows. Glass doesn't
+-- take them again from the window.
+function SlidingMessageFrameMixin:BackFillWindow(lines)
+  self.state.fillingWindow = true
+  pcall(function ()
+    for _, line in ipairs(lines) do
+      if not SpamFilter:IsSpam(line[1]) then
+        self.chatFrame:BackFillMessage(line[1], line[2], line[3], line[4])
+      end
+    end
+  end)
+  self.state.fillingWindow = false
 end
 
 -- The same for a saved message with the time it arrived (History)
