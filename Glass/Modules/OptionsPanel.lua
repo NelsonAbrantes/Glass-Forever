@@ -248,6 +248,9 @@ local function BuildGeneral(category, layout)
   Slider(category, "frameWidth", "Width", 100, 2000, 1, "Width of the chat", "frameWidth")
   Slider(category, "frameHeight", "Height", 100, 1200, 1, "Height of the chat", "frameHeight")
 
+  Header(layout, "Alerts")
+  Checkbox(category, "alertStyle", "Glass look for game alerts", "Achievements, loot, money, new recipes and the game's other alerts get the Glass background, a gold line and the Glass font instead of their own art (the Battle.net alert always has it)")
+
   Header(layout, "Separate windows")
   Checkbox(category, "windowStyle", "Glass look", "Tabs dragged out of the chat become windows with the Glass look: no border, the Glass background while the mouse is over them, and messages that fade out. Off: they look like the default chat", "windowStyle")
   local openSetting = ProfileSetting(category, "windowOpenPosition", Settings.VarType.String, "Opens at")

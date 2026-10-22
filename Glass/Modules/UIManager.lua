@@ -154,6 +154,172 @@ function UIManager:StyleToast()
   end)
 end
 
+----
+-- The game's other alerts (achievements, loot won, money, new recipes...)
+-- with the same Glass look as the Battle.net alert (Options: Glass look for
+-- game alerts). There are many kinds, each with its own art, so it's done
+-- the same way for all: the big background pictures are hidden (the icons,
+-- smaller, stay), and the Glass background, a gold line and the Glass font go
+-- on. Done each time an alert shows, since the game reuses them.
+local ALERT_ART_SHARE = 0.6 -- a texture this wide (of the alert) is background art
+
+local function StyleAlert(frame)
+  if not frame then return end
+  -- Turned off: what was hidden comes back, the Glass parts go
+  if not Core.db.profile.alertStyle then
+    for _, region in ipairs(frame.glassHidden or {}) do
+      region.glassAlertHidden = nil
+      region:Show()
+    end
+    frame.glassHidden = nil
+    if frame.Icon and frame.Icon.SetTexCoord and frame.Icon:IsObjectType("Texture") then
+      frame.Icon:SetTexCoord(0, 1, 0, 1)
+    end
+    for _, part in ipairs(frame.glassIconBorder or {}) do part:Hide() end
+    for _, key in ipairs({ "leftBg", "rightBg", "centerBg", "glassLineLeft", "glassLineRight", "glassLineBottomLeft", "glassLineBottomRight" }) do
+      if frame[key] then frame[key]:Hide() end
+    end
+    return
+  end
+  for _, key in ipairs({ "leftBg", "rightBg", "centerBg", "glassLineLeft", "glassLineRight", "glassLineBottomLeft", "glassLineBottomRight" }) do
+    if frame[key] then frame[key]:Show() end
+  end
+  frame.glassHidden = frame.glassHidden or {}
+  local Colors = Constants.COLORS
+  local gold = Colors.apache
+  local width = frame:GetWidth()
+  if not width or width <= 0 then return end
+
+  for _, region in ipairs({ frame:GetRegions() }) do
+    if region:IsObjectType("Texture") and region ~= frame.leftBg and region ~= frame.rightBg
+      and region ~= frame.centerBg and region ~= frame.glassLineLeft and region ~= frame.glassLineRight then
+      local layer = region:GetDrawLayer()
+      local regionWidth = region:GetWidth()
+      if (layer == "BACKGROUND" or layer == "BORDER") and regionWidth and regionWidth >= width * ALERT_ART_SHARE then
+        -- Hidden, not see-through: the game's show animations put the
+        -- opacity back. Kept hidden if the game shows it again.
+        if not region.glassAlertHidden then
+          region.glassAlertHidden = true
+          table.insert(frame.glassHidden, region)
+        end
+        if not region.glassAlertHooked then
+          region.glassAlertHooked = true
+          local function KeepHidden()
+            if region.glassAlertHidden and Core.db.profile.alertStyle and region:IsShown() then region:Hide() end
+          end
+          hooksecurefunc(region, "Show", KeepHidden)
+          hooksecurefunc(region, "SetShown", KeepHidden)
+        end
+        region:Hide()
+      end
+    elseif region:IsObjectType("FontString") then
+      local file = Core.Libs.LSM:Fetch(Core.Libs.LSM.MediaType.FONT, Core.db.profile.font)
+      if not region.glassSize then region.glassSize = select(2, region:GetFont()) end
+      region:SetFont(file, region.glassSize or 12, Core.db.profile.fontFlags)
+      region:SetShadowColor(0, 0, 0, 1)
+      region:SetShadowOffset(1, -1)
+    end
+  end
+
+  -- The Glass background (a little inside: the game's alerts have room
+  -- around their art), darker than the chat's so it reads over any ground
+  local opacity = math.min(0.9, Core.db.profile.chatBackgroundOpacity + 0.45)
+  Core.Components.GradientBackgroundMixin.SetGradientBackground(frame, 50, 50, Colors.codGray, opacity)
+  for _, texture in ipairs({ frame.leftBg, frame.rightBg }) do
+    texture:SetPoint(texture == frame.leftBg and "TOPLEFT" or "TOPRIGHT", 0, -8)
+    texture:SetPoint(texture == frame.leftBg and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, 8)
+  end
+
+  -- Thin gold lines closing it: at the top, and a fainter one at the bottom
+  if not frame.glassLineLeft then
+    local function Line(name, edge, alpha)
+      local left, right = frame:CreateTexture(nil, "ARTWORK"), frame:CreateTexture(nil, "ARTWORK")
+      for _, line in ipairs({ left, right }) do
+        line:SetColorTexture(1, 1, 1, 1)
+        line:SetHeight(1)
+      end
+      local y = edge == "TOP" and -8 or 8
+      left:SetPoint(edge.."LEFT", frame, edge.."LEFT", 0, y)
+      left:SetPoint(edge.."RIGHT", frame, edge, 0, y)
+      right:SetPoint(edge.."LEFT", frame, edge, 0, y)
+      right:SetPoint(edge.."RIGHT", frame, edge.."RIGHT", 0, y)
+      left:SetGradient("HORIZONTAL", CreateColor(gold.r, gold.g, gold.b, 0), CreateColor(gold.r, gold.g, gold.b, alpha))
+      right:SetGradient("HORIZONTAL", CreateColor(gold.r, gold.g, gold.b, alpha), CreateColor(gold.r, gold.g, gold.b, 0))
+      frame["glassLine"..name.."Left"], frame["glassLine"..name.."Right"] = left, right
+    end
+    Line("", "TOP", TOAST_LINE_ALPHA)
+    Line("Bottom", "BOTTOM", TOAST_LINE_ALPHA * 0.5)
+  end
+
+  -- The icon: the game's gold square around it hidden, and the icon's own
+  -- worn edges cut off, so it's a clean square like the Glass icons
+  local border = frame.IconBorder
+  if border and border.Hide then
+    if not border.glassAlertHooked then
+      border.glassAlertHooked = true
+      local function KeepHidden()
+        if Core.db.profile.alertStyle and border:IsShown() then border:Hide() end
+      end
+      hooksecurefunc(border, "Show", KeepHidden)
+      hooksecurefunc(border, "SetShown", KeepHidden)
+    end
+    if not border.glassAlertHidden then
+      border.glassAlertHidden = true
+      table.insert(frame.glassHidden, border)
+    end
+    border:Hide()
+  end
+  local icon = frame.Icon
+  if icon and icon.SetTexCoord and icon.IsObjectType and icon:IsObjectType("Texture") then
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    -- A Glass border instead: a thin gold line around the icon, with a dark
+    -- one outside it so it stands out on any background
+    if not frame.glassIconBorder then
+      local parts = {}
+      local function Edge(color, inset, layerLevel)
+        local edges = {}
+        for i = 1, 4 do
+          local edge = frame:CreateTexture(nil, "OVERLAY", nil, layerLevel)
+          edge:SetColorTexture(color[1], color[2], color[3], color[4])
+          edges[i] = edge
+          table.insert(parts, edge)
+        end
+        -- top, bottom, left, right: each one real screen pixel thick, the
+        -- same on every side (sizes in the UI's units came out uneven
+        -- with the UI scale, a side looking thicker)
+        local PixelUtil = _G.PixelUtil
+        local scale = frame:GetEffectiveScale()
+        local pixel = PixelUtil and PixelUtil.GetNearestPixelSize(1, scale, 1) or 1
+        local o = pixel * inset
+        edges[1]:SetPoint("TOPLEFT", icon, "TOPLEFT", -o, o)
+        edges[1]:SetPoint("TOPRIGHT", icon, "TOPRIGHT", o, o)
+        edges[1]:SetHeight(pixel)
+        edges[2]:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", -o, -o)
+        edges[2]:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", o, -o)
+        edges[2]:SetHeight(pixel)
+        edges[3]:SetPoint("TOPLEFT", icon, "TOPLEFT", -o, o)
+        edges[3]:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", -o, -o)
+        edges[3]:SetWidth(pixel)
+        edges[4]:SetPoint("TOPRIGHT", icon, "TOPRIGHT", o, o)
+        edges[4]:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", o, -o)
+        edges[4]:SetWidth(pixel)
+      end
+      Edge({ gold.r, gold.g, gold.b, 0.85 }, 1, 2)
+      Edge({ 0, 0, 0, 0.8 }, 2, 1)
+      frame.glassIconBorder = parts
+    end
+    for _, part in ipairs(frame.glassIconBorder) do part:Show() end
+  end
+end
+
+function UIManager:StyleAlerts()
+  local container = _G.AlertFrame
+  if not container or not container.AddAlertFrame or self.alertsHooked then return end
+  self.alertsHooked = true
+  hooksecurefunc(container, "AddAlertFrame", function (_, frame) StyleAlert(frame) end)
+end
+
 -- Where the Battle.net alerts show: where they were put in Edit Mode, or
 -- above the chat
 function UIManager:PlaceAlerts()
@@ -408,6 +574,7 @@ function UIManager:OnEnable()
     placingToast = false
   end)
   self:StyleToast()
+  self:StyleAlerts()
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option
