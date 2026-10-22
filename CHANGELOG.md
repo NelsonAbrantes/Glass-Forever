@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## Next version
+
+### Changed
+- Battle.net alerts (a friend coming online...) have the Glass look: the Glass fading background instead of the game's box, a thin gold line at the top, the Glass font, a gold flash, and a Glass close button (`UIManager.lua`, `Assets/Buttons/close.tga`).
+
 ## 1.0.5-forever (2026-10-21)
 
 ### Added

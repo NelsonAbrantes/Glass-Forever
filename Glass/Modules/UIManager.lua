@@ -13,6 +13,7 @@ local CreateSlidingMessageFramePool = Core.Components.CreateSlidingMessageFrameP
 -- luacheck: push ignore 113
 local BNToastFrame = BNToastFrame
 local ChatAlertFrame = ChatAlertFrame
+local CreateColor = CreateColor
 local CreateFrame = CreateFrame
 local hooksecurefunc = hooksecurefunc
 local FCFDock_GetSelectedWindow = FCFDock_GetSelectedWindow
@@ -47,6 +48,110 @@ function UIManager:IsSeparateWindow(chatFrame)
     if smf.chatFrame == chatFrame then return smf.state and smf.state.detached or false end
   end
   return false
+end
+
+----
+-- The Battle.net alert (a friend coming online...) with the Glass look, like
+-- the chat it belongs to: the Glass fading background instead of the game's
+-- box, a thin gold line at the top, the Glass font, a gold flash when it
+-- shows, and a quieter close button. Only the look changes.
+local TOAST_FADE = 50     -- how much of each side fades out
+local TOAST_LINE_ALPHA = 0.55
+
+function UIManager:StyleToast()
+  local toast = BNToastFrame
+  if not toast or toast.glassStyled then return end
+  toast.glassStyled = true
+  local Colors = Constants.COLORS
+  local gold = Colors.apache
+
+  -- The game's box: see-through (its colors only, so nothing of the game's
+  -- own setup is redone)
+  local function HideBox()
+    if toast.SetBackdropColor then
+      toast:SetBackdropColor(0, 0, 0, 0)
+      toast:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+  end
+  HideBox()
+
+  -- The Glass background, a little stronger than the chat's: it shows over
+  -- the game world on its own
+  local function Background()
+    local opacity = math.min(0.85, Core.db.profile.chatBackgroundOpacity + 0.3)
+    Core.Components.GradientBackgroundMixin.SetGradientBackground(toast, TOAST_FADE, TOAST_FADE, Colors.codGray, opacity)
+  end
+  Background()
+
+  -- A thin gold line at the top, fading out to both ends
+  for _, side in ipairs({ "Left", "Right" }) do
+    local line = toast:CreateTexture(nil, "ARTWORK")
+    line:SetColorTexture(1, 1, 1, 1)
+    line:SetHeight(1)
+    toast["glassLine"..side] = line
+  end
+  toast.glassLineLeft:SetPoint("TOPLEFT", toast, "TOPLEFT", 0, 0)
+  toast.glassLineLeft:SetPoint("TOPRIGHT", toast, "TOP", 0, 0)
+  toast.glassLineRight:SetPoint("TOPLEFT", toast, "TOP", 0, 0)
+  toast.glassLineRight:SetPoint("TOPRIGHT", toast, "TOPRIGHT", 0, 0)
+  toast.glassLineLeft:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, 0), CreateColor(gold.r, gold.g, gold.b, TOAST_LINE_ALPHA))
+  toast.glassLineRight:SetGradient("HORIZONTAL",
+    CreateColor(gold.r, gold.g, gold.b, TOAST_LINE_ALPHA), CreateColor(gold.r, gold.g, gold.b, 0))
+
+  -- The flash when it shows: gold instead of the game's blue-white
+  if toast.glow then toast.glow:SetVertexColor(gold.r, gold.g, gold.b) end
+
+  -- The close button: a Glass "x" in the gold with a dark outline, quieter
+  -- until the mouse is over it (the game's blue box hidden)
+  local close = toast.CloseButton
+  if close then
+    for _, texture in ipairs({ close:GetNormalTexture(), close:GetPushedTexture(), close:GetHighlightTexture() }) do
+      texture:SetAlpha(0)
+    end
+    local outline = close:CreateTexture(nil, "OVERLAY", nil, 6)
+    outline:SetTexture("Interface\\AddOns\\Glass\\Glass\\Assets\\Buttons\\closeOutline")
+    outline:SetVertexColor(0, 0, 0, 0.9)
+    outline:SetSize(16, 16)
+    outline:SetPoint("CENTER")
+    local icon = close:CreateTexture(nil, "OVERLAY", nil, 7)
+    icon:SetTexture("Interface\\AddOns\\Glass\\Glass\\Assets\\Buttons\\close")
+    icon:SetSize(16, 16)
+    icon:SetPoint("CENTER")
+    local function Quiet(hover)
+      icon:SetVertexColor(gold.r, gold.g, gold.b, hover and 1 or 0.6)
+      outline:SetAlpha(hover and 0.9 or 0.5)
+    end
+    Quiet(false)
+    close:HookScript("OnEnter", function () Quiet(true) end)
+    close:HookScript("OnLeave", function () Quiet(false) end)
+  end
+
+  -- The Glass font on its texts, keeping their sizes and the game's colors
+  -- (Battle.net blue names, gray messages)
+  local function Fonts()
+    local file = Core.Libs.LSM:Fetch(Core.Libs.LSM.MediaType.FONT, Core.db.profile.font)
+    for _, key in ipairs({ "TopLine", "MiddleLine", "BottomLine", "DoubleLine" }) do
+      local text = toast[key]
+      if text then
+        if not text.glassSize then text.glassSize = select(2, text:GetFont()) end
+        text:SetFont(file, text.glassSize or 12, Core.db.profile.fontFlags)
+        text:SetShadowColor(0, 0, 0, 1)
+        text:SetShadowOffset(1, -1)
+      end
+    end
+  end
+  Fonts()
+
+  -- Each new alert: the game may set its box up again
+  if toast.ShowToast then
+    hooksecurefunc(toast, "ShowToast", HideBox)
+  end
+
+  Core:Subscribe(Constants.EVENTS.UPDATE_CONFIG, function (key)
+    if key == "font" or key == "fontFlags" then Fonts() end
+    if key == "chatBackgroundOpacity" then Background() end
+  end)
 end
 
 -- Where the Battle.net alerts show: where they were put in Edit Mode, or
@@ -302,6 +407,7 @@ function UIManager:OnEnable()
     BNToastFrame:SetPoint("BOTTOMLEFT", ChatAlertFrame, "BOTTOMLEFT", 0, 0)
     placingToast = false
   end)
+  self:StyleToast()
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option
