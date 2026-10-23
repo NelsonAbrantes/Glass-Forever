@@ -399,6 +399,11 @@ function SlidingMessageFrameMixin:TakeOverChatFrame()
   self.state.detached = false
 
   _G[chatFrame:GetName().."ButtonFrame"]:Hide()
+  -- What a separate window's Glass look left on it (the game reuses whisper
+  -- windows: one closed was a separate window for a moment)
+  for _, texture in ipairs({ chatFrame.leftBg, chatFrame.centerBg, chatFrame.rightBg }) do
+    if texture then texture:SetAlpha(0) end
+  end
   chatFrame:SetClampRectInsets(0,0,0,0)
   chatFrame:SetClampedToScreen(false)
   chatFrame:SetResizable(false)
@@ -501,6 +506,10 @@ function SlidingMessageFrameMixin:ReleaseChatFrame(fontSize)
 
   self:Hide()
   self:ApplyGlassFont(fontSize)
+  -- Its Glass background can show again (hidden while it was in the chat)
+  for _, texture in ipairs({ chatFrame.leftBg, chatFrame.centerBg, chatFrame.rightBg }) do
+    if texture then texture:SetAlpha(1) end
+  end
   self:ApplyWindowStyle()
   self:DrawWindowSeparators()
 end

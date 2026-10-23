@@ -521,6 +521,9 @@ function UIManager:OnEnable()
     local function Sync(smf)
       if smf.state and not smf.state.detached and not smf.state.isCombatLog then
         if smf.chatFrame == selected then smf:Show() else smf:Hide() end
+        -- The game's own window stays hidden under Glass (a whisper window
+        -- the game reused after one was closed showed through it)
+        if smf.chatFrame and smf.chatFrame:IsShown() then smf:HideChatFrame() end
       end
     end
     for _, smf in ipairs(self.state.frames) do Sync(smf) end

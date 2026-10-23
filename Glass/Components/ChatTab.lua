@@ -6,6 +6,10 @@ local UnlockMover = Constants.ACTIONS.UnlockMover
 
 local Colors = Constants.COLORS
 
+-- The game's Recent Allies icon on a whisper tab, and the Glass one for it
+local ALLY_ATLAS = "friendslist-recentallies-yellow"
+local ALLY_ICON_FILE = "Interface\\AddOns\\Glass\\Glass\\Assets\\allyIcon"
+
 local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
@@ -213,6 +217,39 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end
     self:SecureHook(self, "SetText", SwapIcon)
     SwapIcon()
+  end
+
+  -- The game also shows that yellow icon as the whisper tab's own icon (its
+  -- picture in front of the name, set for each whisper): the Glass one there
+  -- too, in the Glass gold
+  local icon = self.conversationIcon
+  if icon and not self:IsHooked(icon, "SetAtlas") then
+    local swappingIcon = false
+    local function Gold()
+      swappingIcon = true
+      icon:SetVertexColor(Colors.apache.r, Colors.apache.g, Colors.apache.b)
+      swappingIcon = false
+    end
+    local function SwapConversationIcon(_, atlas)
+      if atlas == ALLY_ATLAS then
+        swappingIcon = true
+        icon:SetTexture(ALLY_ICON_FILE)
+        icon:SetTexCoord(0, 1, 0, 1)
+        swappingIcon = false
+        icon.glassAlly = true
+        Gold()
+      end
+    end
+    self:SecureHook(icon, "SetAtlas", SwapConversationIcon)
+    -- Another icon (the whisper bubble, set as a picture): no longer ours
+    self:SecureHook(icon, "SetTexture", function ()
+      if not swappingIcon then icon.glassAlly = false end
+    end)
+    -- The game colors the tab's icon after this (white): the gold comes back
+    self:SecureHook(icon, "SetVertexColor", function ()
+      if icon.glassAlly and not swappingIcon then Gold() end
+    end)
+    if icon.GetAtlas then SwapConversationIcon(icon, icon:GetAtlas()) end
   end
 
   -- The game now and then puts the name back where its own tabs have it (a

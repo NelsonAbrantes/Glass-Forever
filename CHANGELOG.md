@@ -4,6 +4,10 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were 
 
 ## Next version
 
+### Fixed
+- A whisper window the game reused after one was closed could show through the chat, with a separate window's background (`UIManager.lua`, `SlidingMessageFrame.lua`).
+- Whisper tabs with someone from your Recent Allies list show the Glass icon again (the game now sets it as the tab's own icon); the icon is sharper (`ChatTab.lua`, `TextProcessing.lua`, `Assets/allyIcon.tga`).
+
 ### Changed
 - The game's other alerts (achievements, loot, money, new recipes...) can have the Glass look too, on by default (Options > Alerts): their background art hidden, the Glass background with thin gold lines at the top and bottom, the Glass font, and the icon in a thin gold Glass border (`UIManager.lua`, `OptionsPanel.lua`).
 - Battle.net alerts (a friend coming online...) have the Glass look: the Glass fading background instead of the game's box, a thin gold line at the top, the Glass font, a gold flash, and a Glass close button (`UIManager.lua`, `Assets/Buttons/close.tga`).
