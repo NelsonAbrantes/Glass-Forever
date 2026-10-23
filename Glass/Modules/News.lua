@@ -12,6 +12,20 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.0.6-forever",
+    items = {[[
+What's new
+
+- Battle.net alerts with the Glass look.
+- Game alerts (loot, achievements...) with the Glass look (option).
+
+Bug fixes
+
+- Whisper windows no longer show through the chat.
+- Recent Allies whisper tabs show the Glass icon again.
+    ]]}
+  },
+  {
     name = "1.0.5-forever",
     items = {[[
 What's new

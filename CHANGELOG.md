@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
-## Next version
+## 1.0.6-forever (2026-10-23)
 
 ### Fixed
 - A whisper window the game reused after one was closed could show through the chat, with a separate window's background (`UIManager.lua`, `SlidingMessageFrame.lua`).

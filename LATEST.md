@@ -1,15 +1,11 @@
-# 1.0.5-forever (2026-10-21)
+# 1.0.6-forever (2026-10-23)
 
 What's new
 
-- Whisper tabs stay open after a reload, until you close them.
-- Move the Battle.net alerts in Edit Mode.
-
-Changes
-
-- New look for the new message alert on tabs.
-- Separate windows show earlier messages too.
+- Battle.net alerts with the Glass look.
+- Game alerts (loot, achievements...) with the Glass look (option).
 
 Bug fixes
 
-- Tabs dragged out of the chat keep the chat's font size.
+- Whisper windows no longer show through the chat.
+- Recent Allies whisper tabs show the Glass icon again.
