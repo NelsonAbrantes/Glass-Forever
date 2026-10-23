@@ -470,6 +470,9 @@ function UIManager:OnEnable()
       if StillOpen(smf, chatFrame) then
         chatFrame:Show()
         RememberSeparate(chatFrame, true)
+      elseif chatFrame.isTemporary and not chatFrame.inUse then
+        -- A whisper window being closed: it doesn't stay on screen
+        chatFrame:Hide()
       end
     end)
   end)
@@ -632,6 +635,12 @@ function UIManager:OnEnable()
       self.slidingMessageFramePool:Release(smf)
       self.state.temporaryFrames[name] = nil
       self.state.temporaryTabs[name] = nil
+      -- Closing first takes the window out of the chat (which shows it as a
+      -- separate window): hidden again, or it stayed behind the chat
+      chatFrame:Hide()
+      C_Timer.After(0, function ()
+        if not chatFrame.inUse and not chatFrame.isDocked then chatFrame:Hide() end
+      end)
     end
   end)
 

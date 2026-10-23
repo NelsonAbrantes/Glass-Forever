@@ -5,7 +5,7 @@ Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were 
 ## 1.0.6-forever (2026-10-23)
 
 ### Fixed
-- A whisper window the game reused after one was closed could show through the chat, with a separate window's background (`UIManager.lua`, `SlidingMessageFrame.lua`).
+- A closed whisper window could stay on screen behind the chat (closing first takes it out of the chat, which showed it as a separate window), and one the game reused could show through the chat with a separate window's background (`UIManager.lua`, `SlidingMessageFrame.lua`).
 - Whisper tabs with someone from your Recent Allies list show the Glass icon again (the game now sets it as the tab's own icon); the icon is sharper (`ChatTab.lua`, `TextProcessing.lua`, `Assets/allyIcon.tga`).
 
 ### Changed
