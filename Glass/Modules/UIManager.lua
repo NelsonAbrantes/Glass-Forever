@@ -173,7 +173,7 @@ local function StyleAlert(frame)
     end
     frame.glassHidden = nil
     if frame.Icon and frame.Icon.SetTexCoord and frame.Icon:IsObjectType("Texture") then
-      frame.Icon:SetTexCoord(0, 1, 0, 1)
+      pcall(frame.Icon.SetTexCoord, frame.Icon, 0, 1, 0, 1)
     end
     for _, part in ipairs(frame.glassIconBorder or {}) do part:Hide() end
     for _, key in ipairs({ "leftBg", "rightBg", "centerBg", "glassLineLeft", "glassLineRight", "glassLineBottomLeft", "glassLineBottomRight" }) do
@@ -225,6 +225,11 @@ local function StyleAlert(frame)
   -- around their art), darker than the chat's so it reads over any ground
   local opacity = math.min(0.9, Core.db.profile.chatBackgroundOpacity + 0.45)
   Core.Components.GradientBackgroundMixin.SetGradientBackground(frame, 50, 50, Colors.codGray, opacity)
+  -- Behind everything: some alerts draw their icon in the background layer too
+  -- (a new recipe's), and the Glass background darkened it
+  for _, texture in ipairs({ frame.leftBg, frame.centerBg, frame.rightBg }) do
+    texture:SetDrawLayer("BACKGROUND", -8)
+  end
   for _, texture in ipairs({ frame.leftBg, frame.rightBg }) do
     texture:SetPoint(texture == frame.leftBg and "TOPLEFT" or "TOPRIGHT", 0, -8)
     texture:SetPoint(texture == frame.leftBg and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, 8)
@@ -270,8 +275,10 @@ local function StyleAlert(frame)
     border:Hide()
   end
   local icon = frame.Icon
-  if icon and icon.SetTexCoord and icon.IsObjectType and icon:IsObjectType("Texture") then
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+  -- Cut only if the game allows it: a round icon (a new recipe's has a mask the
+  -- mask count doesn't show) refuses, and keeps its own look, with no border
+  local isTexture = icon and icon.SetTexCoord and icon.IsObjectType and icon:IsObjectType("Texture")
+  if isTexture and pcall(icon.SetTexCoord, icon, 0.08, 0.92, 0.08, 0.92) then
 
     -- A Glass border instead: a thin gold line around the icon, with a dark
     -- one outside it so it stands out on any background

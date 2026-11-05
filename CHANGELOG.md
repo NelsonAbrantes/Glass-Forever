@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.0.7-forever (2026-11-05)
+
+### Fixed
+- New recipe alerts showed an error, and their icon came out dark: its icon is round and can't be cut, so it keeps its own look, and the Glass background goes behind everything (`UIManager.lua`).
+
 ## 1.0.6-forever (2026-10-23)
 
 ### Fixed
