@@ -35,6 +35,15 @@ local LINE_ALPHA = 0.8 -- the Minimal style's line under the box
 --   with a thin line under it in the color of the chat you're typing in
 -- - solid: a plain dark box
 -- - framed: rounded corners and a border in the chat's color
+-- The box's margins: after the header, and room on the right for the emote button
+function EditBoxMixin:GlassApplyInsets()
+  local Ypadding = self.header:GetLineHeight() * 0.66
+  local emoteRoom = self.emoteButton and self.emoteButton:IsShown() and 20 or 0
+  self.glassSettingInsets = true
+  self:SetTextInsets(self.header:GetStringWidth() + 8, 8 + emoteRoom, Ypadding, Ypadding)
+  self.glassSettingInsets = false
+end
+
 function EditBoxMixin:UpdateStyle()
   local style = Core.db.profile.editBoxStyle
   local opacity = Core.db.profile.editBoxBackgroundOpacity
@@ -153,7 +162,7 @@ function EditBoxMixin:CreateEmotePicker()
       icons[i]:SetTexture(file)
       icons[i]:SetVertexColor(ir or 1, ig or 1, ib or 1)
     end
-    self:SetTextInsets()
+    self:GlassApplyInsets()
   end
 
   -- A click on the box over the face opens or closes the panel (the frame's
@@ -244,19 +253,16 @@ function EditBoxMixin:Init(parent)
   local Ypadding = self.header:GetLineHeight() * 0.66
   self:SetHeight(self.header:GetLineHeight() + Ypadding * 2)
 
-  self:RawHook(self, "SetTextInsets", function ()
-    Ypadding = self.header:GetLineHeight() * 0.66
-    -- (room on the right for the emote button)
-    local emoteRoom = self.emoteButton and self.emoteButton:IsShown() and 20 or 0
-    self.hooks[self].SetTextInsets(
-      self,
-      self.header:GetStringWidth() + 8,
-      8 + emoteRoom, Ypadding, Ypadding
-    )
-  end, true)
+  -- The game sets its own margins each time the header changes: ours go on
+  -- after. A secure hook, not a replacement: the game's code calling an addon's
+  -- function directly gets tainted, and then fails on protected functions
+  -- (shift clicking a map pin, which copies it to the clipboard)
+  self:SecureHook(self, "SetTextInsets", function ()
+    if not self.glassSettingInsets then self:GlassApplyInsets() end
+  end)
 
   self:CreateEmotePicker()
-  self:SetTextInsets()
+  self:GlassApplyInsets()
 
   -- Animations
   -- Intro animations
@@ -266,13 +272,6 @@ function EditBoxMixin:Init(parent)
   fadeIn:SetToAlpha(1)
   fadeIn:SetDuration(0.2)
   fadeIn:SetSmoothing("OUT")
-
-  -- Outro animations
-  local outroAg = self:CreateAnimationGroup()
-  local fadeOut = outroAg:CreateAnimation("Alpha")
-  fadeOut:SetFromAlpha(1)
-  fadeOut:SetToAlpha(0)
-  fadeOut:SetDuration(0.05)
 
   -- Workaround for editbox being open on login
   self.glassInitialized = false
@@ -285,21 +284,11 @@ function EditBoxMixin:Init(parent)
     end
   end)
 
-  outroAg:SetScript("OnFinished", function ()
-    if not introAg:IsPlaying() then
-      self.hooks[self].Hide(self)
-    end
-  end)
-
-  self:RawHook(self, "Hide", function ()
-    outroAg:Play()
-  end, true)
-
   Core:Subscribe(UPDATE_CONFIG, function (key)
     if key == "font" or key == "editBoxFontSize" then
       Ypadding = self.header:GetLineHeight() * 0.66
       self:SetHeight(self.header:GetLineHeight() + Ypadding * 2)
-      self:SetTextInsets()
+      self:GlassApplyInsets()
     end
 
     if key == "frameWidth" then

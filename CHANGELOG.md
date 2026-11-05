@@ -2,6 +2,14 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.0.8-forever (2026-11-05)
+
+### Fixed
+- Long messages could overlap the next one when the game hides a message's height: the estimate of its lines now counts the indent of the wrapped lines, with a small margin (`MessageLine.lua`).
+- Whisper tabs with Battle.net friends showed no name: such a name can't be measured, so the tab has a fixed room for it (`ChatTab.lua`).
+- Shift clicking a map pin gave a blocked action error blamed on Glass: the edit box's margins now use a secure hook instead of replacing the game's function, and the box closes with the game's own function, without its 0.05 second fade (`EditBox.lua`).
+- White lines around the new recipe alert icon: the icon is now a smaller square with the Glass border, and goes back to how the game left it when the alert closes (`UIManager.lua`).
+
 ## 1.0.7-forever (2026-11-05)
 
 ### Fixed

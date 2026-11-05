@@ -162,6 +162,7 @@ end
 -- smaller, stay), and the Glass background, a gold line and the Glass font go
 -- on. Done each time an alert shows, since the game reuses them.
 local ALERT_ART_SHARE = 0.6 -- a texture this wide (of the alert) is background art
+local ALERT_ROUND_ICON_SIZE = 48 -- a round icon made square (the round ones are big)
 
 local function StyleAlert(frame)
   if not frame then return end
@@ -275,10 +276,37 @@ local function StyleAlert(frame)
     border:Hide()
   end
   local icon = frame.Icon
-  -- Cut only if the game allows it: a round icon (a new recipe's has a mask the
-  -- mask count doesn't show) refuses, and keeps its own look, with no border
   local isTexture = icon and icon.SetTexCoord and icon.IsObjectType and icon:IsObjectType("Texture")
-  if isTexture and pcall(icon.SetTexCoord, icon, 0.08, 0.92, 0.08, 0.92) then
+  local cut = isTexture and pcall(icon.SetTexCoord, icon, 0.08, 0.92, 0.08, 0.92)
+  -- A round icon refuses the cut: a new recipe's has a mask (one the mask count
+  -- doesn't show), and without the game's ring over it, its worn edges show as
+  -- light lines. So the mask comes off, and it's a smaller square like the others.
+  if isTexture and not cut and icon.SetMask and pcall(icon.SetMask, icon, "") then
+    cut = pcall(icon.SetTexCoord, icon, 0.08, 0.92, 0.08, 0.92)
+    if cut then
+      if not icon.glassRound then
+        local width, height = icon:GetSize()
+        local point, relativeTo, relativePoint, x, y = icon:GetPoint()
+        icon.glassRound = { width, height, point, relativeTo, relativePoint, x, y }
+        -- Back as the game left it when the alert goes: the game puts the mask
+        -- on again when it reuses the alert
+        frame:HookScript("OnHide", function ()
+          local saved = icon.glassRound
+          pcall(icon.SetTexCoord, icon, 0, 1, 0, 1)
+          icon:SetSize(saved[1], saved[2])
+          icon:SetPoint(saved[3], saved[4], saved[5], saved[6], saved[7])
+        end)
+      end
+      local saved = icon.glassRound
+      icon:SetSize(ALERT_ROUND_ICON_SIZE, ALERT_ROUND_ICON_SIZE)
+      -- Same center as the round one
+      icon:SetPoint(saved[3], saved[4], saved[5], saved[6] + (saved[1] - ALERT_ROUND_ICON_SIZE) / 2, saved[7])
+    else
+      -- Still refused: the round icon stays
+      pcall(icon.SetMask, icon, "Interface\\CharacterFrame\\TempPortraitAlphaMask")
+    end
+  end
+  if cut then
 
     -- A Glass border instead: a thin gold line around the icon, with a dark
     -- one outside it so it stands out on any background

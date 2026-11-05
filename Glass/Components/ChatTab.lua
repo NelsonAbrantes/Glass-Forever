@@ -10,6 +10,9 @@ local Colors = Constants.COLORS
 local ALLY_ATLAS = "friendslist-recentallies-yellow"
 local ALLY_ICON_FILE = "Interface\\AddOns\\Glass\\Glass\\Assets\\allyIcon"
 
+-- Room for a Battle.net friend's name on a whisper tab (it can't be measured)
+local BNET_TAB_NAME_WIDTH = 100
+
 local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 
 -- luacheck: push ignore 113
@@ -642,6 +645,7 @@ end
 -- the cut text made the tab too narrow.
 function ChatTabMixin:FitText()
   local width = self:FullTextWidth()
+  if self:IsBattleNetWhisper() then self.Text:SetJustifyH("LEFT") end
   if math.abs(self.Text:GetWidth() - width) > 0.5 then
     self.Text:SetWidth(width)
   end
@@ -653,9 +657,23 @@ end
 function ChatTabMixin:FullTextWidth()
   local width = self.Text.GetUnboundedStringWidth and self.Text:GetUnboundedStringWidth() or self:GetTextWidth()
   if issecretvalue and issecretvalue(width) then
+    if self:IsBattleNetWhisper() then return BNET_TAB_NAME_WIDTH end
     return self:GetTextWidth()
   end
-  return math.ceil(width) + 1
+  width = math.ceil(width) + 1
+  -- A Battle.net friend's name is a code the game only turns into the name when
+  -- it draws it, so it can't be measured: a fixed room for it (measured, the tab
+  -- came out so narrow that the name didn't show)
+  if self:IsBattleNetWhisper() then return math.max(width, BNET_TAB_NAME_WIDTH) end
+  return width
+end
+
+---
+-- Is this the tab of a whisper with a Battle.net friend?
+function ChatTabMixin:IsBattleNetWhisper()
+  local name = self:GetName()
+  local chatFrame = name and _G[name:gsub("Tab$", "")]
+  return chatFrame and chatFrame.chatType == "BN_WHISPER"
 end
 
 ---

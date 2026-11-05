@@ -39,6 +39,7 @@ end
 -- and over. Emptied when the font changes, or when it gets large.
 local widthCache, cacheSize, cacheFont = {}, 0, nil
 local MAX_CACHE = 4000
+local ESTIMATE_MARGIN = 0.97 -- share of the line an estimate counts on
 
 -- Width of a piece of text, or nil if the game hides it
 local function MeasureWidth(text)
@@ -76,8 +77,11 @@ local function VisibleText(text)
   return text
 end
 
--- Number of lines the text needs at the given width, or nil if unknown
-local function EstimateNumLines(text, width)
+-- Number of lines the text needs at the given width, or nil if unknown. Lines
+-- after the first have less room when they're indented. On the generous side,
+-- since the game can break a line earlier: a small gap under a message is fine,
+-- one line too few makes the next message cover it.
+local function EstimateNumLines(text, width, indent)
   if text == nil or width <= 0 then return nil end
   if issecretvalue and issecretvalue(text) then return nil end
 
@@ -87,6 +91,8 @@ local function EstimateNumLines(text, width)
   if total == nil then return nil end
   if total <= width then return 1 end
 
+  local room = width * ESTIMATE_MARGIN
+  local nextRoom = math.max(1, (width - (indent or 0)) * ESTIMATE_MARGIN)
   local lines, lineWidth = 1, 0
   for word in visible:gmatch("%S+%s*") do
     -- The space after a word doesn't count when the word ends a line
@@ -94,15 +100,17 @@ local function EstimateNumLines(text, width)
     local wordWidth = MeasureWidth(word)
     if bareWidth == nil or wordWidth == nil then return nil end
 
-    if lineWidth > 0 and lineWidth + bareWidth > width then
+    if lineWidth > 0 and lineWidth + bareWidth > room then
       lines = lines + 1
       lineWidth = 0
+      room = nextRoom
     end
 
     -- A single word longer than the line is broken across lines
-    while wordWidth > width do
+    while wordWidth > room do
       lines = lines + 1
-      wordWidth = wordWidth - width
+      wordWidth = wordWidth - room
+      room = nextRoom
     end
 
     lineWidth = lineWidth + wordWidth
@@ -171,7 +179,8 @@ function MessageLineMixin:UpdateFrame()
     local numLines = self.text.GetNumLines and self.text:GetNumLines()
     if not numLines or issecretvalue(numLines) or numLines < 1 then
       local textWidth = Core.db.profile.frameWidth - Constants.TEXT_XPADDING * 2
-      numLines = EstimateNumLines(self.text:GetText(), textWidth) or 1
+      local indent = Core.db.profile.indentWordWrap and lineHeight or 0
+      numLines = EstimateNumLines(self.text:GetText(), textWidth, indent) or 1
     end
     stringHeight = lineHeight * numLines + Core.db.profile.messageLeading * (numLines - 1)
   end

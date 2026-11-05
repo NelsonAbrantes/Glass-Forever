@@ -12,6 +12,17 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.0.8-forever",
+    items = {[[
+Bug fixes
+
+- Long messages no longer overlap the next one.
+- Battle.net whisper tabs show the name.
+- Shift clicking a map pin no longer shows an error.
+- No more white lines around the new recipe alert icon.
+    ]]}
+  },
+  {
     name = "1.0.7-forever",
     items = {[[
 Bug fixes
