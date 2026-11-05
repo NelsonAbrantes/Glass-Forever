@@ -163,6 +163,8 @@ end
 -- on. Done each time an alert shows, since the game reuses them.
 local ALERT_ART_SHARE = 0.6 -- a texture this wide (of the alert) is background art
 local ALERT_ROUND_ICON_SIZE = 48 -- a round icon made square (the round ones are big)
+local ALERT_FADE_LEFT = 0.2 -- how much of the alert the background fades over, left and right
+local ALERT_FADE_RIGHT = 0.35
 
 local function StyleAlert(frame)
   if not frame then return end
@@ -225,7 +227,7 @@ local function StyleAlert(frame)
   -- The Glass background (a little inside: the game's alerts have room
   -- around their art), darker than the chat's so it reads over any ground
   local opacity = math.min(0.9, Core.db.profile.chatBackgroundOpacity + 0.45)
-  Core.Components.GradientBackgroundMixin.SetGradientBackground(frame, 50, 50, Colors.codGray, opacity)
+  Core.Components.GradientBackgroundMixin.SetGradientBackground(frame, width * ALERT_FADE_LEFT, width * ALERT_FADE_RIGHT, Colors.codGray, opacity)
   -- Behind everything: some alerts draw their icon in the background layer too
   -- (a new recipe's), and the Glass background darkened it
   for _, texture in ipairs({ frame.leftBg, frame.centerBg, frame.rightBg }) do

@@ -1,4 +1,4 @@
-# 1.0.8-forever (2026-11-05)
+# 1.0.9-forever (2026-11-05)
 
 Bug fixes
 
@@ -6,3 +6,4 @@ Bug fixes
 - Battle.net whisper tabs show the name.
 - Shift clicking a map pin no longer shows an error.
 - No more white lines around the new recipe alert icon.
+- Softer fade on the game alerts background.

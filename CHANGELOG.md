@@ -2,6 +2,13 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.0.9-forever (2026-11-05)
+
+First public release of the 1.0.8 fixes (1.0.8 was only tagged, never published).
+
+### Changed
+- The game alerts' background fades over a share of their width, longer on the right, instead of a short fixed fade (`UIManager.lua`).
+
 ## 1.0.8-forever (2026-11-05)
 
 ### Fixed
