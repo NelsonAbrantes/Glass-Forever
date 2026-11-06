@@ -2,6 +2,15 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.0.10-forever (2026-11-06)
+
+### Added
+- "Background on the whole line" (Messages) and "Background on the whole bar" (Tabs): the background keeps its opacity to the end instead of fading out over the right half (`MessageLine.lua`, `ChatDock.lua`, `OptionsPanel.lua`).
+
+### Fixed
+- The new message line on tabs sat a few pixels left of the name (`ChatTab.lua`).
+- With the chat buttons on the right, the first button covered the end of the last tab: the tabs now end before it (`ChatDock.lua`).
+
 ## 1.0.9-forever (2026-11-05)
 
 First public release of the 1.0.8 fixes (1.0.8 was only tagged, never published).

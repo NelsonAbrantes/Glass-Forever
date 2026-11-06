@@ -12,6 +12,19 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.0.10-forever",
+    items = {[[
+What's new
+
+- Background on the whole line, for messages and the tab bar (options).
+
+Bug fixes
+
+- The new message line is centered on the tab name.
+- The chat buttons on the right no longer cover the last tab.
+    ]]}
+  },
+  {
     name = "1.0.9-forever",
     items = {[[
 Bug fixes

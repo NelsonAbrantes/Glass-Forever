@@ -1,9 +1,10 @@
-# 1.0.9-forever (2026-11-05)
+# 1.0.10-forever (2026-11-06)
+
+What's new
+
+- Background on the whole line, for messages and the tab bar (options).
 
 Bug fixes
 
-- Long messages no longer overlap the next one.
-- Battle.net whisper tabs show the name.
-- Shift clicking a map pin no longer shows an error.
-- No more white lines around the new recipe alert icon.
-- Softer fade on the game alerts background.
+- The new message line is centered on the tab name.
+- The chat buttons on the right no longer cover the last tab.
