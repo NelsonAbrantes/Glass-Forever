@@ -380,7 +380,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             self.overlay:HideNewMessageAlert()
           end
 
-          if key == "chatBackgroundOpacity" then
+          if key == "chatBackgroundOpacity" or key == "messageBackgroundFull" then
             for _, message in ipairs(self.state.messages) do
               message:UpdateTextures()
             end

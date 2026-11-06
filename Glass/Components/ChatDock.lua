@@ -127,7 +127,7 @@ function ChatDockMixin:Init(parent)
           self:UpdateHeight()
         end
 
-        if key == "tabBarOpacity" then
+        if key == "tabBarOpacity" or key == "tabBarBackgroundFull" then
           self:UpdateBackground()
         end
 
@@ -191,7 +191,7 @@ function ChatDockMixin:UpdateAlignment()
 
   -- When the tabs don't fit, they stay on the left (the game scrolls them).
   -- 2px to spare, so the game never thinks they're too wide.
-  local free = math.max(0, self:GetWidth() - tabsWidth - 2)
+  local free = math.max(0, self:UsableWidth() - tabsWidth - 2)
   local x = 0
   if Core.db.profile.tabAlign == "center" then
     x = math.floor(free / 2)
@@ -208,6 +208,22 @@ function ChatDockMixin:UpdateAlignment()
 end
 
 local MIN_TAB_WIDTH = 50 -- smallest a tab gets before the game's arrow appears
+
+-- The chat buttons on the right of the chat come a little into its edge (see
+-- ChatButtons), and the first one is level with the tab bar when it's above
+-- the messages: the last tab ends before it, or the button covered its name
+local CHAT_BUTTONS_ROOM = 10
+
+---
+-- Width of the tab bar the tabs can use
+function ChatDockMixin:UsableWidth()
+  local width = self:GetWidth()
+  local profile = Core.db.profile
+  if profile.chatButtons and profile.chatButtonsSide == "right" and not Utils.TabBarAtBottom() then
+    width = width - CHAT_BUTTONS_ROOM
+  end
+  return width
+end
 
 ---
 -- Widest the tabs in a list can be to share `room`, or nil if they all fit at
@@ -274,7 +290,7 @@ function ChatDockMixin:TabLayout()
   end
 
   -- The game leaves 1px between tabs
-  local room = self:GetWidth() - fixedWidth - count
+  local room = self:UsableWidth() - fixedWidth - count
   local widths = {}
 
   local fullSum, compactSum, chatCompactSum, numWhispers = 0, 0, 0, 0
@@ -377,8 +393,12 @@ function ChatDockMixin:UpdateHeight()
   self.scrollFrame.child:SetHeight(height)
 end
 
+local FULL_BG_EDGE = 12 -- the soft edge of a background on the whole bar
+
 function ChatDockMixin:UpdateBackground()
-  self:SetGradientBackground(50, 250, Colors.black, Core.db.profile.tabBarOpacity or 0.4)
+  local left, right = 50, 250
+  if Core.db.profile.tabBarBackgroundFull then left, right = FULL_BG_EDGE, FULL_BG_EDGE end
+  self:SetGradientBackground(left, right, Colors.black, Core.db.profile.tabBarOpacity or 0.4)
 end
 
 local isCreated = false

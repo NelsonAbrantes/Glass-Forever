@@ -395,7 +395,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" or key == "font" or key == "messageFontSize"
           or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding"
-          or key == "tabBarPosition" then
+          or key == "tabBarPosition" or key == "chatButtons" or key == "chatButtonsSide" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
         end
@@ -793,8 +793,9 @@ function ChatTabMixin:ShowAlert(color)
   -- get narrower, the box can be wider than the name, and the line was off
   -- to the right
   local y = -(textHeight / 2 + 1)
-  -- Centered on the letters (see InkShift)
-  local inkShift = -InkShift(self)
+  -- Centered on the name's box: the letters sit in its middle (moved left by
+  -- the room after the last letter, the line was a few pixels off to the left)
+  local inkShift = 0
   local stringWidth = self.Text:GetStringWidth()
   local justify = self.Text:GetJustifyH()
   self.alertBox:ClearAllPoints()

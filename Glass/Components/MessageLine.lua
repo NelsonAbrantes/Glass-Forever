@@ -40,6 +40,7 @@ end
 local widthCache, cacheSize, cacheFont = {}, 0, nil
 local MAX_CACHE = 4000
 local ESTIMATE_MARGIN = 0.97 -- share of the line an estimate counts on
+local FULL_BG_EDGE = 12 -- the soft edge of a background on the whole line
 
 -- Width of a piece of text, or nil if the game hides it
 local function MeasureWidth(text)
@@ -124,8 +125,7 @@ function MessageLineMixin:Init()
   self:SetFadeInDuration(Core.db.profile.chatFadeInDuration)
   self:SetFadeOutDuration(Core.db.profile.chatFadeOutDuration)
 
-  local rightBgWidth = math.min(250, Core.db.profile.frameWidth - 50)
-  self:SetGradientBackground(50, rightBgWidth, Colors.codGray, Core.db.profile.chatBackgroundOpacity)
+  self:ApplyBackground()
 
   if self.text == nil then
     self.text = self:CreateFontString(nil, "ARTWORK", "GlassMessageFont")
@@ -167,6 +167,17 @@ function MessageLineMixin:Init()
 end
 
 ---
+-- The background behind the message: it fades out at both ends, over the
+-- right half of the line, or with "Background on the whole line" (Options)
+-- it stays at full opacity up to a short soft edge
+function MessageLineMixin:ApplyBackground()
+  local width = Core.db.profile.frameWidth
+  local left, right = 50, math.min(250, width - 50)
+  if Core.db.profile.messageBackgroundFull then left, right = FULL_BG_EDGE, FULL_BG_EDGE end
+  self:SetGradientBackground(left, right, Colors.codGray, Core.db.profile.chatBackgroundOpacity)
+end
+
+---
 -- Update height based on text height
 function MessageLineMixin:UpdateFrame()
   local Ypadding = self.text:GetLineHeight() * Core.db.profile.messageLinePadding
@@ -191,8 +202,7 @@ function MessageLineMixin:UpdateFrame()
   self.text:SetWidth(Core.db.profile.frameWidth - Constants.TEXT_XPADDING * 2)
   self.text:SetIndentedWordWrap(Core.db.profile.indentWordWrap)
 
-  local rightBgWidth = math.min(250, Core.db.profile.frameWidth - 50)
-  self:SetGradientBackground(50, rightBgWidth, Colors.codGray, Core.db.profile.chatBackgroundOpacity)
+  self:ApplyBackground()
   -- The background above shows again: the separator keeps its own look
   if self.isSeparator then self:SetSeparator(true) end
 end
@@ -314,8 +324,9 @@ end
 ---
 -- Update texture color based on setting
 function MessageLineMixin:UpdateTextures()
-  local rightBgWidth = math.min(250, Core.db.profile.frameWidth - 50)
-  self:SetGradientBackground(50, rightBgWidth, Colors.codGray, Core.db.profile.chatBackgroundOpacity)
+  self:ApplyBackground()
+  -- The separator keeps its own look
+  if self.isSeparator then self:SetSeparator(true) end
 end
 
 local function CreateMessageLine(parent)

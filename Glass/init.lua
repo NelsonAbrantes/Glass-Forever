@@ -71,6 +71,7 @@ Core.defaults = {
     tabBarHeight = 20,
     tabPadding = 15,
     tabBarOpacity = 0.4,
+    tabBarBackgroundFull = false, -- the tab bar background on the whole bar, not fading out on the right
     tabAlerts = true, -- colored glow and tab bar reveal on new messages
     tabUnreadCount = false, -- how many new messages, by the name of a tab you're not looking at
     tabStyle = "minimal", -- minimal, framed, solid, underline, pill, glossy or classic
@@ -95,6 +96,7 @@ Core.defaults = {
     -- Messages
     messageFontSize = 12,
     chatBackgroundOpacity = 0.4,
+    messageBackgroundFull = false, -- the background on the whole line, not fading out on the right
     messageLeading = 3,
     messageLinePadding = 0.25,
 
