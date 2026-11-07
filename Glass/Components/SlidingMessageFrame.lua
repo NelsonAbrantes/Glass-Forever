@@ -367,7 +367,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
             -- Then update scroll values
             local contentHeight = 0
             for _, message in ipairs(self.state.messages) do
-              contentHeight = contentHeight + message:GetHeight()
+              contentHeight = contentHeight + message:LayoutHeight()
             end
             self.slider:SetHeight(self.config.height + self.config.overflowHeight + contentHeight)
             self.slider:SetWidth(self.config.width)
@@ -964,17 +964,32 @@ local function TakeQueue(state, key)
   return queue
 end
 
+-- A message that fails to show is reported once per session, not on every
+-- message (the chat keeps going)
+local reported = false
+local function Report(err)
+  if reported then return end
+  reported = true
+  local handler = _G.geterrorhandler and _G.geterrorhandler()
+  if handler then handler(err) end
+end
+
+-- The queue is always emptied, even when showing a message fails: a failed
+-- message left in it failed again with every new one, and the tab stopped
+-- showing messages for good (a dungeon's party chat stayed empty)
 function SlidingMessageFrameMixin:OnFrame()
   if #self.state.incomingMessages > 0 then
     local incoming = TakeQueue(self.state, "incomingMessages")
-    self:Update(incoming, false)
+    local ok, err = pcall(self.Update, self, incoming, false)
     wipe(incoming)
+    if not ok then Report(err) end
   end
 
   if #self.state.incomingScrollbackMessages > 0 then
     local incoming = TakeQueue(self.state, "incomingScrollbackMessages")
-    self:Update(incoming, true)
+    local ok, err = pcall(self.Update, self, incoming, true)
     wipe(incoming)
+    if not ok then Report(err) end
   end
 end
 
@@ -984,44 +999,51 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
 
   for _, message in ipairs(incoming) do
     self.pendingTime = message.glassTime
-    local messageFrame = self:CreateMessageFrame(unpack(message))
+    -- One message that fails is skipped, the others still show
+    local ok, messageFrame = pcall(self.CreateMessageFrame, self, unpack(message))
     self.pendingTime = nil
-    messageFrame:SetPoint("BOTTOMLEFT")
-
-    -- Attach previous messageFrame to this one
-    if reverse then
-      if self.state.tail then
-        messageFrame:ClearAllPoints()
-        messageFrame:SetPoint("BOTTOMLEFT", self.state.tail, "TOPLEFT")
-      end
+    if not ok then
+      Report(messageFrame)
     else
-      if self.state.head then
-        self.state.head:ClearAllPoints()
-        self.state.head:SetPoint("BOTTOMLEFT", messageFrame, "TOPLEFT")
+      messageFrame:SetPoint("BOTTOMLEFT")
+
+      -- Attach previous messageFrame to this one
+      if reverse then
+        if self.state.tail then
+          messageFrame:ClearAllPoints()
+          local anchor, x, y = self.state.tail:TopAnchor()
+          messageFrame:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", x, y)
+        end
+      else
+        if self.state.head then
+          self.state.head:ClearAllPoints()
+          local anchor, x, y = messageFrame:TopAnchor()
+          self.state.head:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", x, y)
+        end
       end
-    end
 
-    if self.state.tail == nil then
-      self.state.tail = messageFrame
-    end
+      if self.state.tail == nil then
+        self.state.tail = messageFrame
+      end
 
-    if self.state.head == nil then
-      self.state.head = messageFrame
-    end
+      if self.state.head == nil then
+        self.state.head = messageFrame
+      end
 
-    if reverse then
-      self.state.tail = messageFrame
-    else
-      self.state.head = messageFrame
-    end
+      if reverse then
+        self.state.tail = messageFrame
+      else
+        self.state.head = messageFrame
+      end
 
-    table.insert(newMessages, messageFrame)
+      table.insert(newMessages, messageFrame)
+    end
   end
 
   -- Update slider offsets animation
   local offset = 0
   for _, message in ipairs(newMessages) do
-    offset = offset + message:GetHeight()
+    offset = offset + message:LayoutHeight()
   end
 
   local newHeight = self.slider:GetHeight() + offset

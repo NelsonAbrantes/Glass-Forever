@@ -191,7 +191,7 @@ function ChatDockMixin:UpdateAlignment()
 
   -- When the tabs don't fit, they stay on the left (the game scrolls them).
   -- 2px to spare, so the game never thinks they're too wide.
-  local free = math.max(0, self:UsableWidth() - tabsWidth - 2)
+  local free = math.max(0, self:GetWidth() - tabsWidth - 2)
   local x = 0
   if Core.db.profile.tabAlign == "center" then
     x = math.floor(free / 2)
@@ -208,22 +208,6 @@ function ChatDockMixin:UpdateAlignment()
 end
 
 local MIN_TAB_WIDTH = 50 -- smallest a tab gets before the game's arrow appears
-
--- The chat buttons on the right of the chat come a little into its edge (see
--- ChatButtons), and the first one is level with the tab bar when it's above
--- the messages: the last tab ends before it, or the button covered its name
-local CHAT_BUTTONS_ROOM = 10
-
----
--- Width of the tab bar the tabs can use
-function ChatDockMixin:UsableWidth()
-  local width = self:GetWidth()
-  local profile = Core.db.profile
-  if profile.chatButtons and profile.chatButtonsSide == "right" and not Utils.TabBarAtBottom() then
-    width = width - CHAT_BUTTONS_ROOM
-  end
-  return width
-end
 
 ---
 -- Widest the tabs in a list can be to share `room`, or nil if they all fit at
@@ -277,8 +261,16 @@ function ChatDockMixin:TabLayout()
     if tab then
       count = count + 1
       local text = tab.FullTextWidth and tab:FullTextWidth() or tab:GetWidth() - padding * 2
-      if tab:GetParent() ~= scrollChild then
-        fixedWidth = fixedWidth + text + padding * 2
+      -- A Battle.net whisper keeps its width too: its name is secret, and
+      -- shrinking it ("...") made the game's own code fail on it (an error
+      -- blamed on Glass)
+      local bnet = tab.IsBattleNetWhisper and tab:IsBattleNetWhisper()
+      if tab:GetParent() ~= scrollChild or bnet then
+        -- Their real width: the game can make them wider than the name needs
+        -- (then the last tab went past the end of the bar, cut)
+        local real = tab:IsShown() and tab:GetWidth() or 0
+        if issecretvalue and issecretvalue(real) then real = 0 end
+        fixedWidth = fixedWidth + math.max(text + padding * 2, real)
       else
         local icon = tab.conversationIcon
         local iconWidth = icon and icon:IsShown() and icon:GetWidth() or 0
@@ -290,7 +282,7 @@ function ChatDockMixin:TabLayout()
   end
 
   -- The game leaves 1px between tabs
-  local room = self:UsableWidth() - fixedWidth - count
+  local room = self:GetWidth() - fixedWidth - count
   local widths = {}
 
   local fullSum, compactSum, chatCompactSum, numWhispers = 0, 0, 0, 0

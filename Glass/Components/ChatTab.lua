@@ -395,7 +395,7 @@ function ChatTabMixin:Init(slidingMessageFrame)
       Core:Subscribe(UPDATE_CONFIG, function (key)
         if key == "frameWidth" or key == "font" or key == "messageFontSize"
           or key == "tabFont" or key == "tabFontSize" or key == "tabBarHeight" or key == "tabPadding"
-          or key == "tabBarPosition" or key == "chatButtons" or key == "chatButtonsSide" then
+          or key == "tabBarPosition" then
           -- Fit the tab to its text, the bar height and the spacing
           self:UpdateLayout()
         end
@@ -646,7 +646,9 @@ end
 function ChatTabMixin:FitText()
   local width = self:FullTextWidth()
   if self:IsBattleNetWhisper() then self.Text:SetJustifyH("LEFT") end
-  if math.abs(self.Text:GetWidth() - width) > 0.5 then
+  -- (a Battle.net friend's name can make even the name's width secret)
+  local current = self.Text:GetWidth()
+  if (issecretvalue and issecretvalue(current)) or math.abs(current - width) > 0.5 then
     self.Text:SetWidth(width)
   end
   return width

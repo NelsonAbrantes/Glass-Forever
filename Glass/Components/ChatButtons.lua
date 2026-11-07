@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 
 local AceHook = Core.Libs.AceHook
 
@@ -89,7 +89,8 @@ function ChatButtonsMixin:Init(container)
         self:FadeOut()
       end),
       Core:Subscribe(UPDATE_CONFIG, function (key)
-        if key == "chatButtons" or key == "chatButtonsSide" or key == "tabBarFade" then
+        if key == "chatButtons" or key == "chatButtonsSide" or key == "tabBarFade"
+          or key == "tabBarHeight" or key == "tabBarPosition" then
           self:Update()
         end
       end)
@@ -290,8 +291,14 @@ function ChatButtonsMixin:Update()
   local enabled = Core.db.profile.chatButtons
   local holder = Position().holder
 
+  -- Beside the chat on the right, the column starts under the tab bar (when
+  -- it's above the messages): the first button covered the last tab
+  local y = holder[4]
+  if Core.db.profile.chatButtonsSide == "right" and not Utils.TabBarAtBottom() then
+    y = y - Utils.TabBarHeight()
+  end
   self:ClearAllPoints()
-  self:SetPoint(holder[1], self.container, holder[2], holder[3], holder[4])
+  self:SetPoint(holder[1], self.container, holder[2], holder[3], y)
 
   for _, button in ipairs(self.buttons) do
     self:PlaceButton(button)

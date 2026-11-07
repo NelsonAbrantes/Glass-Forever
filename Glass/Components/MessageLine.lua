@@ -182,6 +182,7 @@ end
 function MessageLineMixin:UpdateFrame()
   local Ypadding = self.text:GetLineHeight() * Core.db.profile.messageLinePadding
   local stringHeight = self.text:GetStringHeight()
+  local free = false -- line count unknown (see SetFreeHeight)
   -- Retail 12.x: GetStringHeight can return a "secret" value that addons cannot
   -- do arithmetic on. Fall back to the line count: the game's own if it shares
   -- it, otherwise our estimate, otherwise a single line.
@@ -191,20 +192,78 @@ function MessageLineMixin:UpdateFrame()
     if not numLines or issecretvalue(numLines) or numLines < 1 then
       local textWidth = Core.db.profile.frameWidth - Constants.TEXT_XPADDING * 2
       local indent = Core.db.profile.indentWordWrap and lineHeight or 0
-      numLines = EstimateNumLines(self.text:GetText(), textWidth, indent) or 1
+      numLines = EstimateNumLines(self.text:GetText(), textWidth, indent)
+      if not numLines then
+        numLines, free = 1, true
+      end
     end
     stringHeight = lineHeight * numLines + Core.db.profile.messageLeading * (numLines - 1)
   end
   local messageLineHeight = (stringHeight + Ypadding * 2)
   self:SetHeight(messageLineHeight)
+  -- Kept: asked again, the game can answer with a secret value once the
+  -- message is laid out (see LayoutHeight)
+  self.glassHeight = messageLineHeight
+  self.glassLineHeight = self.text:GetLineHeight()
 
   self:SetWidth(Core.db.profile.frameWidth)
   self.text:SetWidth(Core.db.profile.frameWidth - Constants.TEXT_XPADDING * 2)
   self.text:SetIndentedWordWrap(Core.db.profile.indentWordWrap)
 
   self:ApplyBackground()
+  self:SetFreeHeight(free, Ypadding)
   -- The background above shows again: the separator keeps its own look
   if self.isSeparator then self:SetSeparator(true) end
+end
+
+---
+-- A message the game hides completely (text and size "secret", as in a
+-- dungeon) can't be measured, and counted as one line a longer one was
+-- covered by the next message. Instead its text sits on the bottom of the
+-- line and grows up as far as it needs: the game lays it out, and the
+-- message above goes on top of the text (TopAnchor), the background reaching
+-- up with it.
+function MessageLineMixin:SetFreeHeight(free, padding)
+  if self.glassFree == free and self.glassPadding == padding then return end
+  self.glassFree, self.glassPadding = free, padding
+  local x = Constants.TEXT_XPADDING
+  self.text:ClearAllPoints()
+  if free then
+    self.text:SetPoint("BOTTOMLEFT", x, padding)
+  else
+    self.text:SetPoint("LEFT", x, 0)
+  end
+  if self.leftBg then
+    self.leftBg:ClearAllPoints()
+    self.leftBg:SetPoint("BOTTOMLEFT")
+    self.rightBg:ClearAllPoints()
+    self.rightBg:SetPoint("BOTTOMRIGHT")
+    if free then
+      self.leftBg:SetPoint("TOPLEFT", self.text, "TOPLEFT", -x, padding)
+      self.rightBg:SetPoint("TOPRIGHT", self.text, "TOPRIGHT", x, padding)
+    else
+      self.leftBg:SetPoint("TOPLEFT")
+      self.rightBg:SetPoint("TOPRIGHT")
+    end
+  end
+end
+
+-- Where the message above this one goes: on top of the line, or of its text
+-- when the line can't be measured (SetFreeHeight)
+function MessageLineMixin:TopAnchor()
+  if self.glassFree then
+    return self.text, -Constants.TEXT_XPADDING, self.glassPadding or 0
+  end
+  return self, 0, 0
+end
+
+-- The height the chat counts for this message when it scrolls. For one that
+-- can't be measured, room for two more lines: too much only leaves some
+-- empty room at the very top of the chat
+function MessageLineMixin:LayoutHeight()
+  local height = self.glassHeight or 0
+  if self.glassFree then height = height + (self.glassLineHeight or 0) * 2 end
+  return height
 end
 
 ---

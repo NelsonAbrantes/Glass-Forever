@@ -165,6 +165,45 @@ local ALERT_ART_SHARE = 0.6 -- a texture this wide (of the alert) is background 
 local ALERT_ROUND_ICON_SIZE = 48 -- a round icon made square (the round ones are big)
 local ALERT_FADE_LEFT = 0.2 -- how much of the alert the background fades over, left and right
 local ALERT_FADE_RIGHT = 0.35
+local ALERT_DARK_TEXT = 0.35 -- text darker than this (its brightness) is made gold
+local ALERT_SHIELD = "Interface\\AddOns\\Glass\\Glass\\Assets\\achievementShield"
+
+---
+-- An achievement's shield (with its points) in the Glass look: the game's is
+-- small art, blurry at this size. on = false puts the game's back.
+local function StyleShield(frame, on)
+  local shield = frame.Shield
+  local icon = shield and shield.Icon
+  if not icon or not icon.SetTexture or not icon.IsObjectType or not icon:IsObjectType("Texture") then return end
+  if not on then
+    local saved = icon.glassShield
+    if saved then
+      icon.glassShield = nil
+      if saved.atlas then
+        icon:SetAtlas(saved.atlas)
+      else
+        icon:SetTexture(saved.file)
+        icon:SetTexCoord(unpack(saved.coords))
+      end
+    end
+    return
+  end
+  -- The game's picture, kept once (each time it shows an achievement, the
+  -- game only changes the part of it shown, with or without points)
+  if not icon.glassShield then
+    icon.glassShield = { atlas = icon.GetAtlas and icon:GetAtlas(), file = icon:GetTexture(), coords = { icon:GetTexCoord() } }
+  end
+  icon:SetTexture(ALERT_SHIELD)
+  icon:SetTexCoord(0, 1, 0, 1)
+  local points = shield.Points
+  if points and points.SetFont then
+    local file = Core.Libs.LSM:Fetch(Core.Libs.LSM.MediaType.FONT, Core.db.profile.font)
+    if not points.glassSize then points.glassSize = select(2, points:GetFont()) end
+    points:SetFont(file, points.glassSize or 12, Core.db.profile.fontFlags)
+    points:SetShadowColor(0, 0, 0, 1)
+    points:SetShadowOffset(1, -1)
+  end
+end
 
 local function StyleAlert(frame)
   if not frame then return end
@@ -179,6 +218,14 @@ local function StyleAlert(frame)
       pcall(frame.Icon.SetTexCoord, frame.Icon, 0, 1, 0, 1)
     end
     for _, part in ipairs(frame.glassIconBorder or {}) do part:Hide() end
+    StyleShield(frame, false)
+    for _, region in ipairs({ frame:GetRegions() }) do
+      local color = region.glassDarkColor
+      if color then
+        region.glassDarkColor = nil
+        region:SetTextColor(color[1], color[2], color[3], color[4])
+      end
+    end
     for _, key in ipairs({ "leftBg", "rightBg", "centerBg", "glassLineLeft", "glassLineRight", "glassLineBottomLeft", "glassLineBottomRight" }) do
       if frame[key] then frame[key]:Hide() end
     end
@@ -221,8 +268,18 @@ local function StyleAlert(frame)
       region:SetFont(file, region.glassSize or 12, Core.db.profile.fontFlags)
       region:SetShadowColor(0, 0, 0, 1)
       region:SetShadowOffset(1, -1)
+      -- Dark text (an achievement's "Achievement Earned", made for the game's
+      -- light banner) can't be read on the dark Glass background: gold instead
+      local r, g, b, a = region:GetTextColor()
+      if r and not (issecretvalue and issecretvalue(r))
+        and 0.2126 * r + 0.7152 * g + 0.0722 * b < ALERT_DARK_TEXT then
+        region.glassDarkColor = { r, g, b, a }
+        region:SetTextColor(gold.r, gold.g, gold.b, a)
+      end
     end
   end
+
+  StyleShield(frame, true)
 
   -- The Glass background (a little inside: the game's alerts have room
   -- around their art), darker than the chat's so it reads over any ground

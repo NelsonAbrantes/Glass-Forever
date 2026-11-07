@@ -329,8 +329,9 @@ end
 local restoring = false
 
 local function RememberLine(text)
-  if restoring or type(text) ~= "string" or text == "" then return end
-  if issecretvalue and issecretvalue(text) then return end
+  -- Secret first: comparing a secret line (typed in a dungeon) is an error
+  if restoring or type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return end
+  if text == "" then return end
   local lines = TypedLines()
   -- The same line again moves to the end instead of repeating
   for i = #lines, 1, -1 do
