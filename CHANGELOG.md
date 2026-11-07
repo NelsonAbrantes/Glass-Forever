@@ -2,6 +2,19 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.0.11-forever (2026-11-07)
+
+### Added
+- With the chat buttons on the right and the tab bar on top, the buttons sit below the bar (`ChatButtons.lua`); the room left for them at the end of the bar in 1.0.10 is gone (`ChatDock.lua`).
+- Game alerts: dark text is shown in gold (`UIManager.lua`), and the achievement alert gets a new shield image (`Assets/achievementShield.tga`).
+
+### Fixed
+- Messages the game hides from addons ("secret", in dungeons) could not be measured: longer ones were covered by the next message. Their text now grows up on its own and the message above sits on top of it (`MessageLine.lua`, `SlidingMessageFrame.lua`).
+- One message failing to show stayed in the queue and made every later one fail: the tab (party chat in a dungeon) stopped showing messages. The queue is always emptied now, and the error is reported once (`SlidingMessageFrame.lua`).
+- The emote filter for separate windows ran on whispers and tainted the game's code opening a new whisper tab (errors on Battle.net names): no longer on whispers (`TextProcessing.lua`).
+- Errors on Battle.net whisper tabs with a secret name width (`ChatTab.lua`, `ChatDock.lua`), and on typed lines that were secret (`EditBox.lua`).
+- The last tab went past the end of the bar: General and Combat Log are counted at their real width, and Battle.net tabs are never shrunk (`ChatDock.lua`).
+
 ## 1.0.10-forever (2026-11-06)
 
 ### Added

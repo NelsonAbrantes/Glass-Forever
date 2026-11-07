@@ -1,10 +1,14 @@
-# 1.0.10-forever (2026-11-06)
+# 1.0.11-forever (2026-11-07)
 
 What's new
 
-- Background on the whole line, for messages and the tab bar (options).
+- The chat buttons on the right sit below the tab bar.
+- Dark text on game alerts is now gold, easier to read.
+- A sharper achievement shield on alerts.
 
 Bug fixes
 
-- The new message line is centered on the tab name.
-- The chat buttons on the right no longer cover the last tab.
+- Party chat in dungeons no longer stops showing messages.
+- Long messages in dungeons no longer overlap.
+- No more errors with Battle.net whispers.
+- Whisper tabs are no longer cut at the end of the bar.
