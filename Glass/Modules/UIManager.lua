@@ -134,29 +134,13 @@ function UIManager:StyleToast()
   -- The flash when it shows: gold instead of the game's blue-white
   if toast.glow then toast.glow:SetVertexColor(gold.r, gold.g, gold.b) end
 
-  -- The close button: a Glass "x" in the gold with a dark outline, quieter
-  -- until the mouse is over it (the game's blue box hidden)
+  -- No close button: a click anywhere on the alert already closes it. Only
+  -- made invisible and click-through (the game shows it again by itself), so
+  -- a click there goes to the alert too
   local close = toast.CloseButton
   if close then
-    for _, texture in ipairs({ close:GetNormalTexture(), close:GetPushedTexture(), close:GetHighlightTexture() }) do
-      texture:SetAlpha(0)
-    end
-    local outline = close:CreateTexture(nil, "OVERLAY", nil, 6)
-    outline:SetTexture("Interface\\AddOns\\Glass\\Glass\\Assets\\Buttons\\closeOutline")
-    outline:SetVertexColor(0, 0, 0, 0.9)
-    outline:SetSize(16, 16)
-    outline:SetPoint("CENTER")
-    local icon = close:CreateTexture(nil, "OVERLAY", nil, 7)
-    icon:SetTexture("Interface\\AddOns\\Glass\\Glass\\Assets\\Buttons\\close")
-    icon:SetSize(16, 16)
-    icon:SetPoint("CENTER")
-    local function Quiet(hover)
-      icon:SetVertexColor(gold.r, gold.g, gold.b, hover and 1 or 0.6)
-      outline:SetAlpha(hover and 0.9 or 0.5)
-    end
-    Quiet(false)
-    close:HookScript("OnEnter", function () Quiet(true) end)
-    close:HookScript("OnLeave", function () Quiet(false) end)
+    close:SetAlpha(0)
+    close:EnableMouse(false)
   end
 
   -- The Glass font on its texts, keeping their sizes and the game's colors
