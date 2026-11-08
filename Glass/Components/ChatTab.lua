@@ -716,6 +716,8 @@ end
 -- changes per frame for each tab with an alert, nothing otherwise.
 
 local ALERT_WIDTH = 0.7         -- fraction of the tab width
+local ALERT_NAME_ROOM = 16      -- and at least the name's width plus this
+local ALERT_SEPARATE_GLOW = 0.5  -- the glow's strength on a separate window's tab
 local ALERT_GLOW_HEIGHT = 26     -- the glow around the line, as much below it as above
 local ALERT_GLOW_LOW, ALERT_GLOW_HIGH = 0.5, 1 -- the glow breathing between these
 local ALERT_BREATH_TIME = 1.6   -- seconds for one breath (bright, faint, bright)
@@ -794,6 +796,10 @@ function ChatTabMixin:ShowAlert(color)
   local r, g, b = GlowColor(color)
   -- Under the name, centered on it, most of the tab's width
   local width = math.max(10, (Readable(self:GetWidth()) or 60) * ALERT_WIDTH)
+  -- At least a little wider than the name: a separate window's tab is the
+  -- game's own, narrower, and its line was short, the glow a round blob
+  local nameWidth = Readable(self.Text:GetStringWidth())
+  if nameWidth then width = math.max(width, nameWidth + ALERT_NAME_ROOM) end
   self.alertWidth = width
   -- Just under the letters, from the name itself: a separate window's tab
   -- has the game's height, and a line placed from the tab's bottom crossed
@@ -827,6 +833,37 @@ function ChatTabMixin:ShowAlert(color)
   self.gleamLeft:SetWidth(gleam / 2)
   self.gleamRight:SetWidth(gleam / 2)
   self.gleamGlow:SetWidth(math.min(width, gleam * 1.4))
+
+  -- A separate window's tab has no dark tab bar behind it, only the game
+  -- world: added light there showed as bright blobs over the name. Mixed in
+  -- instead, and softer, it looks like on the dark bar.
+  local separate = self.chatFrame and not self.chatFrame.isDocked
+  self.alertGlowStrength = separate and ALERT_SEPARATE_GLOW or 1
+  local mode = separate and "BLEND" or "ADD"
+  self.alertGlow:SetBlendMode(mode)
+  self.gleamGlow:SetBlendMode(mode)
+  -- ...and its glow only rises from the line into the tab (the upper half
+  -- of the image): under the line there's no tab, only the window
+  if self.alertGlowHalf ~= separate then
+    self.alertGlowHalf = separate
+    local height = separate and ALERT_GLOW_HEIGHT / 2 or ALERT_GLOW_HEIGHT
+    local bottom = separate and 0.5 or 1
+    self.alertGlow:ClearAllPoints()
+    self.alertGlow:SetHeight(height)
+    self.alertGlow:SetTexCoord(0, 1, 0, bottom)
+    self.gleamGlow:ClearAllPoints()
+    self.gleamGlow:SetHeight(height)
+    self.gleamGlow:SetTexCoord(0, 1, 0, bottom)
+    if separate then
+      self.alertGlow:SetPoint("BOTTOMLEFT", self.alertBox, "LEFT")
+      self.alertGlow:SetPoint("BOTTOMRIGHT", self.alertBox, "RIGHT")
+      self.gleamGlow:SetPoint("BOTTOM", self.gleamLeft, "RIGHT")
+    else
+      self.alertGlow:SetPoint("LEFT", self.alertBox, "LEFT")
+      self.alertGlow:SetPoint("RIGHT", self.alertBox, "RIGHT")
+      self.gleamGlow:SetPoint("CENTER", self.gleamLeft, "RIGHT")
+    end
+  end
 
   self.alertLine:SetVertexColor(r, g, b, 1)
   local c, gc = self.alertColor, self.gleamColor
@@ -862,7 +899,8 @@ function ChatTabMixin:StepAlert(now)
   -- Breathing: a soft wave between faint and bright
   local wave = 0.5 - 0.5 * math.cos(2 * math.pi * t / ALERT_BREATH_TIME)
   local c = self.alertColor
-  self.alertGlow:SetVertexColor(c[1], c[2], c[3], ALERT_GLOW_LOW + (ALERT_GLOW_HIGH - ALERT_GLOW_LOW) * wave)
+  local strength = self.alertGlowStrength or 1
+  self.alertGlow:SetVertexColor(c[1], c[2], c[3], (ALERT_GLOW_LOW + (ALERT_GLOW_HIGH - ALERT_GLOW_LOW) * wave) * strength)
   -- The gleam: runs along the line, staying inside it, and fades in and out
   -- at its ends like the line does; then it's hidden until the next one
   local k = (t % ALERT_GLEAM_EVERY) / ALERT_GLEAM_TIME
@@ -879,7 +917,7 @@ function ChatTabMixin:StepAlert(now)
     local strength = math.sin(math.pi * x / width) ^ 2
     -- (the same two color objects every frame, so no garbage)
     local g = self.gleamColor
-    self.gleamGlow:SetVertexColor(g[1], g[2], g[3], math.min(1, ALERT_GLEAM_GLOW * strength * self.gleamBoost))
+    self.gleamGlow:SetVertexColor(g[1], g[2], g[3], math.min(1, ALERT_GLEAM_GLOW * strength * self.gleamBoost) * (self.alertGlowStrength or 1))
     self.gleamClear = self.gleamClear or CreateColor(0, 0, 0, 0)
     self.gleamStrong = self.gleamStrong or CreateColor(0, 0, 0, 0)
     self.gleamClear:SetRGBA(g[1], g[2], g[3], 0)

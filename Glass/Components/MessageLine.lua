@@ -304,6 +304,22 @@ Core.Components.SeparatorText = SeparatorText
 
 -- The separator's lines beside a line of a separate window (one of the game's
 -- own text lines): the same lines as the chat's, fading in and out with it
+-- The two lines' colors, faded as much as their line: a texture's own
+-- opacity doesn't mix with a fade drawn on it (they stayed bright while the
+-- text faded out). The same color objects each time.
+local function ColorSeparatorLines(fontString)
+  local alpha = fontString:GetAlpha()
+  if issecretvalue and issecretvalue(alpha) then alpha = 1 end
+  if fontString.glassLineAlpha == alpha then return end
+  fontString.glassLineAlpha = alpha
+  local gold = Colors.apache
+  fontString.glassLineClear = fontString.glassLineClear or CreateColor(gold.r, gold.g, gold.b, 0)
+  fontString.glassLineStrong = fontString.glassLineStrong or CreateColor(gold.r, gold.g, gold.b, 0)
+  fontString.glassLineStrong:SetRGBA(gold.r, gold.g, gold.b, SEPARATOR_ALPHA * alpha)
+  fontString.glassLineLeft:SetGradient("HORIZONTAL", fontString.glassLineClear, fontString.glassLineStrong)
+  fontString.glassLineRight:SetGradient("HORIZONTAL", fontString.glassLineStrong, fontString.glassLineClear)
+end
+
 local function DrawSeparatorLines(fontString, show)
   if not show then
     if fontString.glassLineLeft then
@@ -320,31 +336,33 @@ local function DrawSeparatorLines(fontString, show)
       line:SetHeight(1)
       fontString["glassLine"..side] = line
     end
-    -- The game fades its lines out by their opacity
-    hooksecurefunc(fontString, "SetAlpha", function (_, alpha)
-      if fontString.glassSeparator then
-        fontString.glassLineLeft:SetAlpha(alpha)
-        fontString.glassLineRight:SetAlpha(alpha)
-      end
-    end)
+    -- The game fades its lines out by their opacity, and hides them once
+    -- faded (the lines stayed then, without their text)
+    local function Follow()
+      if not fontString.glassSeparator then return end
+      local shown = fontString:IsShown()
+      fontString.glassLineLeft:SetShown(shown)
+      fontString.glassLineRight:SetShown(shown)
+      if shown then ColorSeparatorLines(fontString) end
+    end
+    hooksecurefunc(fontString, "SetAlpha", Follow)
+    hooksecurefunc(fontString, "SetShown", Follow)
+    hooksecurefunc(fontString, "Show", Follow)
+    hooksecurefunc(fontString, "Hide", Follow)
   end
 
-  local gold = Colors.apache
   local half = fontString:GetStringWidth() / 2 + SEPARATOR_GAP
   local left, right = fontString.glassLineLeft, fontString.glassLineRight
   left:ClearAllPoints()
   left:SetPoint("LEFT", fontString, "LEFT")
   left:SetPoint("RIGHT", fontString, "CENTER", -half, 0)
-  left:SetGradient("HORIZONTAL",
-    CreateColor(gold.r, gold.g, gold.b, 0), CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA))
   right:ClearAllPoints()
   right:SetPoint("LEFT", fontString, "CENTER", half, 0)
   right:SetPoint("RIGHT", fontString, "RIGHT")
-  right:SetGradient("HORIZONTAL",
-    CreateColor(gold.r, gold.g, gold.b, SEPARATOR_ALPHA), CreateColor(gold.r, gold.g, gold.b, 0))
+  fontString.glassLineAlpha = nil
+  ColorSeparatorLines(fontString)
   for _, line in ipairs({ left, right }) do
-    line:SetAlpha(fontString:GetAlpha())
-    line:Show()
+    line:SetShown(fontString:IsShown())
   end
 end
 Core.Components.DrawSeparatorLines = DrawSeparatorLines
