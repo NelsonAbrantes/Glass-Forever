@@ -428,13 +428,32 @@ local function SeparateWindowEmotes(chatFrame, _, text, ...)
   return false
 end
 
+-- Only outside dungeons and raids. A filter runs inside the game's chat code,
+-- which then counts as Glass's for the rest of that message ("tainted"); in
+-- an instance, where the messages are secret, the game's code then fails on
+-- them, with an error blamed on Glass (as with whispers before). The faces
+-- would not show there anyway: secret messages can't be changed.
 function TP:OnEnable()
-  local AddFilter = (_G.ChatFrameUtil and _G.ChatFrameUtil.AddMessageEventFilter)
-    or _G.ChatFrame_AddMessageEventFilter
-  if not AddFilter then return end
-  for _, event in ipairs(EMOTE_EVENTS) do
-    AddFilter(event, SeparateWindowEmotes)
+  local util = _G.ChatFrameUtil
+  local AddFilter = (util and util.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
+  local RemoveFilter = (util and util.RemoveMessageEventFilter) or _G.ChatFrame_RemoveMessageEventFilter
+  if not AddFilter or not RemoveFilter then return end
+  local added = false
+  local function Update()
+    local inInstance = _G.IsInInstance and _G.IsInInstance()
+    if inInstance and added then
+      for _, event in ipairs(EMOTE_EVENTS) do RemoveFilter(event, SeparateWindowEmotes) end
+      added = false
+    elseif not inInstance and not added then
+      for _, event in ipairs(EMOTE_EVENTS) do AddFilter(event, SeparateWindowEmotes) end
+      added = true
+    end
   end
+  Update()
+  local events = CreateFrame("Frame")
+  events:RegisterEvent("PLAYER_ENTERING_WORLD")
+  events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  events:SetScript("OnEvent", Update)
 end
 
 ---
@@ -450,6 +469,8 @@ local TEXT_PROCESSORS = {
 }
 
 function TP:ProcessText(text)
+  -- A secret message (in dungeons) can't be read or changed: shown as it is
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
   local result = text
 
   for _, processor in ipairs(TEXT_PROCESSORS) do

@@ -238,13 +238,14 @@ local function StyleAlert(frame)
   local Colors = Constants.COLORS
   local gold = Colors.apache
   local width = frame:GetWidth()
-  if not width or width <= 0 then return end
+  if (issecretvalue and issecretvalue(width)) or not width or width <= 0 then return end
 
   for _, region in ipairs({ frame:GetRegions() }) do
     if region:IsObjectType("Texture") and region ~= frame.leftBg and region ~= frame.rightBg
       and region ~= frame.centerBg and region ~= frame.glassLineLeft and region ~= frame.glassLineRight then
       local layer = region:GetDrawLayer()
       local regionWidth = region:GetWidth()
+      if issecretvalue and issecretvalue(regionWidth) then regionWidth = nil end
       if (layer == "BACKGROUND" or layer == "BORDER") and regionWidth and regionWidth >= width * ALERT_ART_SHARE then
         -- Hidden, not see-through: the game's show animations put the
         -- opacity back. Kept hidden if the game shows it again.

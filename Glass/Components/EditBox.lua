@@ -37,10 +37,14 @@ local LINE_ALPHA = 0.8 -- the Minimal style's line under the box
 -- - framed: rounded corners and a border in the chat's color
 -- The box's margins: after the header, and room on the right for the emote button
 function EditBoxMixin:GlassApplyInsets()
+  local headerWidth = self.header:GetStringWidth()
+  -- (a Battle.net friend's name in the header can make its width secret: the
+  -- game's own margins stay then)
+  if issecretvalue and issecretvalue(headerWidth) then return end
   local Ypadding = self.header:GetLineHeight() * 0.66
   local emoteRoom = self.emoteButton and self.emoteButton:IsShown() and 20 or 0
   self.glassSettingInsets = true
-  self:SetTextInsets(self.header:GetStringWidth() + 8, 8 + emoteRoom, Ypadding, Ypadding)
+  self:SetTextInsets(headerWidth + 8, 8 + emoteRoom, Ypadding, Ypadding)
   self.glassSettingInsets = false
 end
 

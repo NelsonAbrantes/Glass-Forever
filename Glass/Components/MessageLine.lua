@@ -83,8 +83,9 @@ end
 -- since the game can break a line earlier: a small gap under a message is fine,
 -- one line too few makes the next message cover it.
 local function EstimateNumLines(text, width, indent)
-  if text == nil or width <= 0 then return nil end
+  -- (secret first: even comparing a secret text with nil is an error)
   if issecretvalue and issecretvalue(text) then return nil end
+  if type(text) ~= "string" or width <= 0 then return nil end
 
   local visible = VisibleText(text)
 
@@ -137,17 +138,27 @@ function MessageLineMixin:Init()
   -- Hyperlink handling
   self:SetHyperlinksEnabled(true)
 
+  -- A link in a secret message (in dungeons) can't be read: straight to the
+  -- game, which can, and no tooltip
+  local function Secret(value) return issecretvalue and issecretvalue(value) end
+
   self:SetScript("OnHyperlinkClick", function (_, link, text, button)
+    if Secret(link) then
+      pcall(_G.SetItemRef, link, text, button, self.chatFrame)
+      return
+    end
     Core:Dispatch(HyperlinkClick({link, text, button, self.chatFrame}))
   end)
 
   self:SetScript("OnHyperlinkEnter", function (_, link, text)
+    if Secret(link) then return end
     if Core.db.profile.mouseOverTooltips then
       Core:Dispatch(HyperlinkEnter({link, text}))
     end
   end)
 
   self:SetScript("OnHyperlinkLeave", function (_, link)
+    if Secret(link) then return end
     Core:Dispatch(HyperlinkLeave(link))
   end)
 
@@ -168,7 +179,7 @@ end
 
 ---
 -- The background behind the message: it fades out at both ends, over the
--- right half of the line, or with "Background on the whole line" (Options)
+-- right half of the line, or with "Full-width background" (Options)
 -- it stays at full opacity up to a short soft edge
 function MessageLineMixin:ApplyBackground()
   local width = Core.db.profile.frameWidth

@@ -101,6 +101,13 @@ local function InkShift(tab)
   return height * 0.22
 end
 
+-- A size or position the game may hide (a Battle.net friend's name can make
+-- the tab's sizes secret): the number, or nil when it can't be read
+local function Readable(value)
+  if issecretvalue and issecretvalue(value) then return nil end
+  return value
+end
+
 function ChatTabMixin:Init(slidingMessageFrame)
   self.slidingMessageFrame = slidingMessageFrame
   slidingMessageFrame.glassTab = self -- (it tells the tab about new messages)
@@ -190,7 +197,8 @@ function ChatTabMixin:Init(slidingMessageFrame)
         self.Text:SetPoint("LEFT", self, "LEFT", textLeft, 0)
       end
 
-      if math.abs(self:GetWidth() - width) > 0.5 then
+      local current = Readable(self:GetWidth())
+      if not current or math.abs(current - width) > 0.5 then
         self.glassWidth = width
         Adjust(self.applyWidth)
       end
@@ -550,13 +558,14 @@ function SelectedLine:Follow(tab)
   if not self:Create() then return end
   local frame = self.frame
   local dock = frame:GetParent()
-  local dockLeft, tabLeft = dock:GetLeft(), tab:GetLeft()
-  if not dockLeft or not tabLeft then return end
+  local dockLeft, tabLeft = Readable(dock:GetLeft()), Readable(tab:GetLeft())
+  local tabWidth = Readable(tab:GetWidth())
+  if not dockLeft or not tabLeft or not tabWidth then return end
 
   local bar = self.mode == "bar"
-  local targetX = tabLeft - dockLeft + tab:GetWidth() / 2
-  local targetW = bar and (tab:GetWidth() - 2 * math.max(Utils.TabPadding() - 3, 0))
-    or tab:GetWidth() * LINE_WIDTH_RATIO
+  local targetX = tabLeft - dockLeft + tabWidth / 2
+  local targetW = bar and (tabWidth - 2 * math.max(Utils.TabPadding() - 3, 0))
+    or tabWidth * LINE_WIDTH_RATIO
   local now = GetTime()
 
   -- Another tab (Tabs options: Selected line animation)
@@ -784,12 +793,12 @@ function ChatTabMixin:ShowAlert(color)
   self:CreateAlert()
   local r, g, b = GlowColor(color)
   -- Under the name, centered on it, most of the tab's width
-  local width = math.max(10, self:GetWidth() * ALERT_WIDTH)
+  local width = math.max(10, (Readable(self:GetWidth()) or 60) * ALERT_WIDTH)
   self.alertWidth = width
   -- Just under the letters, from the name itself: a separate window's tab
   -- has the game's height, and a line placed from the tab's bottom crossed
   -- the name there (on a docked tab this is the same place as before)
-  local textHeight = self.Text:GetStringHeight()
+  local textHeight = Readable(self.Text:GetStringHeight())
   if not textHeight or textHeight <= 0 then textHeight = 12 end -- (a name not drawn yet)
   -- Centered on the letters, not on the name's box: when tabs don't fit and
   -- get narrower, the box can be wider than the name, and the line was off
@@ -804,7 +813,7 @@ function ChatTabMixin:ShowAlert(color)
   if (issecretvalue and issecretvalue(stringWidth)) or justify == "CENTER" or not stringWidth then
     self.alertBox:SetPoint("TOP", self.Text, "CENTER", inkShift, y)
   else
-    stringWidth = math.min(stringWidth, self.Text:GetWidth())
+    stringWidth = math.min(stringWidth, Readable(self.Text:GetWidth()) or stringWidth)
     if justify == "RIGHT" then
       self.alertBox:SetPoint("TOP", self.Text, "RIGHT", -stringWidth / 2 + inkShift, y)
     else
@@ -1202,16 +1211,17 @@ end
 function SelectedBox:Follow(tab)
   local frame = self.frame
   local dock = frame:GetParent()
-  local dockLeft, dockBottom = dock:GetLeft(), dock:GetBottom()
-  local tabLeft, tabBottom = tab:GetLeft(), tab:GetBottom()
-  if not dockLeft or not tabLeft or not dockBottom or not tabBottom then return end
+  local dockLeft, dockBottom = Readable(dock:GetLeft()), Readable(dock:GetBottom())
+  local tabLeft, tabBottom = Readable(tab:GetLeft()), Readable(tab:GetBottom())
+  local tabWidth, tabHeight = Readable(tab:GetWidth()), Readable(tab:GetHeight())
+  if not dockLeft or not tabLeft or not dockBottom or not tabBottom or not tabWidth or not tabHeight then return end
 
   -- Where the tab's own background would be (2px in at the sides, 1px at
   -- the top and bottom)
-  local targetH = math.max(1, tab:GetHeight() - 2)
-  local targetX = tabLeft - dockLeft + tab:GetWidth() / 2
+  local targetH = math.max(1, tabHeight - 2)
+  local targetX = tabLeft - dockLeft + tabWidth / 2
   local targetY = tabBottom - dockBottom + 1 + targetH / 2 -- its middle
-  local targetW = math.max(1, tab:GetWidth() - 4)
+  local targetW = math.max(1, tabWidth - 4)
   local now = GetTime()
 
   -- Another tab: Slide travels from where it is, Grow opens from the middle

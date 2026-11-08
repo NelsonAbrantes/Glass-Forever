@@ -8,6 +8,11 @@ local time = time
 -- luacheck: pop
 
 local MAX_LINES = 50 -- messages kept per tab
+local MAX_WHISPER_TABS = 20 -- whisper tabs kept with their messages
+
+-- Saved whisper tabs not open yet (lower-case name -> { target, lines, fill }),
+-- see Restore
+local pendingWhispers = {}
 
 -- Line shown under the restored messages, so they aren't mixed up with the
 -- ones from this session. The chat draws it with lines on each side, as
@@ -99,12 +104,22 @@ local function Save()
     -- names change every session.)
     for _, smf in pairs(Core:GetModule("UIManager").state.temporaryFrames) do
       local chatFrame = smf.chatFrame
-      if chatFrame and smf.state and chatFrame.chatType == "WHISPER"
-        and type(chatFrame.chatTarget) == "string" and chatFrame.chatTarget ~= "" then
+      local target = chatFrame and chatFrame.chatTarget
+      if chatFrame and smf.state and chatFrame.chatType == "WHISPER" and type(target) == "string"
+        and not (issecretvalue and issecretvalue(target)) and target ~= "" then
         local lines = Lines(smf)
         table.insert(whisperTabs, { target = chatFrame.chatTarget, lines = lines })
         total = total + #lines
       end
+    end
+
+    -- And the saved ones whose tab didn't open this session (no whisper with
+    -- that person yet), up to MAX_WHISPER_TABS in all
+    for _, pending in pairs(pendingWhispers) do
+      if #whisperTabs >= MAX_WHISPER_TABS then break end
+      -- (with when they were said, for the separator)
+      table.insert(whisperTabs, { target = pending.target, lines = pending.lines, savedAt = pending.savedAt })
+      total = total + #pending.lines
     end
   end
 
@@ -152,6 +167,19 @@ local function WindowSeparator(separator)
   }
 end
 
+-- The open Glass tab of a whisper with this person, if any
+local function FindWhisperTab(target)
+  for _, smf in pairs(Core:GetModule("UIManager").state.temporaryFrames) do
+    local chatFrame = smf.chatFrame
+    local chatTarget = chatFrame and chatFrame.chatTarget
+    if chatFrame and chatFrame.chatType == "WHISPER" and type(chatTarget) == "string"
+      and not (issecretvalue and issecretvalue(chatTarget))
+      and chatTarget:lower() == target:lower() then
+      return smf
+    end
+  end
+end
+
 local function Restore()
   local history = Core.db.char.history
   if not history or Core.db.profile.keepHistory == false then return end
@@ -165,7 +193,9 @@ local function Restore()
   -- added newest first to keep the original order. The separator goes first:
   -- it ends up between the old messages and the new ones. It is saved with
   -- the messages, so each earlier session keeps its own.
-  local function Fill(smf, lines)
+  local function Fill(smf, lines, tabSavedAt)
+    local separator = tabSavedAt
+      and string.format(SEPARATOR, date("%d %b, %H:%M", tabSavedAt)) or separator
     smf:BackFillMessage(nil, separator, SEPARATOR_COLOR, SEPARATOR_COLOR, SEPARATOR_COLOR)
     local window = { WindowSeparator(separator) }
     for i = #lines, 1, -1 do
@@ -188,34 +218,45 @@ local function Restore()
     end
   end
 
-  -- The whisper tabs that were open, with their messages, without selecting
-  -- them. One already open again (a whisper came meanwhile) only gets the
-  -- messages.
+  -- The whisper tabs that were open: their messages come back when the game
+  -- opens the tab again (a whisper from or to that person). Glass no longer
+  -- opens them itself: a whisper window opened by an addon is "tainted", and
+  -- the next whisper in it made the game's chat code fail (an error blamed on
+  -- Glass).
   local whisperTabs = Core.db.char.whisperTabs
-  if not whisperTabs or not _G.FCF_OpenTemporaryWindow then return end
-  local temporaryFrames = Core:GetModule("UIManager").state.temporaryFrames
-  local function FindTab(target)
-    for _, smf in pairs(temporaryFrames) do
-      local chatFrame = smf.chatFrame
-      if chatFrame and chatFrame.chatType == "WHISPER" and type(chatFrame.chatTarget) == "string"
-        and chatFrame.chatTarget:lower() == target:lower() then
-        return smf
-      end
-    end
-  end
+  if not whisperTabs then return end
+  wipe(pendingWhispers)
   for _, tab in ipairs(whisperTabs) do
-    if type(tab.target) == "string" then
-      local smf = FindTab(tab.target)
-      if not smf then
-        pcall(_G.FCF_OpenTemporaryWindow, "WHISPER", tab.target, nil, false)
-        smf = FindTab(tab.target)
-      end
+    if type(tab.target) == "string" and tab.target ~= "" then
       local lines = tab.lines and CleanUp(tab.lines)
-      if smf and smf.state and lines and #lines > 0 and not AlreadyShown(smf, lines) then
-        Fill(smf, lines)
+      if lines and #lines > 0 then
+        local smf = FindWhisperTab(tab.target)
+        if smf then
+          if smf.state and not AlreadyShown(smf, lines) then Fill(smf, lines, tab.savedAt) end
+        else
+          pendingWhispers[tab.target:lower()] = {
+            target = tab.target, lines = lines, fill = Fill, savedAt = tab.savedAt or savedAt,
+          }
+        end
       end
     end
   end
+end
+
+-- The game opened a whisper tab: the messages saved for that person
+local function WhisperTabOpened(chatType, chatTarget)
+  if chatType ~= "WHISPER" or type(chatTarget) ~= "string" then return end
+  if issecretvalue and issecretvalue(chatTarget) then return end
+  local key = chatTarget:lower()
+  if not pendingWhispers[key] then return end
+  -- (a moment later: the Glass tab is made after the game's)
+  C_Timer.After(0, function ()
+    local pending = pendingWhispers[key]
+    local smf = pending and FindWhisperTab(pending.target)
+    if not smf or not smf.state then return end
+    pendingWhispers[key] = nil
+    if not AlreadyShown(smf, pending.lines) then pending.fill(smf, pending.lines, pending.savedAt) end
+  end)
 end
 
 function History:OnEnable()
@@ -228,4 +269,8 @@ function History:OnEnable()
 
   -- Wait a moment so the game can restore its own messages first
   C_Timer.After(2, Restore)
+
+  if _G.FCF_OpenTemporaryWindow then
+    hooksecurefunc("FCF_OpenTemporaryWindow", WhisperTabOpened)
+  end
 end

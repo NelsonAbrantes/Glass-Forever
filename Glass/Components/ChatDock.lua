@@ -285,14 +285,21 @@ function ChatDockMixin:TabLayout()
   local room = self:GetWidth() - fixedWidth - count
   local widths = {}
 
-  local fullSum, compactSum, chatCompactSum, numWhispers = 0, 0, 0, 0
+  -- The smallest each group can get: MIN_TAB_WIDTH per tab, or less for a tab
+  -- already narrower than that (a short name like Guild). Counting those as
+  -- MIN_TAB_WIDTH, the tabs seemed not to fit when they did, and the game's
+  -- own system cut the last tab.
+  local fullSum, compactSum, chatCompactSum = 0, 0, 0
+  local chatMinSum, whisperMinSum = 0, 0
   for _, entry in ipairs(tabs) do
     fullSum = fullSum + entry[2]
     compactSum = compactSum + entry[3]
+    local smallest = math.min(entry[3], MIN_TAB_WIDTH)
     if entry[4] then
-      numWhispers = numWhispers + 1
+      whisperMinSum = whisperMinSum + smallest
     else
       chatCompactSum = chatCompactSum + entry[3]
+      chatMinSum = chatMinSum + smallest
     end
   end
 
@@ -327,16 +334,16 @@ function ChatDockMixin:TabLayout()
   end
 
   -- 2. Chats with their full names, whispers share the rest
-  if chatCompactSum + numWhispers * MIN_TAB_WIDTH <= room then
+  if chatCompactSum + whisperMinSum <= room then
     Shrink(false, chatCompactSum)
     Shrink(true, room - chatCompactSum)
     return false, widths
   end
 
   -- 3. Whispers at their smallest, chats share the rest
-  local chatsRoom = room - numWhispers * MIN_TAB_WIDTH
-  if (#tabs - numWhispers) * MIN_TAB_WIDTH <= chatsRoom then
-    Shrink(true, numWhispers * MIN_TAB_WIDTH)
+  local chatsRoom = room - whisperMinSum
+  if chatMinSum <= chatsRoom then
+    Shrink(true, whisperMinSum)
     Shrink(false, chatsRoom)
     return false, widths
   end

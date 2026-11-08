@@ -59,6 +59,7 @@ end
 function Hyperlinks:OnEnable()
   -- Custom hyperlink for [See what's new]
   _G.hooksecurefunc("SetItemRef", function(link)
+    if type(link) ~= "string" or (issecretvalue and issecretvalue(link)) then return end
     local linkType, addon, param1 = strsplit(":", link)
     if linkType == "garrmission" and addon == "Glass" then
       if param1 == "opennews" then
