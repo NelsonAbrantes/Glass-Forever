@@ -42,6 +42,7 @@ Core:NewModule("TextProcessing")
 Core:NewModule("UIManager", "AceHook-3.0")
 Core:NewModule("EditMode") -- after UIManager, it uses UIManager's mover frame
 Core:NewModule("History") -- after UIManager, it uses UIManager's frames
+Core:NewModule("Whispers") -- after UIManager, its bubbles sit above the chat
 Core:NewModule("DefaultTabs") -- after UIManager, it opens chat windows Glass takes over
 
 -- Default settings
@@ -116,6 +117,28 @@ Core.defaults = {
     chatRaceIcons = false, -- race icon in front of players' names
     firstNamesOnly = false, -- "Aehya" for "Aehya Bfc"
     keepHistory = true,
+    whisperWindows = true, -- whispers in their own windows (an envelope by the tab bar), not in the chat
+    whisperIconSize = 20,
+    whisperListOpacity = 0.7, -- the background of the icon's list
+    whisperSound = "none", -- a sound when a whisper arrives: "none", "kit:<SOUNDKIT name>" or "lsm:<SharedMedia name>"
+    whisperIconStyle = "envelope", -- "envelope", "bubble" or "bubbles"
+    whisperIconAnimation = "shake", -- when a whisper arrives: "shake", "pulse", "bounce", "spin" or "none"
+    whisperIconColor = "gold", -- "gold", "whisper", "white" or "silver"
+    whisperIconPosition = "barRight", -- "barRight", "barInside", "barLeft", "aboveRight" or "aboveLeft"
+    whisperIconOffsetX = 0, -- fine adjustment of the envelope, in pixels
+    whisperIconOffsetY = 0,
+    whisperNameColor = "auto", -- names in the list and the windows: "auto" (gold, class in the chat's look), "gold", "class" or "whisper"
+    whisperWindowOpacity = 0.75,
+    whisperLook = "boxes", -- "boxes" (like a phone chat) or "chat" (like the Glass chat)
+    whisperWindowStyle = "auto", -- "auto" (rounded, none in the chat's look), "rounded", "solid", "fade" or "none"
+    whisperWindowColor = "dark", -- "dark", "black", "brown", "blue" or "purple"
+    whisperFontSize = 0, -- 0: same as the chat messages
+    whisperFont = "", -- empty: same font as the messages
+    whisperFontFlags = "same", -- "same" (as the messages), "", "OUTLINE" or "THICKOUTLINE"
+    whisperTextColor = "auto", -- "auto" (white, whisper color in the chat's look), "whisper", "white", "silver" or "gold"
+    whisperShowNames = true, -- "Name:" in front of each line
+    whisperTimestamps = "auto", -- "auto" (17:49, as the chat in the chat's look), "chat", "off", "hm" or "hms"
+    whisperAutoOpen = false, -- a new whisper opens its window by itself
     arrowKeyHistory = true, -- Up/Down arrows go through what you typed, no Alt
     spamFilter = true, -- hide messages with any of spamWords
     spamWords = { -- gold sellers; players can change the list

@@ -1,6 +1,7 @@
 local Core, Constants, Utils = unpack(select(2, ...))
 local TP = Core:GetModule("TextProcessing")
 local SpamFilter = Core:GetModule("SpamFilter")
+local Whispers = Core:GetModule("Whispers")
 
 local AceHook = Core.Libs.AceHook
 
@@ -915,6 +916,9 @@ function SlidingMessageFrameMixin:AddMessage(...)
   -- Enqueue messages to be displayed. The second argument is the text.
   local args = {...}
   if SpamFilter:IsSpam(args[2]) then return end
+  -- Whispers go to their own windows (Whispers.lua). The fifth value the game
+  -- gives is the chat type's id.
+  if Whispers:HidesLine(args[2], args[6]) then return end
   args.glassTime = time() -- when it arrived (Timestamps, History)
   table.insert(self.state.incomingMessages, args)
   -- A message for a tab you're not looking at: its tab counts it

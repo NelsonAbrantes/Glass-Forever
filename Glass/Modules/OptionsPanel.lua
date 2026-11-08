@@ -107,12 +107,14 @@ local function ProfileSetting(category, key, varType, name, configKey, round)
   )
 end
 
-local function Slider(category, key, name, minValue, maxValue, step, tooltip, configKey)
+-- zeroLabel: shown instead of 0 (e.g. "Chat" for "same as the chat")
+local function Slider(category, key, name, minValue, maxValue, step, tooltip, configKey, zeroLabel)
   local Settings = _G.Settings
   local decimals = step < 1
   local setting = ProfileSetting(category, key, Settings.VarType.Number, name, configKey, decimals)
   local options = Settings.CreateSliderOptions(minValue, maxValue, step)
   options:SetLabelFormatter(_G.MinimalSliderWithSteppersMixin.Label.Right, function (value)
+    if zeroLabel and value == 0 then return zeroLabel end
     return decimals and RoundTo2(value) or value
   end)
   Settings.CreateSlider(category, setting, options, tooltip)
@@ -368,6 +370,207 @@ local function BuildMessages(category, layout)
   Checkbox(category, "arrowKeyHistory", "Arrow keys history", "Up and Down arrows in the chat box go through what you typed, even before logging out or /reload, without holding Alt")
   Checkbox(category, "mouseOverTooltips", "Mouse over tooltips", "Show tooltips when hovering over chat links")
   Slider(category, "iconTextureYOffset", "Text icons Y offset", 0, 12, 1, "Adjust this if text icons aren't centered")
+end
+
+-- A list that scrolls when it's long (like the font list), instead of the
+-- game's list that spreads over the whole screen. values() gives
+-- { value, shown name } pairs; configKey is sent after a change.
+local function ScrollDropdown(layout, key, label, tooltip, values, configKey)
+  local function Shown(value)
+    for _, entry in ipairs(values()) do
+      if entry[1] == value then return entry[2] end
+    end
+    return value
+  end
+
+  local Initializer = CreateFromMixins(
+    _G.ScrollBoxFactoryInitializerMixin,
+    _G.SettingsElementHierarchyMixin,
+    _G.SettingsSearchableElementMixin
+  )
+
+  function Initializer:Init()
+    _G.ScrollBoxFactoryInitializerMixin.Init(self, "SettingsListElementTemplate")
+    self.data = { name = label, tooltip = tooltip }
+    self:AddSearchTags(label)
+  end
+
+  function Initializer:GetExtent()
+    return 26
+  end
+
+  function Initializer:InitFrame(frame)
+    frame:SetSize(280, 26)
+    frame.data = self.data
+    frame.Text:SetFontObject("GameFontNormal")
+    frame.Text:SetText(label)
+    frame.Text:SetPoint("LEFT", 37, 0)
+    frame.Text:SetPoint("RIGHT", frame, "CENTER", -85, 0)
+
+    if not frame.glassScrollDropdown then
+      local dropdown = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
+      dropdown:SetPoint("LEFT", frame, "CENTER", -80, 0)
+      dropdown:SetPoint("RIGHT", frame, "RIGHT", -20, 0)
+      dropdown:SetHeight(26)
+      frame.glassScrollDropdown = dropdown
+    end
+
+    local dropdown = frame.glassScrollDropdown
+    dropdown:Show()
+    dropdown:SetupMenu(function (_, rootDescription)
+      rootDescription:SetScrollMode(300)
+      for _, entry in ipairs(values()) do
+        rootDescription:CreateRadio(
+          entry[2],
+          function (value) return profile()[key] == value end,
+          function (value)
+            profile()[key] = value
+            Core:Dispatch(UpdateConfig(configKey or key))
+            dropdown:OverrideText(Shown(value))
+          end,
+          entry[1]
+        )
+      end
+    end)
+    dropdown:OverrideText(Shown(profile()[key]))
+  end
+
+  function Initializer:Resetter(frame)
+    if frame.glassScrollDropdown then
+      frame.glassScrollDropdown:Hide()
+    end
+  end
+
+  local initializer = CreateFromMixins(Initializer)
+  initializer:Init()
+  layout:AddInitializer(initializer)
+end
+
+local function BuildWhispers(category, layout)
+  local Settings = _G.Settings
+
+  Checkbox(category, "whisperWindows", "Whisper windows", "Whispers go to their own small windows instead of the chat. An icon by the tab bar counts the people with something new: click it for the list, click a name to open the conversation. Off: whispers stay in the chat", "whisperWindows")
+  Checkbox(category, "whisperAutoOpen", "Open by itself", "A new whisper opens its window right away, instead of waiting for you to click the whisper icon")
+  local nameColorSetting = ProfileSetting(category, "whisperNameColor", Settings.VarType.String, "Name color", "whisperText")
+  Dropdown(category, nameColorSetting, function ()
+    return {
+      { "auto", "Auto" },
+      { "gold", "Gold" },
+      { "class", "Class color" },
+      { "whisper", "Whisper color" },
+    }
+  end, "Color of the names in the whisper icon's list and in the whisper windows. Auto: gold, or the class color with the chat's look. In the list, someone with something new is always in the whisper color, with a soft glow under the name")
+
+  ScrollDropdown(layout, "whisperSound", "Sound", "A sound when a whisper arrives, on top of the game's own. Picking one plays it. Sounds other addons share (SharedMedia) are in the list too", function ()
+    return Core:GetModule("Whispers"):SoundChoices()
+  end, "whisperSound")
+
+  Header(layout, "Whisper icon")
+  local iconSetting = ProfileSetting(category, "whisperIconStyle", Settings.VarType.String, "Icon", "whisperIcon")
+  Dropdown(category, iconSetting, function ()
+    return {
+      { "envelope", "Envelope" },
+      { "bubble", "Speech bubble" },
+      { "bubbles", "Two speech bubbles" },
+    }
+  end, "The icon that counts the people with new whispers")
+  local positionSetting = ProfileSetting(category, "whisperIconPosition", Settings.VarType.String, "Position", "whisperIcon")
+  Dropdown(category, positionSetting, function ()
+    return {
+      { "barRight", "Right of the tab bar" },
+      { "barInside", "End of the tab bar" },
+      { "barLeft", "Left of the tab bar" },
+      { "aboveRight", "Above the chat, right" },
+      { "aboveLeft", "Above the chat, left" },
+    }
+  end, "Where the icon sits. End of the tab bar: inside it, on the right (it can cover the last tab when there are many)")
+  Slider(category, "whisperIconSize", "Size", 12, 32, 1, "Size of the icon", "whisperIcon")
+  local animationSetting = ProfileSetting(category, "whisperIconAnimation", Settings.VarType.String, "Animation", "whisperIconAnimation")
+  Dropdown(category, animationSetting, function ()
+    return {
+      { "shake", "Shake" },
+      { "pulse", "Pulse" },
+      { "bounce", "Bounce" },
+      { "spin", "Spin" },
+      { "none", "None" },
+    }
+  end, "A little animation of the icon when a whisper arrives. Picking one shows it")
+  local colorSetting = ProfileSetting(category, "whisperIconColor", Settings.VarType.String, "Color", "whisperIcon")
+  Dropdown(category, colorSetting, function ()
+    return {
+      { "gold", "Gold" },
+      { "whisper", "Whisper color" },
+      { "white", "White" },
+      { "silver", "Silver" },
+    }
+  end, "Color of the icon when there's nothing new. With new whispers it takes the whisper color and pulses")
+  Slider(category, "whisperListOpacity", "List background opacity", 0, 1, 0.05, "How dark the background of the list the icon opens is", "whisperIcon")
+  Slider(category, "whisperIconOffsetX", "Move left / right", -1500, 1500, 1, "Moves the icon, in pixels (positive = right). Shift + drag the icon to move it with the mouse", "whisperIcon")
+  Slider(category, "whisperIconOffsetY", "Move down / up", -1000, 1000, 1, "Moves the icon, in pixels (positive = up). Shift + drag the icon to move it with the mouse", "whisperIcon")
+
+  Header(layout, "Windows")
+  local lookSetting = ProfileSetting(category, "whisperLook", Settings.VarType.String, "Look", "whisperLook")
+  Dropdown(category, lookSetting, function ()
+    return {
+      { "boxes", "Phone chat" },
+      { "chat", "Same as the chat" },
+    }
+  end, "Phone chat: their messages on the left and yours on the right, each in a box with the time. Same as the chat: lines like the Glass chat, \"time Name: message\", with the chat's fading background. The options set to Auto follow the look")
+  local styleSetting = ProfileSetting(category, "whisperWindowStyle", Settings.VarType.String, "Background", "whisperWindowOpacity")
+  Dropdown(category, styleSetting, function ()
+    return {
+      { "auto", "Auto" },
+      { "rounded", "Rounded corners" },
+      { "solid", "Square" },
+      { "fade", "Fading edges" },
+      { "none", "None" },
+    }
+  end, "The look of the whisper windows' background. Auto: rounded corners, or none with the chat's look. Fading edges: like the chat, fading out to the left and right")
+  local bgColorSetting = ProfileSetting(category, "whisperWindowColor", Settings.VarType.String, "Background color", "whisperWindowOpacity")
+  Dropdown(category, bgColorSetting, function ()
+    return {
+      { "dark", "Dark gray" },
+      { "black", "Black" },
+      { "brown", "Dark brown" },
+      { "blue", "Dark blue" },
+      { "purple", "Dark purple" },
+    }
+  end, "Color of the whisper windows' background")
+  Slider(category, "whisperWindowOpacity", "Background opacity", 0, 1, 0.05, "How dark the background of the whisper windows is", "whisperWindowOpacity")
+
+  Header(layout, "Text")
+  FontDropdown(layout, "whisperFont", "Font", "Font of the whisper windows", "Same as messages")
+  Slider(category, "whisperFontSize", "Font size", 0, 24, 1, "Size of the text in the whisper windows. 0: the same as the chat messages", "whisperFontSize", "Chat")
+  local flagSetting = ProfileSetting(category, "whisperFontFlags", Settings.VarType.String, "Font outline", "whisperFont")
+  Dropdown(category, flagSetting, function ()
+    return {
+      { "same", "Same as messages" },
+      { "", "None" },
+      { "OUTLINE", "Outline" },
+      { "THICKOUTLINE", "Thick outline" },
+    }
+  end, "Outline around the letters in the whisper windows")
+  local colorSetting = ProfileSetting(category, "whisperTextColor", Settings.VarType.String, "Text color", "whisperText")
+  Dropdown(category, colorSetting, function ()
+    return {
+      { "auto", "Auto" },
+      { "whisper", "Whisper color" },
+      { "white", "White" },
+      { "silver", "Silver" },
+      { "gold", "Gold" },
+    }
+  end, "Color of the messages in the whisper windows. Auto: white, or the whisper color with the chat's look. Whisper color: the game's whisper pink (Battle.net blue for Battle.net friends)")
+  Checkbox(category, "whisperShowNames", "Show names", "\"Name:\" in front of each message", "whisperText")
+  local timeSetting = ProfileSetting(category, "whisperTimestamps", Settings.VarType.String, "Timestamps", "whisperText")
+  Dropdown(category, timeSetting, function ()
+    return {
+      { "auto", "Auto" },
+      { "chat", "Same as the chat" },
+      { "off", "Off" },
+      { "hm", "17:49" },
+      { "hms", "17:49:05" },
+    }
+  end, "The time a message arrived. Auto: 17:49, or as the chat with the chat's look")
 end
 
 local function BuildTabs(category, layout)
@@ -700,6 +903,9 @@ function OptionsPanel:Build()
 
   local messages, messagesLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Messages")
   BuildMessages(messages, messagesLayout)
+
+  local whispers, whispersLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Whispers")
+  BuildWhispers(whispers, whispersLayout)
 
   local profiles, profilesLayout = Settings.RegisterVerticalLayoutSubcategory(category, "Profiles")
   BuildProfiles(profiles, profilesLayout)
