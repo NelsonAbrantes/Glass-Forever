@@ -93,7 +93,14 @@ end
 ----
 -- Lines the chat leaves out: the whisper ones (their chat type id), when the
 -- text can be read (secret text stays in the chat too, as it can't be saved)
+local DEBUG_SECRETS = true -- TEST (temporary): prints what the game hides
+
 function Whispers:HidesLine(text, id)
+  -- (only the chat lines right after a whisper)
+  if DEBUG_SECRETS and enabled and Whispers.testAt == GetTime() and (not Readable(id) or not Readable(text)) then
+    print("|cffffd200Glass test|r chat line: type id "..(Readable(id) and "readable" or "hidden")
+      ..", text "..(Readable(text) and "readable" or "hidden"))
+  end
   if not enabled or not Readable(id) or id == nil or not Readable(text) then return false end
   if not whisperIDs then
     whisperIDs = {}
@@ -341,6 +348,12 @@ local function NewLine(view)
   -- Item and player links in the messages
   line:SetHyperlinksEnabled(true)
   line:SetScript("OnHyperlinkClick", function (_, link, text, button)
+    -- A web link: the copy window (the game can't open it)
+    local url = Readable(link) and type(link) == "string" and link:match("^glassurl:(.+)$")
+    if url then
+      Core:Dispatch(Constants.ACTIONS.OpenCopy({ title = "Glass Forever: Copy link", text = url, height = 140 }))
+      return
+    end
     pcall(_G.SetItemRef, link, text, button)
   end)
   line:SetScript("OnHyperlinkEnter", function (self, link)
@@ -913,6 +926,8 @@ local function AddToWindow(conversation, entry)
     end
     message.name, message.time = nil, nil
   end
+  -- Web links clickable, like in the chat
+  message.text = Core:GetModule("TextProcessing"):Linkify(message.text)
   window.messages:AddMessage(message)
 end
 
@@ -1641,12 +1656,48 @@ end
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function (_, event, text, sender, ...)
   local guid, bnID = select(10, ...)
+  -- TEST (temporary): which parts of a whisper the game hides in dungeons
+  if DEBUG_SECRETS then
+    Whispers.testAt = GetTime()
+    local names = { "text", "sender", "language", "channel", "target", "flags", "zone", "channelNum",
+      "channelName", "languageID", "lineID", "guid", "bnID" }
+    local values = { text, sender, ... }
+    local hidden, shown = {}, {}
+    for i, name in ipairs(names) do
+      table.insert(Readable(values[i]) and shown or hidden, name)
+    end
+    if #hidden > 0 then
+      print("|cffffd200Glass test|r "..event.." hidden: "..table.concat(hidden, ", ").." | readable: "..table.concat(shown, ", "))
+    end
+  end
   OnWhisper(event, text, sender, guid, bnID)
 end)
+
+-- Separate windows (tabs dragged out of the chat) are drawn by the game, not
+-- by Glass, so the whispers they show don't go through Glass' chat: they're
+-- left out there by the game's own message filter, while the whisper windows
+-- are on. Only on separate windows (the chat's are left out by Glass), and
+-- only whispers the window got (readable: secret ones stay, like in the chat).
+local function SeparateWindowFilter(chatFrame, event, text, sender, ...)
+  if not enabled or not EVENTS[event] or not chatFrame or chatFrame.isDocked then return false end
+  local guid, bnID = select(10, ...)
+  if not Readable(text) or not Readable(sender) or not Readable(guid) or not Readable(bnID) then return false end
+  return true
+end
+
+local filterAdded = false
+local function AddSeparateWindowFilter()
+  if filterAdded then return end
+  local add = (_G.ChatFrameUtil and _G.ChatFrameUtil.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
+  if not add then return end
+  filterAdded = true
+  for event in pairs(EVENTS) do add(event, SeparateWindowFilter) end
+end
 
 local function SetEnabled(on)
   on = on and true or false
   SetGameOption(on)
+  if on then AddSeparateWindowFilter() end
   if on == enabled then return end
   enabled = on
   for event in pairs(EVENTS) do
