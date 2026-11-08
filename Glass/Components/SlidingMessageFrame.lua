@@ -24,6 +24,8 @@ local GetChatWindowInfo = GetChatWindowInfo
 local CreateObjectPool = CreateObjectPool
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 local Mixin = Mixin
+local CreateColor = CreateColor
+local hooksecurefunc = hooksecurefunc
 local C_Timer = C_Timer
 -- luacheck: pop
 
@@ -331,7 +333,9 @@ function SlidingMessageFrameMixin:Init(chatFrame)
 
         -- ...and the Glass look, with its fade and background settings
         if self.state.detached and (key == "windowStyle" or key == "chatHoldTime"
-          or key == "chatFadeOutDuration" or key == "chatBackgroundOpacity") then
+          or key == "chatFadeOutDuration" or key == "chatBackgroundOpacity"
+          or key == "windowMessageBackground" or key == "messageBackgroundFull"
+          or key == "messageLinePadding") then
           self:ApplyWindowStyle()
         end
 
@@ -405,6 +409,8 @@ function SlidingMessageFrameMixin:TakeOverChatFrame()
   for _, texture in ipairs({ chatFrame.leftBg, chatFrame.centerBg, chatFrame.rightBg }) do
     if texture then texture:SetAlpha(0) end
   end
+  -- (and the messages' own backgrounds: hidden while not separate)
+  if chatFrame.glassLineBgs then self:UpdateLineBackgrounds() end
   chatFrame:SetClampRectInsets(0,0,0,0)
   chatFrame:SetClampedToScreen(false)
   chatFrame:SetResizable(false)
@@ -531,6 +537,8 @@ function SlidingMessageFrameMixin:DrawWindowSeparators()
       fontString.glassSeparator = isSeparator
       fontString:SetJustifyH(isSeparator and "CENTER" or "LEFT")
       Core.Components.DrawSeparatorLines(fontString, isSeparator)
+      -- (a message's own background: none behind a separator)
+      self:UpdateLineBackground(fontString)
     end
   end
 end
@@ -643,6 +651,11 @@ function SlidingMessageFrameMixin:ApplyWindowStyle()
 
     self:ShowWindowBackground(glass and background:GetAlpha() or nil)
   end
+
+  -- A background on each message (Options), or none
+  self:HookLineBackgrounds()
+  self:SpaceLines()
+  self:UpdateLineBackgrounds()
 
   -- Messages fade out like in Glass (the game's own fading, with Glass' timing)
   if glass then
@@ -833,7 +846,201 @@ function SlidingMessageFrameMixin:ShowWindowBackground(alpha)
   -- Drawn again with the right opacity: a texture's own opacity doesn't mix
   -- well with a fade drawn on it
   local opacity = Core.db.profile.chatBackgroundOpacity * WINDOW_BG_STRENGTH * strength
+  -- (a background on each message instead: none behind the whole window)
+  if self:UsesLineBackgrounds() then opacity = 0 end
   Core.Components.GradientBackgroundMixin.SetGradientBackground(chatFrame, fade, fade, Colors.codGray, opacity)
+end
+
+----
+-- "Background on each message" (Options > Separate windows): like the main
+-- chat, each message of a separate window gets its own fading background,
+-- that fades out with it, instead of one behind the whole window. The game
+-- draws these windows itself, line by line; each line it shows gets a
+-- background following that line (where it is, shown or not, its fading).
+-- Only done when the game changes a line, nothing runs every frame.
+local LINE_BG_LEFT, LINE_BG_RIGHT = 50, 250 -- the fade at each end, like the main chat
+local LinePad -- (below)
+local LINE_BG_FULL_EDGE = 12                -- with "Full-width background"
+local LINE_BG_PAD_X = Constants.TEXT_XPADDING -- room at each side of the text, like in the main chat
+
+function SlidingMessageFrameMixin:UsesLineBackgrounds()
+  return self:UsesWindowStyle() and Core.db.profile.windowMessageBackground == true
+end
+
+local function Readable(value)
+  return value ~= nil and not (issecretvalue and issecretvalue(value))
+end
+
+-- The sizes of a line's background: fades at both ends, the middle filled
+local function LineBackgroundSizes(width)
+  local left, right = LINE_BG_LEFT, LINE_BG_RIGHT
+  if Core.db.profile.messageBackgroundFull then left, right = LINE_BG_FULL_EDGE, LINE_BG_FULL_EDGE end
+  -- (a narrow window: the fades share its width)
+  if left + right > width then
+    local k = width / (left + right)
+    left, right = left * k, right * k
+  end
+  return math.max(1, left), math.max(1, right)
+end
+
+-- Places and shows one line's background as its line is now
+function SlidingMessageFrameMixin:UpdateLineBackground(line)
+  local backgrounds = self.chatFrame.glassLineBgs
+  local bg = backgrounds and backgrounds[line]
+  if not bg then return end
+  local alpha = line:GetAlpha()
+  -- (none behind "Previous session", like in the main chat)
+  local shown = self:UsesLineBackgrounds() and line:IsShown() and line.messageInfo ~= nil
+    and not line.glassSeparator
+    and Readable(alpha) and alpha > 0
+  for _, texture in ipairs(bg.textures) do
+    texture:SetShown(shown)
+  end
+  if not shown then return end
+  -- Drawn again with the faded color: a texture's own opacity doesn't mix
+  -- with a fade drawn on it (the faded ends showed as dark blocks). The same
+  -- color objects each time, and only when the strength changed.
+  local opacity = Core.db.profile.chatBackgroundOpacity * alpha
+  if bg.drawn == opacity then return end
+  bg.drawn = opacity
+  local color = Colors.codGray
+  bg.clear = bg.clear or CreateColor(color.r, color.g, color.b, 0)
+  bg.full = bg.full or CreateColor(color.r, color.g, color.b, 0)
+  bg.full:SetRGBA(color.r, color.g, color.b, opacity)
+  bg.left:SetGradient("HORIZONTAL", bg.clear, bg.full)
+  bg.right:SetGradient("HORIZONTAL", bg.full, bg.clear)
+  bg.center:SetColorTexture(color.r, color.g, color.b, opacity)
+end
+
+local function NewLineBackground(smf, line)
+  local chatFrame = smf.chatFrame
+  local bg = { textures = {} }
+  for _, key in ipairs({ "left", "center", "right" }) do
+    local texture = chatFrame.glassLineBgHolder:CreateTexture(nil, "BACKGROUND")
+    texture:SetColorTexture(1, 1, 1, 1)
+    bg[key] = texture
+    table.insert(bg.textures, texture)
+  end
+  bg.center:SetPoint("TOPLEFT", bg.left, "TOPRIGHT")
+  bg.center:SetPoint("BOTTOMRIGHT", bg.right, "BOTTOMLEFT")
+  chatFrame.glassLineBgs[line] = bg
+
+  -- The game fades a line and shows or hides it on its own (each line is
+  -- reused for newer messages): the background follows
+  local function Follow() smf:UpdateLineBackground(line) end
+  hooksecurefunc(line, "SetAlpha", Follow)
+  hooksecurefunc(line, "SetShown", Follow)
+  hooksecurefunc(line, "Show", Follow)
+  hooksecurefunc(line, "Hide", Follow)
+  return bg
+end
+
+-- All the lines the game has now: their backgrounds, colors and sizes
+function SlidingMessageFrameMixin:UpdateLineBackgrounds()
+  local chatFrame = self.chatFrame
+  local backgrounds = chatFrame.glassLineBgs
+  if not backgrounds then
+    if not self:UsesLineBackgrounds() then return end
+    backgrounds = {}
+    chatFrame.glassLineBgs = backgrounds
+    -- A frame under the lines' frame, cut at the window's edges like the
+    -- lines are: the game also lays lines out above the window (cut there,
+    -- unseen), and their backgrounds showed over the window
+    local container = chatFrame.FontStringContainer or chatFrame
+    local holder = CreateFrame("Frame", nil, chatFrame)
+    holder:SetPoint("TOPLEFT", container, "TOPLEFT", -LINE_BG_PAD_X, 0)
+    holder:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", LINE_BG_PAD_X, 0)
+    holder:SetClipsChildren(true)
+    holder:SetFrameLevel(math.max(0, container:GetFrameLevel() - 1))
+    holder:EnableMouse(false)
+    chatFrame.glassLineBgHolder = holder
+  end
+
+  local width = chatFrame:GetWidth()
+  width = (Readable(width) and width or 300) + LINE_BG_PAD_X * 2
+  local left, right = LineBackgroundSizes(width)
+
+  if self:UsesLineBackgrounds() then
+    for _, line in ipairs(chatFrame.visibleLines or {}) do
+      local bg = backgrounds[line] or NewLineBackground(self, line)
+      -- Down to the line under it: the game leaves a gap (the line spacing)
+      -- between lines, which showed as a light stripe between the backgrounds
+      local spacing = line:GetSpacing()
+      spacing = Readable(spacing) and spacing or 0
+      -- (and the room above and under the text, see SpaceLines)
+      local pad = chatFrame.glassLinesSpaced and LinePad(line) or 0
+      bg.left:ClearAllPoints()
+      bg.left:SetPoint("TOPLEFT", line, "TOPLEFT", -LINE_BG_PAD_X, pad)
+      bg.left:SetPoint("BOTTOMLEFT", line, "BOTTOMLEFT", -LINE_BG_PAD_X, -spacing - pad)
+      bg.right:ClearAllPoints()
+      bg.right:SetPoint("TOPRIGHT", line, "TOPRIGHT", LINE_BG_PAD_X, pad)
+      bg.right:SetPoint("BOTTOMRIGHT", line, "BOTTOMRIGHT", LINE_BG_PAD_X, -spacing - pad)
+      bg.left:SetWidth(left)
+      bg.right:SetWidth(right)
+    end
+  end
+  for line, bg in pairs(backgrounds) do
+    bg.drawn = nil -- (the opacity setting may have changed)
+    self:UpdateLineBackground(line)
+  end
+end
+
+-- The room above and under each message, like the main chat's (Messages >
+-- line padding): a part of the line's height
+LinePad = function (line)
+  local height = line:GetLineHeight()
+  if not Readable(height) then return 0 end
+  return math.floor(height * (Core.db.profile.messageLinePadding or 0.25) + 0.5)
+end
+
+---
+-- With a background on each message, the messages get the main chat's room
+-- above and under them: the game stacks its lines with only the line spacing
+-- between them, and the backgrounds sat right on the text. Each time the game
+-- lays its lines out (a new size, a new font), they're stacked again with that
+-- room; with the option off, the game lays them out its own way again.
+-- (Only when the newest message is at the bottom, as in the chat.)
+function SlidingMessageFrameMixin:SpaceLines()
+  local chatFrame = self.chatFrame
+  local lines = chatFrame.visibleLines
+  if not lines or not lines[1] then return end
+  if not self:UsesLineBackgrounds() then
+    if chatFrame.glassLinesSpaced then
+      chatFrame.glassLinesSpaced = nil
+      if chatFrame.MarkLayoutDirty then chatFrame:MarkLayoutDirty() end
+    end
+    return
+  end
+  if not chatFrame.glassLinesSpaced and lines[1]:GetPoint(1) ~= "BOTTOMLEFT" then return end
+  chatFrame.glassLinesSpaced = true
+  local pad = LinePad(lines[1])
+  for i, line in ipairs(lines) do
+    local spacing = line:GetSpacing()
+    if not Readable(spacing) then spacing = 0 end
+    line:ClearAllPoints()
+    if i == 1 then
+      line:SetPoint("BOTTOMLEFT", chatFrame, "BOTTOMLEFT", 0, pad)
+    else
+      line:SetPoint("BOTTOMLEFT", lines[i - 1], "TOPLEFT", 0, spacing + pad * 2)
+    end
+  end
+end
+
+-- Once per window: the game laying out or filling its lines again
+function SlidingMessageFrameMixin:HookLineBackgrounds()
+  local chatFrame = self.chatFrame
+  if chatFrame.glassLineHooks or not chatFrame.RefreshDisplay then return end
+  chatFrame.glassLineHooks = true
+  local function Update()
+    if self:UsesLineBackgrounds() or chatFrame.glassLineBgs then self:UpdateLineBackgrounds() end
+  end
+  hooksecurefunc(chatFrame, "RefreshDisplay", Update)
+  if chatFrame.RefreshLayout then
+    hooksecurefunc(chatFrame, "RefreshLayout", function ()
+      if self:UsesLineBackgrounds() or chatFrame.glassLinesSpaced then self:SpaceLines() end
+      Update()
+    end)
+  end
 end
 
 ---
@@ -1155,3 +1362,47 @@ end
 
 Core.Components.CreateSlidingMessageFrame = CreateSlidingMessageFrame
 Core.Components.CreateSlidingMessageFramePool = CreateSlidingMessageFramePool
+
+-- TEST (temporary): /glasstest shows what draws the background of the
+-- separate windows
+_G.SLASH_GLASSTEST1 = "/glasstest"
+_G.SlashCmdList.GLASSTEST = function ()
+  for i = 1, (_G.NUM_CHAT_WINDOWS or 10) do
+    local f = _G["ChatFrame"..i]
+    if f and not f.isDocked and f:IsShown() then
+      local _, _, _, a = f.centerBg and f.centerBg:GetVertexColor()
+      local game = _G["ChatFrame"..i.."Background"]
+      print("|cffffd200Glass test|r window "..i, "option", tostring(Core.db.profile.windowMessageBackground),
+        "window bg", tostring(f.centerBg and f.centerBg:IsShown()), "color alpha", tostring(a), "fade", tostring(f.leftBg and f.leftBg:GetWidth()),
+        "game bg", tostring(game and game:IsShown()), tostring(game and game:GetAlpha()))
+      local total, shown = 0, 0
+      for line, bg in pairs(f.glassLineBgs or {}) do
+        total = total + 1
+        if bg.center:IsShown() then
+          shown = shown + 1
+          local text = line:GetText()
+          if issecretvalue and issecretvalue(text) then text = "(secret)" end
+          print("  line", tostring(text and text:sub(1, 20)), "alpha", line:GetAlpha(), "shown", tostring(line:IsShown()),
+            "height", line:GetHeight(), "info", tostring(line.messageInfo ~= nil))
+        end
+      end
+      print("  backgrounds", total, "showing", shown, "lines", #(f.visibleLines or {}))
+      -- Big textures showing on the window (what could be the dark area)
+      local function Big(frame, where)
+        for _, region in ipairs({ frame:GetRegions() }) do
+          if region:IsObjectType("Texture") and region:IsVisible() and region:GetAlpha() > 0 then
+            local w, h = region:GetSize()
+            if w and h and not (issecretvalue and issecretvalue(w)) and h > 60 then
+              local _, _, _, va = region:GetVertexColor()
+              print("  big", where, tostring(region:GetName()), region:GetDrawLayer(), "size", math.floor(w), math.floor(h),
+                "alpha", region:GetAlpha(), "vertex", va, "file", tostring(region:GetTexture()))
+            end
+          end
+        end
+      end
+      Big(f, "window")
+      local bf = _G["ChatFrame"..i.."ButtonFrame"]
+      if bf then Big(bf, "buttons") end
+    end
+  end
+end

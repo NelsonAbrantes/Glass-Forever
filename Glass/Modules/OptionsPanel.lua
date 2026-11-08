@@ -257,6 +257,7 @@ local function BuildGeneral(category, layout)
 
   Header(layout, "Separate windows")
   Checkbox(category, "windowStyle", "Glass look", "Tabs dragged out of the chat become windows with the Glass look: no border, the Glass background while the mouse is over them, and messages that fade out. Off: they look like the default chat", "windowStyle")
+  Checkbox(category, "windowMessageBackground", "Background on each message", "With the Glass look: each message gets its own background, fading out with it, like in the main chat, instead of one behind the whole window", "windowMessageBackground")
   local openSetting = ProfileSetting(category, "windowOpenPosition", Settings.VarType.String, "Opens at")
   Dropdown(category, openSetting, function ()
     return {
