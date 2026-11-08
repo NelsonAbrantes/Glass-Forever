@@ -55,7 +55,8 @@ end
 -- the chat it belongs to: the Glass fading background instead of the game's
 -- box, a thin gold line at the top, the Glass font, a gold flash when it
 -- shows, and a quieter close button. Only the look changes.
-local TOAST_FADE = 50     -- how much of each side fades out
+local TOAST_FADE = 80     -- how much of each side fades out
+local TOAST_FADE_STEPS = 8
 local TOAST_LINE_ALPHA = 0.55
 
 function UIManager:StyleToast()
@@ -77,9 +78,40 @@ function UIManager:StyleToast()
 
   -- The Glass background, a little stronger than the chat's: it shows over
   -- the game world on its own
+  -- Each side fades in a few steps along an S curve (slow at both ends), so
+  -- there's no visible edge where the fade starts
+  local dark = Colors.codGray
+  local center = toast:CreateTexture(nil, "BACKGROUND")
+  local steps = { Left = {}, Right = {} }
+  for side, list in pairs(steps) do
+    for i = 1, TOAST_FADE_STEPS do
+      local texture = toast:CreateTexture(nil, "BACKGROUND")
+      texture:SetColorTexture(1, 1, 1, 1)
+      texture:SetWidth(TOAST_FADE / TOAST_FADE_STEPS)
+      texture:SetPoint("TOP")
+      texture:SetPoint("BOTTOM")
+      -- i = 1 is the outermost step
+      local offset = (i - 1) * TOAST_FADE / TOAST_FADE_STEPS
+      if side == "Left" then
+        texture:SetPoint("LEFT", toast, "LEFT", offset, 0)
+      else
+        texture:SetPoint("RIGHT", toast, "RIGHT", -offset, 0)
+      end
+      list[i] = texture
+    end
+  end
+  center:SetPoint("TOPLEFT", steps.Left[TOAST_FADE_STEPS], "TOPRIGHT")
+  center:SetPoint("BOTTOMRIGHT", steps.Right[TOAST_FADE_STEPS], "BOTTOMLEFT")
+  local function Curve(t) return t * t * (3 - 2 * t) end
   local function Background()
     local opacity = math.min(0.85, Core.db.profile.chatBackgroundOpacity + 0.3)
-    Core.Components.GradientBackgroundMixin.SetGradientBackground(toast, TOAST_FADE, TOAST_FADE, Colors.codGray, opacity)
+    center:SetColorTexture(dark.r, dark.g, dark.b, opacity)
+    for i = 1, TOAST_FADE_STEPS do
+      local outer = CreateColor(dark.r, dark.g, dark.b, opacity * Curve((i - 1) / TOAST_FADE_STEPS))
+      local inner = CreateColor(dark.r, dark.g, dark.b, opacity * Curve(i / TOAST_FADE_STEPS))
+      steps.Left[i]:SetGradient("HORIZONTAL", outer, inner)
+      steps.Right[i]:SetGradient("HORIZONTAL", inner, outer)
+    end
   end
   Background()
 
