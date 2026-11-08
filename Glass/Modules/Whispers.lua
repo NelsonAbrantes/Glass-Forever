@@ -271,18 +271,61 @@ function ViewMixin:SetFont(file, size, flags)
   self:Layout()
 end
 
+-- The boxes' colors (Options > Whispers > Phone chat): the whisper color, or
+-- one of these, darkened so the text reads on it
+local BUBBLE_COLORS = {
+  dark = { r = 0.16, g = 0.16, b = 0.16 },
+  black = { r = 0, g = 0, b = 0 },
+  gold = { r = 1, g = 0.78, b = 0.3, dim = true },
+  blue = { r = 0.3, g = 0.55, b = 1, dim = true },
+  green = { r = 0.3, g = 0.85, b = 0.4, dim = true },
+  purple = { r = 0.7, g = 0.4, b = 1, dim = true },
+  red = { r = 1, g = 0.3, b = 0.3, dim = true },
+}
+local BUBBLE_DIM = 0.3
+
+-- side: "left" (theirs) or "right" (yours)
+local function BubbleColor(side)
+  local profile = Profile()
+  local choice
+  if side == "right" then
+    choice = profile.whisperBubbleYours or "whisper"
+  else
+    choice = profile.whisperBubbleTheirs or "dark"
+  end
+  if choice == "whisper" then
+    local r, g, b = WhisperColor(false, side == "right")
+    return r * BUBBLE_DIM, g * BUBBLE_DIM, b * BUBBLE_DIM
+  end
+  local color = BUBBLE_COLORS[choice] or BUBBLE_COLORS.dark
+  local k = color.dim and BUBBLE_DIM or 1
+  return color.r * k, color.g * k, color.b * k
+end
+
+-- Rounded corners that keep their size whatever the box's size, or square
+local function BubbleShape(line)
+  local square = Profile().whisperBubbleShape == "square"
+  if line.square == square then return end
+  line.square = square
+  if square then
+    line.bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+    if line.bg.ClearTextureSlice then line.bg:ClearTextureSlice() end
+  else
+    line.bg:SetTexture(BUBBLE_TEXTURE)
+    if line.bg.SetTextureSliceMargins then
+      line.bg:SetTextureSliceMargins(8, 8, 8, 8)
+      if line.bg.SetTextureSliceMode and Enum and Enum.UITextureSliceMode then
+        line.bg:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
+      end
+    end
+  end
+end
+
 local function NewLine(view)
   local line = CreateFrame("Frame", nil, view.content)
   line.bg = line:CreateTexture(nil, "BACKGROUND")
   line.bg:SetAllPoints()
-  line.bg:SetTexture(BUBBLE_TEXTURE)
-  -- Rounded corners that keep their size, whatever the box's size
-  if line.bg.SetTextureSliceMargins then
-    line.bg:SetTextureSliceMargins(8, 8, 8, 8)
-    if line.bg.SetTextureSliceMode and Enum and Enum.UITextureSliceMode then
-      line.bg:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
-    end
-  end
+  BubbleShape(line)
   line.name = line:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   line.name:SetPoint("TOPLEFT", PAD_X, -PAD_Y)
   line.name:SetJustifyH("LEFT")
@@ -346,13 +389,14 @@ function ViewMixin:AddMessage(message)
   local dark = Constants.COLORS.codGray
   if chatLook then
     if not line.SetGradientBackground then Mixin(line, Core.Components.GradientBackgroundMixin) end
-  elseif side == "center" then
-    line.bg:SetVertexColor(dark.r, dark.g, dark.b, 0.7)
-  elseif side == "right" then
-    local r, g, b = WhisperColor(false, true)
-    line.bg:SetVertexColor(r * 0.3, g * 0.3, b * 0.3, 0.9)
   else
-    line.bg:SetVertexColor(0.16, 0.16, 0.16, 0.9)
+    BubbleShape(line)
+    if side == "center" then
+      line.bg:SetVertexColor(dark.r, dark.g, dark.b, 0.7)
+    else
+      local r, g, b = BubbleColor(side)
+      line.bg:SetVertexColor(r, g, b, Profile().whisperBubbleOpacity or 0.9)
+    end
   end
   line:Show()
   table.insert(self.lines, line)
@@ -613,6 +657,69 @@ local function PlaceMessages(window, messages)
   messages:SetPoint("BOTTOMRIGHT", -inset, INPUT_HEIGHT + 12)
 end
 
+-- The box to answer in, with the main chat's edit box look (Options > Edit
+-- box: Minimal, Solid or Framed, and its opacity), in the whisper color
+local INPUT_SHAPES = "Interface\\Addons\\Glass\\Glass\\Assets\\Tabs\\"
+local INPUT_LINE_ALPHA = 0.8
+
+local function InputShape(texture, file)
+  texture:SetTexture(INPUT_SHAPES..file)
+  if texture.SetTextureSliceMargins then
+    texture:SetTextureSliceMargins(8, 8, 8, 8)
+    if texture.SetTextureSliceMode and Enum and Enum.UITextureSliceMode then
+      texture:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
+    end
+  end
+end
+
+local function StyleInput(window)
+  local input = window.input
+  if not input then return end
+  local profile = Profile()
+  local style = profile.editBoxStyle
+  local opacity = profile.editBoxBackgroundOpacity or 0.6
+  local dark = Constants.COLORS.codGray
+  local conversation = window.conversation
+  local r, g, b = WhisperColor(conversation and conversation.bn, false)
+
+  if not input.lineLeft then
+    Mixin(input, Core.Components.GradientBackgroundMixin)
+    input.frameBorder = input:CreateTexture(nil, "BORDER")
+    input.frameBorder:SetAllPoints()
+    InputShape(input.frameBorder, "tabBorder")
+    for _, side in ipairs({ "Left", "Right" }) do
+      local line = input:CreateTexture(nil, "BORDER")
+      line:SetColorTexture(1, 1, 1, 1)
+      line:SetHeight(1)
+      input["line"..side] = line
+    end
+    input.lineLeft:SetPoint("BOTTOMLEFT")
+    input.lineLeft:SetPoint("BOTTOMRIGHT", input, "BOTTOM")
+    input.lineRight:SetPoint("BOTTOMLEFT", input, "BOTTOM")
+    input.lineRight:SetPoint("BOTTOMRIGHT")
+  end
+
+  local minimal = style ~= "solid" and style ~= "framed"
+  input:SetGradientBackground(20, 120, dark, opacity)
+  for _, texture in ipairs({ input.leftBg, input.centerBg, input.rightBg, input.lineLeft, input.lineRight }) do
+    texture:SetShown(minimal)
+  end
+  input.lineLeft:SetGradient("HORIZONTAL", _G.CreateColor(r, g, b, 0), _G.CreateColor(r, g, b, INPUT_LINE_ALPHA))
+  input.lineRight:SetGradient("HORIZONTAL", _G.CreateColor(r, g, b, INPUT_LINE_ALPHA), _G.CreateColor(r, g, b, 0))
+
+  input.bg:SetShown(not minimal)
+  if style == "framed" then
+    InputShape(input.bg, "tabBackground")
+    input.bg:SetVertexColor(dark.r, dark.g, dark.b, opacity)
+  else
+    input.bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+    if input.bg.ClearTextureSlice then input.bg:ClearTextureSlice() end
+    input.bg:SetVertexColor(dark.r, dark.g, dark.b, opacity)
+  end
+  input.frameBorder:SetShown(style == "framed")
+  input.frameBorder:SetVertexColor(r, g, b, 0.9)
+end
+
 local function CreateWindow(conversation)
   windowCount = windowCount + 1
   local window = CreateFrame("Frame", "GlassWhisperWindow"..windowCount, UIParent)
@@ -646,7 +753,9 @@ local function CreateWindow(conversation)
   window.line:SetHeight(1)
   window.line:SetPoint("TOPLEFT", 0, -TITLE_HEIGHT)
   window.line:SetPoint("TOPRIGHT", 0, -TITLE_HEIGHT)
-  window.line:SetGradient("HORIZONTAL", _G.CreateColor(gold.r, gold.g, gold.b, 0.6), _G.CreateColor(gold.r, gold.g, gold.b, 0))
+  -- (in the whisper color: pink, or blue for a Battle.net friend)
+  local lr, lg, lb = WhisperColor(conversation.bn, false)
+  window.line:SetGradient("HORIZONTAL", _G.CreateColor(lr, lg, lb, 0.6), _G.CreateColor(lr, lg, lb, 0))
 
   -- Title: the name; dragging it moves the window
   local titleBar = CreateFrame("Frame", nil, window)
@@ -692,7 +801,9 @@ local function CreateWindow(conversation)
   input:SetTextInsets(6, 6, 0, 0)
   input.bg = input:CreateTexture(nil, "BACKGROUND")
   input.bg:SetAllPoints()
-  input.bg:SetColorTexture(0, 0, 0, 0.45)
+  window.conversation = conversation
+  window.input = input
+  StyleInput(window)
   window.placeholder = input:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   window.placeholder:SetPoint("LEFT", 6, 0)
   window.placeholder:SetText("Reply...")
@@ -987,7 +1098,9 @@ local function CreateList()
   list.line:SetHeight(1)
   list.line:SetPoint("TOPLEFT")
   list.line:SetPoint("TOPRIGHT")
-  list.line:SetGradient("HORIZONTAL", _G.CreateColor(gold.r, gold.g, gold.b, 0), _G.CreateColor(gold.r, gold.g, gold.b, 0.6))
+  -- (in the whisper color, like the windows' line)
+  local lr, lg, lb = WhisperColor(false, false)
+  list.line:SetGradient("HORIZONTAL", _G.CreateColor(lr, lg, lb, 0), _G.CreateColor(lr, lg, lb, 0.6))
   -- Closes by itself once the mouse is away for a moment
   list:SetScript("OnShow", function (self) self.away = 0 end)
   list:SetScript("OnUpdate", function (self, elapsed)
@@ -1589,6 +1702,10 @@ function Whispers:OnEnable()
     elseif key == "whisperWindowOpacity" then
       for _, conversation in pairs(conversations) do
         if conversation.window then ApplyBackground(conversation.window) end
+      end
+    elseif key == "editBoxStyle" or key == "editBoxBackgroundOpacity" then
+      for _, conversation in pairs(conversations) do
+        if conversation.window then StyleInput(conversation.window) end
       end
     elseif key == "whisperSound" then
       -- (a new choice: heard right away)

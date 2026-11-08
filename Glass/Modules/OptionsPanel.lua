@@ -34,7 +34,9 @@ end
 
 local function Header(layout, text)
   if _G.CreateSettingsListSectionHeaderInitializer then
-    layout:AddInitializer(_G.CreateSettingsListSectionHeaderInitializer(text))
+    local initializer = _G.CreateSettingsListSectionHeaderInitializer(text)
+    layout:AddInitializer(initializer)
+    return initializer
   end
 end
 
@@ -117,7 +119,7 @@ local function Slider(category, key, name, minValue, maxValue, step, tooltip, co
     if zeroLabel and value == 0 then return zeroLabel end
     return decimals and RoundTo2(value) or value
   end)
-  Settings.CreateSlider(category, setting, options, tooltip)
+  return Settings.CreateSlider(category, setting, options, tooltip)
 end
 
 local function Checkbox(category, key, name, tooltip, configKey)
@@ -128,7 +130,7 @@ end
 
 local function Dropdown(category, setting, values, tooltip)
   local Settings = _G.Settings
-  Settings.CreateDropdown(category, setting, function ()
+  return Settings.CreateDropdown(category, setting, function ()
     local container = Settings.CreateControlTextContainer()
     for _, entry in ipairs(values()) do
       container:Add(entry[1], entry[2])
@@ -513,9 +515,9 @@ local function BuildWhispers(category, layout)
   Dropdown(category, lookSetting, function ()
     return {
       { "boxes", "Phone chat" },
-      { "chat", "Same as the chat" },
+      { "chat", "Glass" },
     }
-  end, "Phone chat: their messages on the left and yours on the right, each in a box with the time. Same as the chat: lines like the Glass chat, \"time Name: message\", with the chat's fading background. The options set to Auto follow the look")
+  end, "Phone chat: their messages on the left and yours on the right, each in a box with the time. Glass: lines like the Glass chat, \"time Name: message\", with the chat's fading background. The options set to Auto follow the look")
   local styleSetting = ProfileSetting(category, "whisperWindowStyle", Settings.VarType.String, "Background", "whisperWindowOpacity")
   Dropdown(category, styleSetting, function ()
     return {
@@ -537,6 +539,46 @@ local function BuildWhispers(category, layout)
     }
   end, "Color of the whisper windows' background")
   Slider(category, "whisperWindowOpacity", "Background opacity", 0, 1, 0.05, "How dark the background of the whisper windows is", "whisperWindowOpacity")
+
+  -- Only shown with the Phone chat look (they do nothing with the Glass look)
+  local function PhoneOnly(initializer)
+    if initializer and initializer.AddShownPredicate then
+      initializer:AddShownPredicate(function () return Core.db.profile.whisperLook ~= "chat" end)
+    end
+  end
+  PhoneOnly(Header(layout, "Phone chat"))
+  local function BubbleColors()
+    return {
+      { "whisper", "Whisper color" },
+      { "dark", "Dark gray" },
+      { "black", "Black" },
+      { "gold", "Gold" },
+      { "blue", "Blue" },
+      { "green", "Green" },
+      { "purple", "Purple" },
+      { "red", "Red" },
+    }
+  end
+  local theirsSetting = ProfileSetting(category, "whisperBubbleTheirs", Settings.VarType.String, "Their messages", "whisperText")
+  PhoneOnly(Dropdown(category, theirsSetting, BubbleColors, "Color of the boxes of the messages you get"))
+  local yoursSetting = ProfileSetting(category, "whisperBubbleYours", Settings.VarType.String, "Your messages", "whisperText")
+  PhoneOnly(Dropdown(category, yoursSetting, BubbleColors, "Color of the boxes of the messages you send"))
+  PhoneOnly(Slider(category, "whisperBubbleOpacity", "Box opacity", 0, 1, 0.05, "How strong the color of the message boxes is", "whisperText"))
+  local shapeSetting = ProfileSetting(category, "whisperBubbleShape", Settings.VarType.String, "Box corners", "whisperText")
+  PhoneOnly(Dropdown(category, shapeSetting, function ()
+    return {
+      { "round", "Rounded" },
+      { "square", "Square" },
+    }
+  end, "The corners of the message boxes"))
+  -- A new look: the list shown again, with or without these
+  if Settings.SetOnValueChangedCallback and lookSetting.GetVariable then
+    Settings.SetOnValueChangedCallback(lookSetting:GetVariable(), function ()
+      C_Timer.After(0, function ()
+        if _G.SettingsInbound and _G.SettingsInbound.RepairDisplay then _G.SettingsInbound.RepairDisplay() end
+      end)
+    end)
+  end
 
   Header(layout, "Text")
   FontDropdown(layout, "whisperFont", "Font", "Font of the whisper windows", "Same as messages")
