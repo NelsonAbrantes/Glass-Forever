@@ -302,7 +302,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
     self:SecureHook(self.glow, "Show", function ()
       -- self.slidingMessageFrame, not the Init argument: temporary tabs are
       -- reused for new whispers with a different frame
-      if self.slidingMessageFrame:IsVisible() then
+      -- (a separate window open on screen shows its messages itself too)
+      local chatFrame = self.chatFrame
+      local openWindow = chatFrame and not chatFrame.isDocked and chatFrame:IsVisible()
+      if self.slidingMessageFrame:IsVisible() or openWindow then
         self.glow:Hide()
         return
       end
@@ -791,20 +794,49 @@ function ChatTabMixin:CreateAlert()
   end
 end
 
+-- Where the alert shows: under the tab's name, or under the name on the bar of
+-- a minimized separate window (its tab is hidden then)
+function ChatTabMixin:AlertHost()
+  local chatFrame = self.chatFrame
+  local minFrame = chatFrame and not chatFrame.isDocked and chatFrame.minFrame
+  if minFrame and minFrame:IsShown() then
+    local text = minFrame:GetFontString()
+    if text then return minFrame, text, true end
+  end
+  return self, self.Text, false
+end
+
+-- The window was minimized or opened again: the alert moves with it
+function ChatTabMixin:MoveAlert()
+  if alertingTabs[self] and self.alertInfo then self:ShowAlert(self.alertInfo) end
+end
+
 function ChatTabMixin:ShowAlert(color)
   self:CreateAlert()
+  self.alertInfo = color
+  local host, text, minimized = self:AlertHost()
+  if self.alertHost ~= host then
+    self.alertHost = host
+    self.alertBox:SetParent(host)
+    for _, texture in ipairs(self.alertParts) do
+      texture:SetParent(host)
+    end
+  end
   local r, g, b = GlowColor(color)
   -- Under the name, centered on it, most of the tab's width
   local width = math.max(10, (Readable(self:GetWidth()) or 60) * ALERT_WIDTH)
   -- At least a little wider than the name: a separate window's tab is the
   -- game's own, narrower, and its line was short, the glow a round blob
-  local nameWidth = Readable(self.Text:GetStringWidth())
+  local nameWidth = Readable(text:GetStringWidth())
   if nameWidth then width = math.max(width, nameWidth + ALERT_NAME_ROOM) end
+  -- On a minimized window's bar: about as wide as on its tab (the bar is
+  -- much wider than the name)
+  if minimized then width = (nameWidth or 40) + ALERT_NAME_ROOM * 2 end
   self.alertWidth = width
   -- Just under the letters, from the name itself: a separate window's tab
   -- has the game's height, and a line placed from the tab's bottom crossed
   -- the name there (on a docked tab this is the same place as before)
-  local textHeight = Readable(self.Text:GetStringHeight())
+  local textHeight = Readable(text:GetStringHeight())
   if not textHeight or textHeight <= 0 then textHeight = 12 end -- (a name not drawn yet)
   -- Centered on the letters, not on the name's box: when tabs don't fit and
   -- get narrower, the box can be wider than the name, and the line was off
@@ -813,17 +845,17 @@ function ChatTabMixin:ShowAlert(color)
   -- Centered on the name's box: the letters sit in its middle (moved left by
   -- the room after the last letter, the line was a few pixels off to the left)
   local inkShift = 0
-  local stringWidth = self.Text:GetStringWidth()
-  local justify = self.Text:GetJustifyH()
+  local stringWidth = text:GetStringWidth()
+  local justify = text:GetJustifyH()
   self.alertBox:ClearAllPoints()
   if (issecretvalue and issecretvalue(stringWidth)) or justify == "CENTER" or not stringWidth then
-    self.alertBox:SetPoint("TOP", self.Text, "CENTER", inkShift, y)
+    self.alertBox:SetPoint("TOP", text, "CENTER", inkShift, y)
   else
-    stringWidth = math.min(stringWidth, Readable(self.Text:GetWidth()) or stringWidth)
+    stringWidth = math.min(stringWidth, Readable(text:GetWidth()) or stringWidth)
     if justify == "RIGHT" then
-      self.alertBox:SetPoint("TOP", self.Text, "RIGHT", -stringWidth / 2 + inkShift, y)
+      self.alertBox:SetPoint("TOP", text, "RIGHT", -stringWidth / 2 + inkShift, y)
     else
-      self.alertBox:SetPoint("TOP", self.Text, "LEFT", stringWidth / 2 + inkShift, y)
+      self.alertBox:SetPoint("TOP", text, "LEFT", stringWidth / 2 + inkShift, y)
     end
   end
   self.alertBox:SetWidth(width)

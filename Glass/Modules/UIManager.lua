@@ -612,11 +612,23 @@ function UIManager:OnEnable()
         smf:StyleMinimizedFrame()
         RememberMinimized(chatFrame, true)
       end
+      -- A new message alert goes to the bar, its tab is hidden now
+      local tab = chatFrame and _G[chatFrame:GetName().."Tab"]
+      if tab and tab.MoveAlert then tab:MoveAlert() end
     end)
   end
   if _G.FCF_MaximizeFrame then
     self:SecureHook("FCF_MaximizeFrame", function (chatFrame)
       RememberMinimized(chatFrame, false)
+      -- Opened to read it: its new message alert ends (on its tab it stayed
+      -- lit until the tab was clicked)
+      local tab = chatFrame and _G[chatFrame:GetName().."Tab"]
+      if tab and tab.glow and tab.HideAlert then
+        if _G.FCF_StopAlertFlash then _G.FCF_StopAlertFlash(chatFrame) end
+        tab.glowColor = nil
+        tab.glow:Hide()
+        tab:HideAlert()
+      end
     end)
   end
 

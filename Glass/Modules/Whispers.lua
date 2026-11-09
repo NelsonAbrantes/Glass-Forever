@@ -328,6 +328,12 @@ local function BubbleShape(line)
   end
 end
 
+-- Links whose tooltip Glass opens itself (OnHyperlinkClick below)
+local TOOLTIP_LINKS = {
+  item = true, spell = true, enchant = true, achievement = true, quest = true,
+  currency = true, talent = true,
+}
+
 local function NewLine(view)
   local line = CreateFrame("Frame", nil, view.content)
   line.bg = line:CreateTexture(nil, "BACKGROUND")
@@ -352,6 +358,25 @@ local function NewLine(view)
     local url = Readable(link) and type(link) == "string" and link:match("^glassurl:(.+)$")
     if url then
       Core:Dispatch(Constants.ACTIONS.OpenCopy({ title = "Glass Forever: Copy link", text = url, height = 140 }))
+      return
+    end
+    -- Items, spells, recipes, etc: their tooltip opened here (shift-click:
+    -- into the chat's edit box). The game's own handling (SetItemRef), called
+    -- by an addon, runs into functions only the game may call and was blocked.
+    local kind = Readable(link) and type(link) == "string" and link:match("^(%a+):")
+    if kind and TOOLTIP_LINKS[kind] then
+      if _G.IsModifiedClick() and _G.HandleModifiedItemClick then
+        pcall(_G.HandleModifiedItemClick, text)
+        return
+      end
+      local tooltip = _G.ItemRefTooltip
+      if tooltip:IsShown() and tooltip.glassLink == link then
+        tooltip:Hide() -- (a second click closes it, like in the chat)
+        return
+      end
+      tooltip.glassLink = link
+      tooltip:SetOwner(_G.UIParent, "ANCHOR_PRESERVE")
+      if pcall(tooltip.SetHyperlink, tooltip, link) then tooltip:Show() else tooltip:Hide() end
       return
     end
     pcall(_G.SetItemRef, link, text, button)
