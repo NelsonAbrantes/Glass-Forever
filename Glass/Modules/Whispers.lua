@@ -1689,21 +1689,43 @@ local function SeparateWindowFilter(chatFrame, event, text, sender, ...)
   return true
 end
 
+-- Only outside dungeons and raids, like the emote filter (TextProcessing): a
+-- filter running inside the game's chat code there, on secret messages, made
+-- the game's code fail with an error blamed on Glass. Whispers there are
+-- secret anyway, so the filter left them all in place.
 local filterAdded = false
+local filterWatch
+local function UpdateSeparateWindowFilter()
+  local util = _G.ChatFrameUtil
+  local add = (util and util.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
+  local remove = (util and util.RemoveMessageEventFilter) or _G.ChatFrame_RemoveMessageEventFilter
+  if not add or not remove then return end
+  local want = enabled and not (_G.IsInInstance and _G.IsInInstance())
+  if want and not filterAdded then
+    for event in pairs(EVENTS) do add(event, SeparateWindowFilter) end
+    filterAdded = true
+  elseif not want and filterAdded then
+    for event in pairs(EVENTS) do remove(event, SeparateWindowFilter) end
+    filterAdded = false
+  end
+end
+
 local function AddSeparateWindowFilter()
-  if filterAdded then return end
-  local add = (_G.ChatFrameUtil and _G.ChatFrameUtil.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
-  if not add then return end
-  filterAdded = true
-  for event in pairs(EVENTS) do add(event, SeparateWindowFilter) end
+  if not filterWatch then
+    filterWatch = CreateFrame("Frame")
+    filterWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
+    filterWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    filterWatch:SetScript("OnEvent", UpdateSeparateWindowFilter)
+  end
+  UpdateSeparateWindowFilter()
 end
 
 local function SetEnabled(on)
   on = on and true or false
   SetGameOption(on)
-  if on then AddSeparateWindowFilter() end
   if on == enabled then return end
   enabled = on
+  AddSeparateWindowFilter()
   for event in pairs(EVENTS) do
     if on then events:RegisterEvent(event) else events:UnregisterEvent(event) end
   end

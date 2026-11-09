@@ -413,6 +413,9 @@ Core.Components.CreateChatDock = function (parent)
   isCreated = true
   local object = Mixin(GeneralDockManager, FadingFrameMixin, GradientBackgroundMixin, ChatDockMixin)
   AceHook:Embed(object)
+  -- The game's own HookScript stays (for other addons hooking the tab bar):
+  -- AceHook's has the same name and other arguments
+  object.HookScript = nil
   FadingFrameMixin.Init(object)
   GradientBackgroundMixin.Init(object)
   ChatDockMixin.Init(object, parent)

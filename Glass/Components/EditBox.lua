@@ -280,7 +280,9 @@ function EditBoxMixin:Init(parent)
   -- Workaround for editbox being open on login
   self.glassInitialized = false
 
-  self:SetScript("OnShow", function ()
+  -- Added to the box's OnShow, not in place of it: the game's own and other
+  -- addons' (hooked earlier) stopped running when it was replaced
+  getmetatable(self).__index.HookScript(self, "OnShow", function ()
     if self.glassInitialized then
       introAg:Play()
     else
@@ -428,6 +430,9 @@ Core.Components.CreateEditBox = function (parent)
   local GradientBackgroundMixin = Core.Components.GradientBackgroundMixin
   local object = Mixin(_G.ChatFrame1EditBox, GradientBackgroundMixin, EditBoxMixin)
   AceHook:Embed(object)
+  -- The game's own HookScript stays: AceHook's has the same name and other
+  -- arguments, and other addons hooking the edit box got errors
+  object.HookScript = nil
   GradientBackgroundMixin.Init(object)
   object:Init(parent)
   return object

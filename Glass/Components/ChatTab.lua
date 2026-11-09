@@ -1634,6 +1634,9 @@ Core.Components.CreateChatTab = function (slidingMessageFrame)
   local frame = _G[slidingMessageFrame.chatFrame:GetName().."Tab"]
   local object = Mixin(frame, ChatTabMixin)
   AceHook:Embed(object)
+  -- The game's own HookScript stays (for other addons hooking the tab):
+  -- AceHook's has the same name and other arguments
+  object.HookScript = nil
   object:Init(slidingMessageFrame)
   return object
 end
