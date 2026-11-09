@@ -93,14 +93,7 @@ end
 ----
 -- Lines the chat leaves out: the whisper ones (their chat type id), when the
 -- text can be read (secret text stays in the chat too, as it can't be saved)
-local DEBUG_SECRETS = true -- TEST (temporary): prints what the game hides
-
 function Whispers:HidesLine(text, id)
-  -- (only the chat lines right after a whisper)
-  if DEBUG_SECRETS and enabled and Whispers.testAt == GetTime() and (not Readable(id) or not Readable(text)) then
-    print("|cffffd200Glass test|r chat line: type id "..(Readable(id) and "readable" or "hidden")
-      ..", text "..(Readable(text) and "readable" or "hidden"))
-  end
   if not enabled or not Readable(id) or id == nil or not Readable(text) then return false end
   if not whisperIDs then
     whisperIDs = {}
@@ -1681,20 +1674,6 @@ end
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function (_, event, text, sender, ...)
   local guid, bnID = select(10, ...)
-  -- TEST (temporary): which parts of a whisper the game hides in dungeons
-  if DEBUG_SECRETS then
-    Whispers.testAt = GetTime()
-    local names = { "text", "sender", "language", "channel", "target", "flags", "zone", "channelNum",
-      "channelName", "languageID", "lineID", "guid", "bnID" }
-    local values = { text, sender, ... }
-    local hidden, shown = {}, {}
-    for i, name in ipairs(names) do
-      table.insert(Readable(values[i]) and shown or hidden, name)
-    end
-    if #hidden > 0 then
-      print("|cffffd200Glass test|r "..event.." hidden: "..table.concat(hidden, ", ").." | readable: "..table.concat(shown, ", "))
-    end
-  end
   OnWhisper(event, text, sender, guid, bnID)
 end)
 
