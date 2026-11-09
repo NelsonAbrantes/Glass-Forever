@@ -2,6 +2,19 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.0-forever (2026-11-09)
+
+### Added
+- Whisper windows: whispers in their own windows instead of the chat, with an icon by the tab bar listing the conversations, and options for the icon, the windows and a sound; a "Phone chat" look with options for its boxes (colors, opacity, corners), the reply box in the chat's edit box style, clickable web and item links (`Whispers.lua`, `OptionsPanel.lua`, `TextProcessing.lua`).
+- Whispers are left out of separate chat windows while whisper windows are on (`Whispers.lua`).
+- Separate windows: "Background on each message", like the main chat, with the same room around the text (`SlidingMessageFrame.lua`, `OptionsPanel.lua`).
+- The bar of a minimized separate window shows the new message glow; an open separate window's tab doesn't (`ChatTab.lua`, `UIManager.lua`).
+- Battle.net alert: a smoother fade on its background, and no close button (a click closes it) (`UIManager.lua`).
+
+### Fixed
+- The "Previous session" lines of separate windows stayed after their text faded out (`MessageLine.lua`).
+- The new message glow of a separate window's tab showed as bright blobs over the game world (`ChatTab.lua`).
+
 ## 1.0.11-forever (2026-11-07)
 
 ### Added

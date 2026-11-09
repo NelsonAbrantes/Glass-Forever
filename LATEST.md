@@ -1,14 +1,13 @@
-# 1.0.11-forever (2026-11-07)
+# 1.1.0-forever (2026-11-09)
 
 What's new
 
-- The chat buttons on the right sit below the tab bar.
-- Dark text on game alerts is now gold, easier to read.
-- A sharper achievement shield on alerts.
+- Whisper windows: each conversation in its own window.
+- Separate windows: option for a background on each message.
+- A minimized window's bar glows on new messages.
+- A smoother Battle.net alert, closed with a click.
 
 Bug fixes
 
-- Party chat in dungeons no longer stops showing messages.
-- Long messages in dungeons no longer overlap.
-- No more errors with Battle.net whispers.
-- Whisper tabs are no longer cut at the end of the bar.
+- "Previous session" lines in separate windows now fade with the text.
+- The new message glow on separate window tabs no longer shows as bright blobs.
