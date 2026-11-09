@@ -32,6 +32,7 @@ local TITLE_HEIGHT = 22
 local INPUT_HEIGHT = 22
 local FADE_CHECK = 0.1      -- seconds between checks of a window's fade
 local FADED_ALPHA = 0.35    -- an idle window
+local APPEAR_TIME = 0.3     -- seconds a new message takes to slide and fade in
 
 local CVARS = { "whisperMode", "bnWhisperMode" }
 
@@ -380,6 +381,14 @@ local function NewLine(view)
     if not pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Hide() end
   end)
   line:SetScript("OnHyperlinkLeave", function () GameTooltip:Hide() end)
+  -- A new message sent or received fades in while the messages glide up to
+  -- make room (the view's slide). Played backwards, so it ends at full.
+  line.appear = line:CreateAnimationGroup()
+  local fade = line.appear:CreateAnimation("Alpha")
+  fade:SetFromAlpha(1)
+  fade:SetToAlpha(0)
+  fade:SetDuration(APPEAR_TIME)
+  fade:SetSmoothing("IN")
   return line
 end
 
@@ -392,6 +401,7 @@ function ViewMixin:AddMessage(message)
   else
     line = table.remove(self.spare) or NewLine(self)
   end
+  line.appear:Stop() -- (a reused line could still be playing it)
   local side = message.side or "left"
   line.side = side
   -- The first box of a run of the same person's: their name on top, and a
@@ -433,14 +443,25 @@ function ViewMixin:AddMessage(message)
   table.insert(self.lines, line)
   self.scroll = 0 -- back to the newest
   self:Layout()
+  -- (the phone chat look only: the chat's look stays like the chat)
+  if message.animate and not chatLook and line:IsVisible() then
+    -- All the messages start one box lower and glide up to their place:
+    -- played backwards, the slide eases out and ends where Layout put them
+    self.slide:Stop()
+    self.slideMove:SetOffset(0, -(line.room or 0))
+    self.slide:Play(true)
+    line.appear:Play(true)
+  end
 end
 
 function ViewMixin:Clear()
   for _, line in ipairs(self.lines) do
+    line.appear:Stop()
     line:Hide()
     table.insert(self.spare, line)
   end
   wipe(self.lines)
+  self.slide:Stop()
   self.scroll = 0
   self:Layout()
 end
@@ -455,10 +476,11 @@ function ViewMixin:Layout()
   for i = #self.lines, 1, -1 do
     local line = self.lines[i]
     if line.side == "chat" then
-      y = y + self:LayoutChatLine(line, viewWidth, size, y)
+      line.room = self:LayoutChatLine(line, viewWidth, size, y)
     else
-      y = y + self:LayoutBox(line, maxBox, size, y)
+      line.room = self:LayoutBox(line, maxBox, size, y)
     end
+    y = y + line.room
   end
   self.total = y
   self.scroll = math.max(0, math.min(self.scroll or 0, y - viewHeight))
@@ -548,6 +570,11 @@ local function CreateView(parent)
   view.lines, view.spare, view.scroll = {}, {}, 0
   view:SetClipsChildren(true)
   view.content = CreateFrame("Frame", nil, view)
+  -- New messages: the slide up (AddMessage)
+  view.slide = view.content:CreateAnimationGroup()
+  view.slideMove = view.slide:CreateAnimation("Translation")
+  view.slideMove:SetDuration(APPEAR_TIME)
+  view.slideMove:SetSmoothing("IN")
   view:EnableMouseWheel(true)
   view:SetScript("OnMouseWheel", function (self, delta)
     -- Up: older messages
@@ -905,11 +932,12 @@ local function TextColor(conversation, entry)
   return WhisperColor(conversation.bn, entry.out)
 end
 
-local function AddToWindow(conversation, entry)
+-- animate: a new message (not the lines filled in again)
+local function AddToWindow(conversation, entry, animate)
   local window = conversation.window
   if not window then return end
   local r, g, b = TextColor(conversation, entry)
-  local message = { text = entry.text, r = r, g = g, b = b, side = entry.out and "right" or "left" }
+  local message = { text = entry.text, r = r, g = g, b = b, side = entry.out and "right" or "left", animate = animate }
   if Profile().whisperShowNames ~= false then
     message.name = conversation.short or "?"
     message.nameR, message.nameG, message.nameB = PersonColor(conversation, false)
@@ -1546,7 +1574,7 @@ local function AddLine(conversation, text, outgoing)
   local entry = { time = time(), out = outgoing, text = text }
   table.insert(conversation.session, entry)
   while #conversation.session > 200 do table.remove(conversation.session, 1) end
-  AddToWindow(conversation, entry)
+  AddToWindow(conversation, entry, true)
   -- Saved: not secret text, and not when history is off
   if Readable(text) and type(text) == "string" and Profile().keepHistory ~= false then
     local lines = conversation.saved.lines
