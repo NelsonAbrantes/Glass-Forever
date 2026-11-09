@@ -2,6 +2,13 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.1-forever (2026-11-09)
+
+### Fixed
+- Other addons hooking the chat's edit box, tabs or dock got errors ("HookScript(object, method, [handler])"): AceHook's HookScript shadowed the game's own on those frames; the game's is kept (`EditBox.lua`, `ChatTab.lua`, `ChatDock.lua`).
+- The edit box OnShow replaced the game's and other addons' handlers; it is now added to them (`EditBox.lua`).
+- The filter keeping whispers out of separate windows ran inside instances, where it could taint the game's chat code on secret messages; it is now off there (`Whispers.lua`).
+
 ## 1.1.0-forever (2026-11-09)
 
 ### Added

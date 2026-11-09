@@ -12,6 +12,15 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.1-forever",
+    items = {[[
+Bug fixes
+
+- Fixed errors with other addons that hook the chat.
+- Fixed possible errors from whispers inside dungeons and raids.
+    ]]}
+  },
+  {
     name = "1.1.0-forever",
     items = {[[
 What's new
