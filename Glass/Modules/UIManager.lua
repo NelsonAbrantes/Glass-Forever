@@ -612,11 +612,23 @@ function UIManager:OnEnable()
         smf:StyleMinimizedFrame()
         RememberMinimized(chatFrame, true)
       end
+      -- A new message alert goes to the bar, its tab is hidden now
+      local tab = chatFrame and _G[chatFrame:GetName().."Tab"]
+      if tab and tab.MoveAlert then tab:MoveAlert() end
     end)
   end
   if _G.FCF_MaximizeFrame then
     self:SecureHook("FCF_MaximizeFrame", function (chatFrame)
       RememberMinimized(chatFrame, false)
+      -- Opened to read it: its new message alert ends (on its tab it stayed
+      -- lit until the tab was clicked)
+      local tab = chatFrame and _G[chatFrame:GetName().."Tab"]
+      if tab and tab.glow and tab.HideAlert then
+        if _G.FCF_StopAlertFlash then _G.FCF_StopAlertFlash(chatFrame) end
+        tab.glowColor = nil
+        tab.glow:Hide()
+        tab:HideAlert()
+      end
     end)
   end
 
@@ -830,8 +842,36 @@ function UIManager:OnEnable()
   -- Whispers: the game itself flashes the right tab (the whisper tab of that
   -- person, or a tab that shows whispers). Give that glow the whisper color and
   -- reveal the dock, like the other chat types above.
+  local Whispers = Core:GetModule("Whispers")
+  local OnAlertFlash
+
+  -- Whispers in their own windows (Whispers.lua): the game still lights the
+  -- chat tab they'd go in. The whisper reaches Glass a moment after the game,
+  -- so wait for it: a whisper put out the game's glow, anything else lights
+  -- the tab as usual.
+  local function PutOutGlow(chatFrame)
+    local tab = _G[chatFrame:GetName().."Tab"]
+    if tab and tab.glow then
+      if _G.UIFrameFlashStop then _G.UIFrameFlashStop(tab.glow) end
+      tab.glow:Hide()
+    end
+  end
+
   if _G.FCF_StartAlertFlash then
     self:SecureHook("FCF_StartAlertFlash", function (chatFrame)
+      if chatFrame and not chatFrame.isTemporary and Whispers:Active() then
+        local now = _G.GetTime()
+        _G.C_Timer.After(0, function ()
+          if Whispers.lastAt == now then PutOutGlow(chatFrame) else OnAlertFlash(chatFrame) end
+        end)
+        return
+      end
+      OnAlertFlash(chatFrame)
+    end)
+  end
+
+  function OnAlertFlash(chatFrame)
+    do
       if not chatFrame or not chatFrame.isDocked then return end
 
       -- Turned off in the Tabs options: undo the game's own flash too
@@ -858,7 +898,7 @@ function UIManager:OnEnable()
       end
 
       RevealDock()
-    end)
+    end
   end
 
   -- Keep the default Blizzard chat frame hidden behind Glass. Some code paths

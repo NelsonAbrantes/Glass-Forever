@@ -153,6 +153,8 @@ end
 local function WhispersInTabs()
   if Core.db.global.whispersInTabs then return end
   Core.db.global.whispersInTabs = true
+  -- Whisper windows on (Whispers.lua): they set that option themselves
+  if Core.db.profile.whisperWindows ~= false then return end
   local GetCVar = C_CVar and C_CVar.GetCVar or _G.GetCVar
   local SetCVar = C_CVar and C_CVar.SetCVar or _G.SetCVar
   if not (GetCVar and SetCVar) then return end

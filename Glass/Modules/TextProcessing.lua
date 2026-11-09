@@ -468,6 +468,15 @@ local TEXT_PROCESSORS = {
   pratTimestampProcessor
 }
 
+---
+-- Web links made clickable (the whisper windows, which don't go through the
+-- whole pipeline): a click opens the copy window
+function TP:Linkify(text)
+  if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
+  local ok, result = pcall(urlProcessor, text)
+  return ok and result or text
+end
+
 function TP:ProcessText(text)
   -- A secret message (in dungeons) can't be read or changed: shown as it is
   if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end

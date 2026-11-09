@@ -53,6 +53,7 @@ Glass\Modules\Copy.lua
 Glass\Modules\DefaultTabs.lua
 Glass\Modules\Fonts.lua
 Glass\Modules\History.lua
+Glass\Modules\Whispers.lua
 Glass\Modules\Hyperlinks.lua
 Glass\Modules\News.lua
 Glass\Modules\OptionsPanel.lua
