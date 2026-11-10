@@ -12,6 +12,22 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.2-forever",
+    items = {[[
+What's new
+
+- Whisper windows (phone look): a soft animation for new messages.
+- Sliders to move the chat buttons a little.
+
+Bug fixes
+
+- Messages no longer fade out under the mouse when "Show on mouse over" is off.
+- The whisper icon above the chat no longer covers the tabs.
+- Smoother corners on whisper windows.
+- No more thin lines from cut-off messages at the edges of whisper windows.
+    ]]}
+  },
+  {
     name = "1.1.1-forever",
     items = {[[
 Bug fixes

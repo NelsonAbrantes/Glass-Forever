@@ -2,6 +2,18 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.2-forever (2026-11-10)
+
+### Added
+- Whisper windows (phone look): new messages fade in while the older ones glide up (`Whispers.lua`).
+- Chat buttons: "Move left / right" and "Move down / up" sliders, -50 to 50 pixels (`ChatButtons.lua`, `OptionsPanel.lua`).
+
+### Fixed
+- With "Show on mouse over" off, a message that arrived while the mouse was away could fade out once the mouse was over the chat, leaving a gap; mouse over now cancels its timer (`SlidingMessageFrame.lua`).
+- The whisper icon's "Above the chat" positions sat over the tab bar; they now go above it (`Whispers.lua`).
+- Whisper window corners had darker points (`whisperSoft.tga`).
+- A message cut by a whisper window's edge showed as a thin line; slivers thinner than a line of text are hidden (`Whispers.lua`).
+
 ## 1.1.1-forever (2026-11-09)
 
 ### Fixed
