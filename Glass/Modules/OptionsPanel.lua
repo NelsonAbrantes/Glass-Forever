@@ -281,6 +281,8 @@ local function BuildGeneral(category, layout)
       { "bottomright", "Bottom right" },
     }
   end, "Where the buttons are: in a column beside the chat, or in a row above or below it")
+  Slider(category, "chatButtonsOffsetX", "Move left / right", -50, 50, 1, "Moves the buttons a little, in pixels (positive = right)", "chatButtonsSide")
+  Slider(category, "chatButtonsOffsetY", "Move down / up", -50, 50, 1, "Moves the buttons a little, in pixels (positive = up)", "chatButtonsSide")
 end
 
 local function BuildEditBox(category, layout)

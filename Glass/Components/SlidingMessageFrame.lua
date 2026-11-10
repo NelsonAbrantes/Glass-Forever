@@ -302,6 +302,12 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         for _, message in ipairs(self.state.messages) do
           if Core.db.profile.chatShowOnMouseOver then
             message:Show()
+          elseif message.hideTimer then
+            -- (Show on mouse over off) The messages still showing stay while
+            -- the mouse is over, and fade out together after it leaves
+            -- (HideMessagesLater). Their own timers kept running: a newer
+            -- message faded out alone, leaving a gap between older ones.
+            message.hideTimer:Cancel()
           end
         end
       end),

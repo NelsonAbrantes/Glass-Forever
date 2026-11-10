@@ -298,7 +298,9 @@ function ChatButtonsMixin:Update()
     y = y - Utils.TabBarHeight()
   end
   self:ClearAllPoints()
-  self:SetPoint(holder[1], self.container, holder[2], holder[3], y)
+  local offsetX = Core.db.profile.chatButtonsOffsetX or 0
+  local offsetY = Core.db.profile.chatButtonsOffsetY or 0
+  self:SetPoint(holder[1], self.container, holder[2], holder[3] + offsetX, y + offsetY)
 
   for _, button in ipairs(self.buttons) do
     self:PlaceButton(button)

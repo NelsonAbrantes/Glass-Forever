@@ -1,4 +1,4 @@
-local Core, Constants = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 local Whispers = Core:GetModule("Whispers")
 
 local LSM = Core.Libs.LSM
@@ -480,10 +480,20 @@ function ViewMixin:Layout()
     else
       line.room = self:LayoutBox(line, maxBox, size, y)
     end
+    line.bottom = y
     y = y + line.room
   end
   self.total = y
   self.scroll = math.max(0, math.min(self.scroll or 0, y - viewHeight))
+  -- A message cut by the top of the window down to a sliver (its box's lower
+  -- edge only) looked like a stray line under the title: hidden until more
+  -- of it shows
+  for _, line in ipairs(self.lines) do
+    local bottom = line.bottom - self.scroll
+    local top = bottom + (Number(line:GetHeight()) or 0)
+    local seen = math.min(top, viewHeight) - math.max(bottom, 0)
+    line:SetAlpha((seen > 0 and seen < size) and 0 or 1)
+  end
   self.content:ClearAllPoints()
   self.content:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, -self.scroll)
   self.content:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, -self.scroll)
@@ -1235,10 +1245,15 @@ local function PlaceEnvelope()
     envelope:SetPoint("RIGHT", tabBar, "RIGHT", x, y)
   elseif where == "barLeft" then
     envelope:SetPoint("RIGHT", tabBar, "LEFT", -4 + x, y)
-  elseif where == "aboveRight" then
-    envelope:SetPoint("BOTTOMRIGHT", chat, "TOPRIGHT", x, 4 + y)
-  elseif where == "aboveLeft" then
-    envelope:SetPoint("BOTTOMLEFT", chat, "TOPLEFT", x, 4 + y)
+  elseif where == "aboveRight" or where == "aboveLeft" then
+    -- Above the tab bar when it's on top (above the chat's top it sat over
+    -- the tabs), otherwise above the chat
+    local over = Utils.TabBarAtBottom() and chat or tabBar
+    if where == "aboveRight" then
+      envelope:SetPoint("BOTTOMRIGHT", over, "TOPRIGHT", x, 4 + y)
+    else
+      envelope:SetPoint("BOTTOMLEFT", over, "TOPLEFT", x, 4 + y)
+    end
   else
     envelope:SetPoint("LEFT", tabBar, "RIGHT", 4 + x, y)
   end
@@ -1818,6 +1833,8 @@ function Whispers:OnEnable()
     elseif key == "whisperIconAnimation" then
       -- (a new choice: seen right away)
       ShakeEnvelope()
+    elseif key == "tabBarPosition" then
+      PlaceEnvelope() -- (above the tab bar or the chat)
     elseif key == "whisperIcon" then
       if list then
         local dark = Constants.COLORS.codGray
