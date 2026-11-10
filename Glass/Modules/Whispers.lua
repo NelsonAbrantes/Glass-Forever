@@ -203,6 +203,9 @@ end
 
 -- A Battle.net friend's current account id from their BattleTag (the id and
 -- the shown name change every session)
+-- The conversation whose title menu is opening (TitleMenu, below)
+local titleMenuFor, titleMenuReady
+
 local function FindBNetFriend(tag)
   if not (tag and C_BattleNet and C_BattleNet.GetFriendAccountInfo) then return nil end
   local count = _G.BNGetNumFriends and _G.BNGetNumFriends() or 0
@@ -788,6 +791,61 @@ local function StyleInput(window)
   input.frameBorder:SetVertexColor(r, g, b, 0.9)
 end
 
+-- The character to look up with "Who": the person's name without the realm,
+-- or for a Battle.net friend, the character they play in WoW (nil if none)
+local function WhoName(conversation)
+  local name = conversation.target
+  if conversation.bn then
+    name = nil
+    local info = FindBNetFriend(conversation.tag)
+    local game = info and info.gameAccountInfo
+    if game and game.isOnline and game.clientProgram == _G.BNET_CLIENT_WOW
+      and Readable(game.characterName) then
+      name = game.characterName
+    end
+  end
+  if type(name) ~= "string" or name == "" then return nil end
+  return (name:match("^([^%-]+)")) or name
+end
+
+-- The menu opened from a whisper window's title (the game's menu for that
+-- person): "Who" added at the bottom, and "Copy Character Name" opens the
+-- Glass copy window (the game blocks the clipboard from an addon's menu).
+-- Menus opened anywhere else are left as they are.
+local function TitleMenu(_, rootDescription, contextData)
+  local conversation = titleMenuFor
+  if not conversation or not rootDescription.CreateButton then return end
+  local MenuUtil = _G.MenuUtil
+  local name = contextData and contextData.name
+  if type(name) == "string" and MenuUtil and MenuUtil.GetElementText
+    and rootDescription.EnumerateElementDescriptions then
+    for _, description in rootDescription:EnumerateElementDescriptions() do
+      if MenuUtil.GetElementText(description) == _G.COPY_CHARACTER_NAME and description.SetResponder then
+        description:SetResponder(function ()
+          Core:Dispatch(Constants.ACTIONS.OpenCopy({ title = "Glass Forever: Copy name", text = name, height = 140 }))
+        end)
+      end
+    end
+  end
+  local who = WhoName(conversation)
+  local friendList = _G.C_FriendList
+  if who and friendList and friendList.SendWho then
+    if rootDescription.CreateDivider then rootDescription:CreateDivider() end
+    rootDescription:CreateButton("Who", function ()
+      friendList.SendWho('n-"'..who..'"')
+    end)
+  end
+end
+
+local function SetupTitleMenu()
+  local Menu = _G.Menu
+  if titleMenuReady or not (Menu and Menu.ModifyMenu) then return end
+  titleMenuReady = true
+  for _, which in ipairs({ "FRIEND", "FRIEND_OFFLINE", "BN_FRIEND", "BN_FRIEND_OFFLINE", "PLAYER", "CHAT_ROSTER" }) do
+    Menu.ModifyMenu("MENU_UNIT_"..which, TitleMenu)
+  end
+end
+
 local function CreateWindow(conversation)
   windowCount = windowCount + 1
   local window = CreateFrame("Frame", "GlassWhisperWindow"..windowCount, UIParent)
@@ -837,8 +895,31 @@ local function CreateWindow(conversation)
     window:StopMovingOrSizing()
     SavePosition(window)
   end)
+  -- Right click: the game's menu for that person (invite, add friend...),
+  -- as when right clicking their name in the chat
+  titleBar:SetScript("OnMouseUp", function (_, button)
+    if button ~= "RightButton" then return end
+    local link
+    if conversation.bn then
+      local info = FindBNetFriend(conversation.tag)
+      local bnID = (info and info.bnetAccountID) or conversation.bnID
+      local name = info and Readable(info.accountName) and info.accountName or conversation.name
+      if bnID and name then link = "BNplayer:"..name..":"..bnID end
+    elseif conversation.target then
+      link = "player:"..conversation.target
+    end
+    -- With their last message, the game adds "Report Player" (as in the chat)
+    if link and conversation.lineID then
+      link = link..":"..conversation.lineID..(conversation.bn and ":BN_WHISPER:" or ":WHISPER:")..(conversation.target or conversation.name or "")
+    end
+    if not link then return end
+    -- (marked while it opens: Glass adds "Who" to it, see TitleMenu)
+    titleMenuFor = conversation
+    pcall(_G.SetItemRef, link, conversation.name or "", "RightButton")
+    titleMenuFor = nil
+  end)
 
-  window.title = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  window.title =titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   window.title:SetPoint("LEFT", 8, 0)
   window.title:SetPoint("RIGHT", -50, 0)
   window.title:SetJustifyH("LEFT")
@@ -1598,7 +1679,7 @@ local function AddLine(conversation, text, outgoing)
   end
 end
 
-local function OnWhisper(event, text, sender, guid, bnID)
+local function OnWhisper(event, text, sender, guid, bnID, lineID)
   local kind = EVENTS[event]
   if not kind or not Readable(sender) or type(sender) ~= "string" or sender == "" then return end
   if not Readable(bnID) or not Readable(guid) then return end
@@ -1625,6 +1706,11 @@ local function OnWhisper(event, text, sender, guid, bnID)
 
   Whispers.lastAt = GetTime()
   -- The sound of your choice, also with the window open
+  -- Their last message this session: the game's "Report Player" in the
+  -- title menu needs it (as in the chat). Not saved: it's only valid now.
+  if not kind.out and Readable(lineID) and type(lineID) == "number" then
+    conversation.lineID = lineID
+  end
   if not kind.out then Whispers:PlaySound() end
   if not conversation.bubble then Open(conversation) end
   if conversation.window then conversation.window.title:SetText(Title(conversation)) end
@@ -1716,8 +1802,8 @@ end
 
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function (_, event, text, sender, ...)
-  local guid, bnID = select(10, ...)
-  OnWhisper(event, text, sender, guid, bnID)
+  local lineID, guid, bnID = select(9, ...)
+  OnWhisper(event, text, sender, guid, bnID, lineID)
 end)
 
 -- Separate windows (tabs dragged out of the chat) are drawn by the game, not
@@ -1791,6 +1877,7 @@ function Whispers:OnEnable()
     profile.whisperListColor = nil
   end
   SetEnabled(Profile().whisperWindows ~= false)
+  SetupTitleMenu()
   -- (a moment later: the Battle.net friends list and the chat are ready)
   C_Timer.After(3, function ()
     if enabled then RestoreOpen() end
