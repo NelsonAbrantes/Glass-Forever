@@ -2,6 +2,11 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## Unreleased
+
+### Fixed
+- Separate chat window tab labels could appear off-center after login or `/reload`; reapply layout after the positioning hooks are installed (`ChatTab.lua`).
+
 ## 1.1.2-forever (2026-11-10)
 
 ### Added
