@@ -400,6 +400,10 @@ function ChatTabMixin:Init(slidingMessageFrame)
   end
   self.styleKey = nil
 
+  -- Reapply layout after the width and text-position hooks are installed.
+  -- The initial UpdateLayout above runs before those hooks on new tabs.
+  self:UpdateLayout()
+
   -- Listeners
   if self.subscriptions == nil then
     self.subscriptions = {
