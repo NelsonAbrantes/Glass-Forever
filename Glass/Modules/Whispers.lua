@@ -203,8 +203,9 @@ end
 
 -- A Battle.net friend's current account id from their BattleTag (the id and
 -- the shown name change every session)
--- The conversation whose title menu is opening (TitleMenu, below)
-local titleMenuFor, titleMenuReady
+-- The conversation whose title menu is opening (TitleMenu, below), and
+-- whether it was opened from the whisper list (it then ends with "Close")
+local titleMenuFor, titleMenuReady, titleMenuClose
 
 local function FindBNetFriend(tag)
   if not (tag and C_BattleNet and C_BattleNet.GetFriendAccountInfo) then return nil end
@@ -837,6 +838,44 @@ local function TitleMenu(_, rootDescription, contextData)
       friendList.SendWho('n-"'..who..'"')
     end)
   end
+  -- From the whisper list: closing the conversation, last
+  if titleMenuClose then
+    if rootDescription.CreateDivider then rootDescription:CreateDivider() end
+    rootDescription:CreateButton("Close conversation", function () Remove(conversation) end)
+  end
+end
+
+-- The game's menu for the person of a conversation (invite, add friend...),
+-- as when right clicking their name in the chat; from the whisper list it
+-- ends with "Close conversation"
+local function PersonMenu(conversation, fromList)
+  local link
+  if conversation.bn then
+    local info = FindBNetFriend(conversation.tag)
+    local bnID = (info and info.bnetAccountID) or conversation.bnID
+    local name = info and Readable(info.accountName) and info.accountName or conversation.name
+    if bnID and name then link = "BNplayer:"..name..":"..bnID end
+  elseif conversation.target then
+    link = "player:"..conversation.target
+  end
+  -- With their last message, the game adds "Report Player" (as in the chat)
+  if link and conversation.lineID then
+    link = link..":"..conversation.lineID..(conversation.bn and ":BN_WHISPER:" or ":WHISPER:")..(conversation.target or conversation.name or "")
+  end
+  if not link then
+    -- (no one to make the game's menu for: only closing, from the list)
+    local MenuUtil = _G.MenuUtil
+    if fromList and MenuUtil and MenuUtil.CreateContextMenu then
+      MenuUtil.CreateContextMenu(UIParent, function (_, rootDescription)
+        rootDescription:CreateButton("Close conversation", function () Remove(conversation) end)
+      end)
+    end
+    return
+  end
+  -- (marked while it opens: Glass adds "Who" to it, see TitleMenu)
+  titleMenuFor, titleMenuClose = conversation, fromList
+  pcall(_G.SetItemRef, link, conversation.name or "", "RightButton")
+  titleMenuFor, titleMenuClose = nil, nil
 end
 
 local function SetupTitleMenu()
@@ -901,24 +940,7 @@ local function CreateWindow(conversation)
   -- as when right clicking their name in the chat
   titleBar:SetScript("OnMouseUp", function (_, button)
     if button ~= "RightButton" then return end
-    local link
-    if conversation.bn then
-      local info = FindBNetFriend(conversation.tag)
-      local bnID = (info and info.bnetAccountID) or conversation.bnID
-      local name = info and Readable(info.accountName) and info.accountName or conversation.name
-      if bnID and name then link = "BNplayer:"..name..":"..bnID end
-    elseif conversation.target then
-      link = "player:"..conversation.target
-    end
-    -- With their last message, the game adds "Report Player" (as in the chat)
-    if link and conversation.lineID then
-      link = link..":"..conversation.lineID..(conversation.bn and ":BN_WHISPER:" or ":WHISPER:")..(conversation.target or conversation.name or "")
-    end
-    if not link then return end
-    -- (marked while it opens: Glass adds "Who" to it, see TitleMenu)
-    titleMenuFor = conversation
-    pcall(_G.SetItemRef, link, conversation.name or "", "RightButton")
-    titleMenuFor = nil
+    PersonMenu(conversation)
   end)
 
   window.title =titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -1183,7 +1205,7 @@ local function Row(i)
     local conversation = self.conversation
     if not conversation then return end
     if button == "RightButton" then
-      Remove(conversation)
+      PersonMenu(conversation, true)
     else
       list:Hide()
       Show(conversation, true)
@@ -1254,7 +1276,9 @@ local function CreateList()
   -- Closes by itself once the mouse is away for a moment
   list:SetScript("OnShow", function (self) self.away = 0 end)
   list:SetScript("OnUpdate", function (self, elapsed)
-    if self:IsMouseOver() or envelope:IsMouseOver() then
+    -- (kept while a person's menu from it is open)
+    local manager = _G.Menu and _G.Menu.GetManager and _G.Menu.GetManager()
+    if self:IsMouseOver() or envelope:IsMouseOver() or (manager and manager.GetOpenMenu and manager:GetOpenMenu()) then
       self.away = 0
     else
       self.away = (self.away or 0) + elapsed
