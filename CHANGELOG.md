@@ -2,7 +2,7 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
-## 1.2.0-forever (2026-11-12)
+## 1.1.3-forever (2026-11-12)
 
 ### Added
 - Whisper windows: right click the title for the game's menu for that player (invite, add friend...), with "Report Player" (their last message this session), "Who", and "Copy Character Name" through the Glass copy window (`Whispers.lua`).

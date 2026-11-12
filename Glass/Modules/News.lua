@@ -12,7 +12,7 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
-    name = "1.2.0-forever",
+    name = "1.1.3-forever",
     items = {[[
 What's new
 
