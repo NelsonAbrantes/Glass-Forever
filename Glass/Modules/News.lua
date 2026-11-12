@@ -17,7 +17,6 @@ local CHANGELOG = {
 What's new
 
 - Right click a whisper window's title or a name in the whisper list for the player's menu.
-- "Who" in that menu.
 - Whisper list names in class color.
 - The whisper list keeps the last 20 conversations.
 - Separate windows' tabs fade like the main chat's.
