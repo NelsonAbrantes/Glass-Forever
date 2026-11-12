@@ -444,6 +444,84 @@ function UIManager:PlaceAlerts()
   end
 end
 
+---
+-- Where the voice chat's "who's talking" notes go: where they were moved to
+-- in Edit Mode, or beside the social button as the game puts them
+function UIManager:PlaceVoice()
+  local mover = self.voiceMover
+  local saved = Core.db.profile.voicePosition
+  mover:ClearAllPoints()
+  if saved and saved.point then
+    mover:SetPoint(saved.point, _G.UIParent, saved.point, saved.x or 0, saved.y or 0)
+  elseif _G.QuickJoinToastButton then
+    mover:SetPoint("BOTTOMLEFT", _G.QuickJoinToastButton, "BOTTOMLEFT", 0, 0)
+  else
+    mover:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", 15, 60)
+  end
+end
+
+-- The voice chat's notes of who's talking (the game's VoiceActivityManager):
+-- the game puts them beside the social button; they follow the Glass box
+-- instead (Edit Mode: "Voice Chat"), keeping how they stack
+function UIManager:SetupVoice()
+  self.voiceMover = CreateFrame("Frame", "GlassVoiceMover", _G.UIParent)
+  self.voiceMover:SetSize(200, 32)
+  -- (above the chat buttons it sits on, or Edit Mode's box couldn't be
+  -- grabbed: the buttons took the click)
+  self.voiceMover:SetFrameStrata("DIALOG")
+  self:PlaceVoice()
+
+  local hooked = {}
+  local moving = false
+  local function Follow(note)
+    if moving then return end
+    local mover = self.voiceMover
+    for i = 1, note:GetNumPoints() do
+      local point, relativeTo, relativePoint, x, y = note:GetPoint(i)
+      if relativeTo == _G.QuickJoinToastButton then
+        moving = true
+        note:ClearAllPoints()
+        note:SetPoint(point, mover, relativePoint, x, y)
+        moving = false
+        return
+      end
+    end
+  end
+  local function Scan()
+    local manager = _G.VoiceActivityManager
+    if not manager or not manager.GetChildren then return end
+    for _, note in ipairs({ manager:GetChildren() }) do
+      if not hooked[note] then
+        hooked[note] = true
+        hooksecurefunc(note, "SetPoint", Follow)
+      end
+      Follow(note)
+    end
+  end
+  local events = CreateFrame("Frame")
+  for _, event in ipairs({ "VOICE_CHAT_CHANNEL_MEMBER_SPEAKING_STATE_CHANGED",
+    "VOICE_CHAT_CHANNEL_MEMBER_ACTIVE_STATE_CHANGED", "VOICE_CHAT_CHANNEL_ACTIVATED" }) do
+    pcall(events.RegisterEvent, events, event)
+  end
+  -- (a moment later: the game makes and places the note first)
+  events:SetScript("OnEvent", function () C_Timer.After(0, Scan) end)
+end
+
+---
+-- Where the game's other chat alerts go: where they were moved to in Edit
+-- Mode, or above the chat (over the Battle.net alerts' box, so the two boxes
+-- can each be grabbed in Edit Mode)
+function UIManager:PlaceChatAlerts()
+  local mover = self.chatAlertMover
+  local saved = Core.db.profile.chatAlertPosition
+  mover:ClearAllPoints()
+  if saved and saved.point then
+    mover:SetPoint(saved.point, _G.UIParent, saved.point, saved.x or 0, saved.y or 0)
+  else
+    mover:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", 15, 70)
+  end
+end
+
 function UIManager:OnEnable()
   self.tickerFrame = CreateFrame("Frame", "GlassUpdaterFrame", UIParent)
 
@@ -672,38 +750,44 @@ function UIManager:OnEnable()
 
   -- Battle.net alerts (a friend coming online...): in a box of their own,
   -- above the chat unless moved in Edit Mode ("Battle.net Alerts")
-  BNToastFrame:ClearAllPoints()
-  BNToastFrame:SetPoint("BOTTOMLEFT", ChatAlertFrame, "BOTTOMLEFT", 0, 0)
-
   local toastWidth, toastHeight = BNToastFrame:GetSize()
   self.alertMover = CreateFrame("Frame", "GlassAlertMover", _G.UIParent)
   self.alertMover:SetSize(toastWidth > 0 and toastWidth or 250, toastHeight > 0 and toastHeight or 50)
   self:PlaceAlerts()
+  BNToastFrame:ClearAllPoints()
+  BNToastFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
 
+  -- The game's other chat alerts (WoW: Forever's "World refresh in 10
+  -- minutes"...): in a box of their own too ("Chat Alerts")
+  self.chatAlertMover = CreateFrame("Frame", "GlassChatAlertMover", _G.UIParent)
+  self.chatAlertMover:SetSize(toastWidth > 0 and toastWidth or 250, toastHeight > 0 and toastHeight or 50)
+  self:PlaceChatAlerts()
   ChatAlertFrame:ClearAllPoints()
-  ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
+  ChatAlertFrame:SetPoint("BOTTOMLEFT", self.chatAlertMover, "BOTTOMLEFT", 0, 0)
+
   -- The game puts the alerts back beside its own chat buttons now and then
-  -- (when it updates the chat's button side): back in the Glass box each time
+  -- (when it updates the chat's button side): back in their box each time
   local placingAlerts = false
   hooksecurefunc(ChatAlertFrame, "SetPoint", function (_, _, relativeTo)
-    if placingAlerts or relativeTo == self.alertMover then return end
+    if placingAlerts or relativeTo == self.chatAlertMover then return end
     placingAlerts = true
     ChatAlertFrame:ClearAllPoints()
-    ChatAlertFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
+    ChatAlertFrame:SetPoint("BOTTOMLEFT", self.chatAlertMover, "BOTTOMLEFT", 0, 0)
     placingAlerts = false
   end)
-  -- Some game versions place the alert itself elsewhere (top right of the
-  -- screen) when it shows: into the Glass box too
+  -- The game places the Battle.net alert with the others (or elsewhere, in
+  -- some game versions) when it shows: into its own box each time
   local placingToast = false
   hooksecurefunc(BNToastFrame, "SetPoint", function (_, _, relativeTo)
-    if placingToast or relativeTo == ChatAlertFrame then return end
+    if placingToast or relativeTo == self.alertMover then return end
     placingToast = true
     BNToastFrame:ClearAllPoints()
-    BNToastFrame:SetPoint("BOTTOMLEFT", ChatAlertFrame, "BOTTOMLEFT", 0, 0)
+    BNToastFrame:SetPoint("BOTTOMLEFT", self.alertMover, "BOTTOMLEFT", 0, 0)
     placingToast = false
   end)
   self:StyleToast()
   self:StyleAlerts()
+  self:SetupVoice()
 
   -- The game's chat buttons (social, channels, voice, menu): hidden, or beside
   -- the chat with the "Chat buttons" option

@@ -74,6 +74,38 @@ function EditMode:OnEnable()
     end, alertDefault, "Battle.net Alerts")
   end
 
+  -- The game's other chat alerts (WoW: Forever's "World refresh"...), above
+  -- the chat until moved. "Reset position" puts them back there.
+  if ui.chatAlertMover then
+    local chatAlertDefault = {
+      point = "BOTTOMLEFT",
+      x = math.floor((ui.chatAlertMover:GetLeft() or 35) + 0.5),
+      y = math.floor((ui.chatAlertMover:GetBottom() or 480) + 0.5),
+    }
+    LEM:AddFrame(ui.chatAlertMover, function (_, _, point, x, y)
+      if point == chatAlertDefault.point and x == chatAlertDefault.x and y == chatAlertDefault.y then
+        Core.db.profile.chatAlertPosition = nil
+      else
+        Core.db.profile.chatAlertPosition = { point = point, x = x, y = y }
+      end
+      ui:PlaceChatAlerts()
+    end, chatAlertDefault, "Chat Alerts")
+  end
+
+  -- The voice chat's notes of who's talking, beside the social button until
+  -- moved. "Reset position" puts them back there.
+  if ui.voiceMover then
+    LEM:AddFrame(ui.voiceMover, function (_, _, point, x, y)
+      -- (Reset position gives the default: back beside the social button)
+      if point == "BOTTOMLEFT" and x == 0 and y == 0 then
+        Core.db.profile.voicePosition = nil
+      else
+        Core.db.profile.voicePosition = { point = point, x = x, y = y }
+      end
+      ui:PlaceVoice()
+    end, { point = "BOTTOMLEFT", x = 0, y = 0 }, "Voice Chat")
+  end
+
   -- Settings shown in the Edit Mode dialog
   LEM:AddFrameSettings(moverFrame, {
     {

@@ -50,6 +50,21 @@ local function RecipeMenu(recipeID, text)
   return true
 end
 
+---
+-- A community invite: the Communities window opens (to accept it there).
+-- The game's own handling of the link, run by an addon, ends in a function
+-- only the game may call, was blocked, and kept failing until a /reload.
+-- True if the link was one.
+function Hyperlinks.OpenClubTicket(link)
+  if type(link) ~= "string" or (issecretvalue and issecretvalue(link)) then return false end
+  if not strmatch(link, "^clubTicket:") then return false end
+  local frame = _G.CommunitiesFrame
+  if not (frame and frame:IsShown()) and _G.ToggleCommunitiesFrame then
+    pcall(_G.ToggleCommunitiesFrame)
+  end
+  return true
+end
+
 function Hyperlinks:OnInitialize()
   self.state = {
     showingTooltip = nil
@@ -100,6 +115,8 @@ function Hyperlinks:OnEnable()
       end
       return
     end
+
+    if Hyperlinks.OpenClubTicket(link) then return end
 
     -- A linked recipe, right clicked: track it (see RecipeMenu)
     if button == "RightButton" then

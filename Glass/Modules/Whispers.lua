@@ -27,7 +27,7 @@ local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\Buttons\\"
 local TAB_ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\Tabs\\"
 
 local MAX_LINES = 50        -- messages kept per conversation
-local MAX_CONVERSATIONS = 10 -- in the list at once; the oldest goes
+local MAX_CONVERSATIONS = 20 -- in the list at once; the oldest read one goes
 local TITLE_HEIGHT = 22
 local INPUT_HEIGHT = 22
 local FADE_CHECK = 0.1      -- seconds between checks of a window's fade
@@ -376,6 +376,8 @@ local function NewLine(view)
       if pcall(tooltip.SetHyperlink, tooltip, link) then tooltip:Show() else tooltip:Hide() end
       return
     end
+    -- A community invite: the Communities window (see Hyperlinks.lua)
+    if Core:GetModule("Hyperlinks").OpenClubTicket(link) then return end
     pcall(_G.SetItemRef, link, text, button)
   end)
   line:SetScript("OnHyperlinkEnter", function (self, link)
@@ -1202,15 +1204,11 @@ local function FillList()
       shown = shown + 1
       local row = Row(shown)
       row.conversation = conversation
-      -- Names only, in the color chosen in Options; someone with something
-      -- new in the whisper color, with the alert under the name
+      -- Names only, in the color chosen in Options (a little brighter for someone
+      -- with something new, the alert in the whisper color under the name)
       local wr, wg, wb = WhisperColor(conversation.bn, false)
-      if conversation.unread then
-        row.name:SetTextColor(wr, wg, wb, 1)
-      else
-        local r, g, b = PersonColor(conversation, false)
-        row.name:SetTextColor(r, g, b, 0.75)
-      end
+      local r, g, b = PersonColor(conversation, false)
+      row.name:SetTextColor(r, g, b, conversation.unread and 1 or 0.75)
       row.name:SetText(conversation.short or "?")
       local width = math.min(LIST_MAX_NAME, row.name:GetStringWidth() + 2)
       row.name:SetWidth(width)
@@ -1620,9 +1618,22 @@ local function Open(conversation)
   table.insert(order, conversation.key)
   if conversation.saved then conversation.saved.open = true end
   -- Too many: the oldest closed one without news goes
+  -- (one with messages not read yet stays, even over the limit)
   while #order > MAX_CONVERSATIONS do
-    local oldest = conversations[order[1]]
-    if not oldest then table.remove(order, 1) else Remove(oldest) end
+    local gone = false
+    for i = 1, #order do
+      local oldest = conversations[order[i]]
+      if not oldest then
+        table.remove(order, i)
+        gone = true
+        break
+      elseif not oldest.unread and oldest ~= conversation then
+        Remove(oldest)
+        gone = true
+        break
+      end
+    end
+    if not gone then break end
   end
   Layout()
 end

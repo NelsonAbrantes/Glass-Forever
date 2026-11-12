@@ -157,6 +157,12 @@ function ChatTabMixin:Init(slidingMessageFrame)
     local function Solid() self:SetAlpha(1) end
     local function KeepFade() self:SetAlpha(self.glassAlpha) end
     self:SecureHook(self, "SetAlpha", function (_, alpha)
+      -- A separate window's tab: Glass fades it (see SeparateFade), the game's
+      -- own fade waits
+      if self:IsSeparate() then
+        if self.glassAlpha and math.abs(alpha - self.glassAlpha) > 0.001 then Adjust(KeepFade) end
+        return
+      end
       if alpha ~= 1 and TabsHovered() then
         Adjust(Solid)
       elseif self.glassAlpha and math.abs(alpha - self.glassAlpha) > 0.001 then
@@ -1535,8 +1541,49 @@ function ChatTabMixin:UpdateStyle(isSelected)
   if r then self.Text:SetTextColor(r, g, b) end
 end
 
+-- True for the tab of a separate window (taken out of the chat)
+function ChatTabMixin:IsSeparate()
+  local chatFrame = self.chatFrame
+  return chatFrame ~= nil and not chatFrame.isDocked
+end
+
+-- A separate window's tab: the game leaves it a little visible (40%) while
+-- the mouse is away. With the tab bar fading (Tabs options) it fades out
+-- completely, after the same wait and over the same time as the messages,
+-- and comes back with the mouse over the window. A tab with a new message
+-- stays.
+function ChatTabMixin:SeparateFade(now)
+  local profile = Core.db.profile
+  local chatFrame = self.chatFrame
+  local over = (chatFrame:IsVisible() and chatFrame:IsMouseOver()) or self:IsMouseOver()
+  local alpha = 1
+  if profile.tabBarFade ~= false and not over and not self.alerting and not alertingTabs[self] then
+    self.glassLeftAt = self.glassLeftAt or now
+    local waited = now - self.glassLeftAt - (profile.chatHoldTime or 0)
+    if waited >= 0 then
+      local duration = profile.chatFadeOutDuration or 0
+      alpha = duration > 0 and 1 - math.min(1, waited / duration) or 0
+    end
+  else
+    self.glassLeftAt = nil
+  end
+  self.glassAlpha = alpha
+  if math.abs(self:GetAlpha() - alpha) > 0.001 then self:SetAlpha(alpha) end
+  -- (every frame only while it fades)
+  alphaFadingTabs[self] = (alpha > 0 and alpha < 1) or nil
+end
+
 function ChatTabMixin:UpdateSelected(selected)
   local isSelected = (self.chatFrame == selected)
+  if self:IsSeparate() then
+    -- (never the chat's selected tab: only its fade, look and alert)
+    local now = GetTime()
+    self:SeparateFade(now)
+    self:UpdateStyle(isSelected)
+    self:StepStyleFade(now)
+    self:StepAlert(now)
+    return
+  end
 
   -- Tabs fade like the game does, but are fully solid while the mouse is over
   -- the chat or the tab bar. The game never does that itself: its own chat
