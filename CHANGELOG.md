@@ -2,6 +2,16 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.2.0-forever (2026-11-12)
+
+### Added
+- Whisper windows: right click the title for the game's menu for that player (invite, add friend...), with "Report Player" (their last message this session), "Who", and "Copy Character Name" through the Glass copy window (`Whispers.lua`).
+- Whisper list: right click a name for the same menu, with "Close conversation" last; the list stays open while the menu is open (`Whispers.lua`).
+- Whisper list: names in class color; it keeps 20 conversations, never dropping ones with unread messages (`Whispers.lua`).
+- Separate windows' tabs fade like the main chat's (`ChatTab.lua`).
+- Edit Mode movers for the voice chat buttons and the chat alerts (`EditMode.lua`, `UIManager.lua`).
+- Community invite links open the Communities window (`Hyperlinks.lua`).
+
 ## 1.1.2-forever (2026-11-10)
 
 ### Added

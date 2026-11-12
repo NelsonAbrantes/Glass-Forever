@@ -12,6 +12,20 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.2.0-forever",
+    items = {[[
+What's new
+
+- Right click a whisper window's title or a name in the whisper list for the player's menu.
+- "Who" in that menu.
+- Whisper list names in class color.
+- The whisper list keeps the last 20 conversations.
+- Separate windows' tabs fade like the main chat's.
+- Edit Mode movers for voice chat and chat alerts.
+- Community invite links open the Communities window.
+]]},
+  },
+  {
     name = "1.1.2-forever",
     items = {[[
 What's new
