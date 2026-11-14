@@ -640,8 +640,19 @@ local function SendWhisper(conversation, message)
       pcall(_G.BNSendWhisper, bnID, message)
     end
   else
+    local target = WhisperTarget(conversation.target)
+    -- In combat in instances the game stops addons from sending chat (it
+    -- blocks the call and blames the addon): the whisper goes to the game's
+    -- own chat box instead, ready to send with Enter
+    local Locked = C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+    if Locked and Locked() then
+      local ChatUtil = _G.ChatFrameUtil
+      local OpenChat = (ChatUtil and ChatUtil.OpenChat) or _G.ChatFrame_OpenChat
+      if OpenChat then OpenChat("/w "..target.." "..message) end
+      return
+    end
     local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or _G.SendChatMessage
-    local ok, err = pcall(send, message, "WHISPER", nil, WhisperTarget(conversation.target))
+    local ok, err = pcall(send, message, "WHISPER", nil, target)
     if not ok then print("|cffdfba69Glass Forever|r: the whisper couldn't be sent:", err) end
   end
 end
