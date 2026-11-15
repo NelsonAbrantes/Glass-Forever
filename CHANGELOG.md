@@ -2,6 +2,15 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.4-forever (2026-11-15)
+
+### Changed
+- Whisper windows: the reply box only takes the keyboard when clicked; sending a message lets go of it, and opening a conversation from the list doesn't focus it (`Whispers.lua`).
+- Options: choices that follow another setting are named "Default" (`OptionsPanel.lua`).
+
+### Fixed
+- Whispering in combat in an instance no longer causes ADDON_ACTION_BLOCKED: the whisper goes to the chat box, ready to send (`Whispers.lua`).
+
 ## 1.1.3-forever (2026-11-12)
 
 ### Added

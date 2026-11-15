@@ -584,12 +584,12 @@ local function BuildWhispers(category, layout)
   end
 
   Header(layout, "Text")
-  FontDropdown(layout, "whisperFont", "Font", "Font of the whisper windows", "Same as messages")
-  Slider(category, "whisperFontSize", "Font size", 0, 24, 1, "Size of the text in the whisper windows. 0: the same as the chat messages", "whisperFontSize", "Chat")
+  FontDropdown(layout, "whisperFont", "Font", "Font of the whisper windows", "Default")
+  Slider(category, "whisperFontSize", "Font size", 0, 24, 1, "Size of the text in the whisper windows. 0: the same as the chat messages", "whisperFontSize", "Default")
   local flagSetting = ProfileSetting(category, "whisperFontFlags", Settings.VarType.String, "Font outline", "whisperFont")
   Dropdown(category, flagSetting, function ()
     return {
-      { "same", "Same as messages" },
+      { "same", "Default" },
       { "", "None" },
       { "OUTLINE", "Outline" },
       { "THICKOUTLINE", "Thick outline" },
@@ -660,7 +660,7 @@ local function BuildTabs(category, layout)
   end, "When you select another tab.\nSlide: the line (Minimal) or bar (Underline) slides from the old tab to the new one.\nGrow: it opens from the middle of the new tab.\nFramed, Solid, Pill and Glossy fade softly from tab to tab with either.\nOff: no animation.")
 
   Header(layout, "Text")
-  FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Same as messages")
+  FontDropdown(layout, "tabFont", "Font", "Font of the tab names", "Default")
   Slider(category, "tabFontSize", "Font size", 6, 32, 1, "Size of the tab names", "tabFontSize")
   local textColorSetting = ProfileSetting(category, "tabTextColor", Settings.VarType.String, "Name color", "tabTextColor")
   Dropdown(category, textColorSetting, function ()

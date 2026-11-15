@@ -1,10 +1,10 @@
-# 1.1.3-forever (2026-11-12)
+# 1.1.4-forever (2026-11-15)
 
 What's new
 
-- Right click a whisper window's title or a name in the whisper list for the player's menu.
-- Whisper list names in class color.
-- The whisper list keeps the last 20 conversations.
-- Separate windows' tabs fade like the main chat's.
-- Edit Mode movers for voice chat and chat alerts.
-- Community invite links open the Communities window.
+- The whisper reply box only takes your typing when you click it.
+
+Bug fixes
+
+- No more error when whispering in combat in a dungeon: the message goes to the chat box, ready to send.
+- Options that follow another setting are now named "Default".

@@ -1006,11 +1006,12 @@ local function CreateWindow(conversation)
     end
     SendWhisper(conversation, text)
     self:SetText("")
+    -- (sent: the keys move you again; click the box to write more)
+    self:ClearFocus()
   end)
   window.input = input
 
-  -- Clicking the window starts typing
-  window:SetScript("OnMouseDown", function () input:SetFocus() end)
+  -- (typing starts only with a click on the reply box itself)
 
   -- Resize corner
   local resize = IconButton(window, "buttonResize", 12)
@@ -1219,7 +1220,8 @@ local function Row(i)
       PersonMenu(conversation, true)
     else
       list:Hide()
-      Show(conversation, true)
+      -- (open, not typing yet: click the reply box to write)
+      Show(conversation)
     end
   end)
   rows[i] = row

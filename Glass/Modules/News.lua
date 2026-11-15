@@ -12,6 +12,19 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.4-forever",
+    items = {[[
+What's new
+
+- The whisper reply box only takes your typing when you click it.
+
+Bug fixes
+
+- No more error when whispering in combat in a dungeon: the message goes to the chat box, ready to send.
+- Options that follow another setting are now named "Default".
+]]},
+  },
+  {
     name = "1.1.3-forever",
     items = {[[
 What's new
