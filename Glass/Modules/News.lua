@@ -12,6 +12,14 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.6-forever",
+    items = {[[
+Bug fixes
+
+- The Combat Log can be undocked and docked again.
+]]},
+  },
+  {
     name = "1.1.5-forever",
     items = {[[
 What's new

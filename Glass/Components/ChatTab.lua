@@ -25,7 +25,6 @@ local GetPhysicalScreenSize = GetPhysicalScreenSize
 local GetCursorPosition = GetCursorPosition
 local GetTime = GetTime
 local UnitClass = UnitClass
-local IsCombatLog = IsCombatLog
 local Mixin = Mixin
 local UNLOCK_WINDOW = UNLOCK_WINDOW
 -- luacheck: pop
@@ -359,8 +358,9 @@ function ChatTabMixin:Init(slidingMessageFrame)
     end)
   end
 
-  -- Disable dragging for General and CombatLog
-  if self.chatFrame == DEFAULT_CHAT_FRAME or IsCombatLog(self.chatFrame) then
+  -- Disable dragging for General (the Combat Log can be taken out of the
+  -- chat, see UIManager)
+  if self.chatFrame == DEFAULT_CHAT_FRAME then
     self:RegisterForDrag()
   end
 

@@ -2,6 +2,12 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.6-forever (2026-11-16)
+
+### Fixed
+- The Combat Log can be undocked: it becomes a normal window of the game's (shown, sized and placed at the mouse, so the game's drag code no longer fails every frame), its minimize and resize buttons in the chat buttons' style; docked again, it goes back in place. Left undocked, it stays where it was after a reload (`SlidingMessageFrame.lua`, `UIManager.lua`, `ChatTab.lua`).
+- The other tabs (Guild, Party, whispers) follow the last docked fixed tab instead of always the Combat Log's: they went along with an undocked Combat Log (`ChatDock.lua`).
+
 ## 1.1.5-forever (2026-11-16)
 
 ### Added

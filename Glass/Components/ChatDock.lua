@@ -26,7 +26,7 @@ function ChatDockMixin:Init(parent)
   self:SetFadeInDuration(0.6)
   self:SetFadeOutDuration(0.6)
 
-  self.scrollFrame:SetPoint("TOPLEFT", _G.ChatFrame2Tab, "TOPRIGHT")
+  self:AnchorScrollFrame()
 
   -- Height and background opacity come from the Tabs options
   self:UpdateHeight()
@@ -53,6 +53,7 @@ function ChatDockMixin:Init(parent)
     self:SecureHook("FCFDock_UpdateTabs", function (dock, forceUpdate)
       if dock == self and (forceUpdate or self.glassTabsChanged) then
         self.glassTabsChanged = false
+        self:AnchorScrollFrame()
         -- Whisper tabs share the room left on the bar, which just changed
         for _, chatFrame in ipairs(self.DOCKED_CHAT_FRAMES or {}) do
           local tab = _G[chatFrame:GetName().."Tab"]
@@ -144,6 +145,23 @@ function ChatDockMixin:Init(parent)
         end
       end)
     }
+  end
+end
+
+---
+-- The other tabs (Guild, Party, whispers) start after the last fixed one:
+-- the Combat Log, or General when the Combat Log is a window of its own
+-- (anchored to the Combat Log's tab, they went along with its window)
+function ChatDockMixin:AnchorScrollFrame()
+  local last = _G.ChatFrame1Tab
+  for _, chatFrame in ipairs(self.DOCKED_CHAT_FRAMES or {}) do
+    if chatFrame.isStaticDocked and chatFrame.isDocked ~= false then
+      last = _G[chatFrame:GetName().."Tab"] or last
+    end
+  end
+  if last and last ~= self.glassScrollAnchor then
+    self.glassScrollAnchor = last
+    self.scrollFrame:SetPoint("TOPLEFT", last, "TOPRIGHT")
   end
 end
 

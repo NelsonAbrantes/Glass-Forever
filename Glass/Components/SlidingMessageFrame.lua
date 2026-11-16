@@ -468,7 +468,8 @@ local COMBAT_LOG_FILTER_HEIGHT = 27 -- room for the filter bar, below the tab ba
 local COMBAT_LOG_X = 10              -- left/right margin, lined up with the tabs
 
 function SlidingMessageFrameMixin:PlaceCombatLog()
-  if self.positioning then return end
+  -- (out of the chat, a window of its own: placed by the player)
+  if self.positioning or self.state.detached then return end
   self.positioning = true
   local chatFrame = self.chatFrame
   pcall(function ()
@@ -481,6 +482,71 @@ function SlidingMessageFrameMixin:PlaceCombatLog()
     chatFrame:SetPoint("BOTTOMRIGHT", self:GetParent(), "BOTTOMRIGHT", -COMBAT_LOG_X, bottom)
   end)
   self.positioning = false
+end
+
+---
+-- The Combat Log taken out of the chat: a normal window of the game's, in
+-- its own look (Glass never draws its messages), moved and sized freely
+function SlidingMessageFrameMixin:ReleaseCombatLog()
+  local chatFrame = self.chatFrame
+  self.state.detached = true
+  -- (in the chat its size came from two anchors; the game keeps only one
+  -- when it moves the window: a size of its own, or it had none)
+  local width, height = _G.GetChatWindowSavedDimensions(chatFrame:GetID())
+  if not (width and height and width > 0 and height > 0) then
+    width, height = chatFrame:GetSize()
+  end
+  if not (width and width > 0) then width = 430 end
+  if not (height and height > 0) then height = 120 end
+  chatFrame:SetSize(width, height)
+  chatFrame:SetParent(_G.UIParent)
+  chatFrame:SetClampedToScreen(true)
+  chatFrame:SetResizable(true)
+  _G[chatFrame:GetName().."ButtonFrame"]:Show()
+  -- Its minimize and resize buttons in the style of the chat buttons, like
+  -- the other separate windows (Options > Separate windows)
+  local chatButtons = Core:GetModule("UIManager").chatButtons
+  local minimize = _G[chatFrame:GetName().."ButtonFrameMinimizeButton"]
+  local resize = chatFrame.ResizeButton
+  if chatButtons then
+    local glass = self:UsesWindowStyle()
+    if minimize then
+      if glass then chatButtons:Restyle(minimize, "buttonMinimize") else chatButtons:Unstyle(minimize) end
+    end
+    if resize then
+      if glass then chatButtons:Restyle(resize, "buttonResize", 16, 14) else chatButtons:Unstyle(resize) end
+    end
+  end
+  -- (dragged out while another tab was open, it was still hidden: the game
+  -- moves it as it is, and a hidden window has no place on screen to save,
+  -- its drag code then failed every frame)
+  chatFrame:Show()
+  -- Dragged out of the chat, the window was left with no place at all on
+  -- screen (the game then failed to save it, every frame): at the mouse
+  if not self.combatLogMoveHooked then
+    self.combatLogMoveHooked = true
+    local function Anchor()
+      if not self.state.detached or chatFrame:GetNumPoints() > 0 then return end
+      local x, y = _G.GetCursorPosition()
+      local scale = _G.UIParent:GetEffectiveScale()
+      chatFrame:SetPoint("TOPLEFT", _G.UIParent, "BOTTOMLEFT", x / scale - 20, y / scale)
+    end
+    self:SecureHook(chatFrame, "StartMoving", Anchor)
+    self:SecureHook(chatFrame, "StopMovingOrSizing", Anchor)
+  end
+end
+
+---
+-- The Combat Log back in the chat: inside the Glass container again
+function SlidingMessageFrameMixin:TakeOverCombatLog()
+  local chatFrame = self.chatFrame
+  self.state.detached = false
+  _G[chatFrame:GetName().."ButtonFrame"]:Hide()
+  chatFrame:SetClampRectInsets(0,0,0,0)
+  chatFrame:SetClampedToScreen(false)
+  chatFrame:SetResizable(false)
+  chatFrame:SetParent(self:GetParent())
+  self:PlaceCombatLog()
 end
 
 ---
@@ -500,9 +566,9 @@ function SlidingMessageFrameMixin:PlaceChatFrame()
       local scale = container:GetEffectiveScale() / chatFrame:GetEffectiveScale()
       chatFrame:SetPoint("TOPLEFT", _G.UIParent, "BOTTOMLEFT", left * scale, top * scale - 45)
     else
-      -- (not placed yet: for now, and again once it is)
+      -- (not placed yet: for now; placed again once it is, when the
+      -- container's place changes, see UIManager)
       chatFrame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -45)
-      self.placeAgain = true
     end
   end)
   self.positioning = false

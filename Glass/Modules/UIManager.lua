@@ -664,9 +664,18 @@ function UIManager:OnEnable()
     return select(7, GetChatWindowInfo(chatFrame:GetID())) and true or false
   end
 
+  local ShowSelectedFrame -- (below)
+
   self:SecureHook("FCF_UnDockFrame", function (chatFrame)
     local smf = FindFrame(chatFrame)
-    if not smf or not smf.state or smf.state.isCombatLog or smf.state.detached then return end
+    if not smf or not smf.state or smf.state.detached then return end
+    -- The Combat Log: the game's own window, drawn by the game in the chat
+    -- too. Let go of it, a window of its own (see ReleaseCombatLog)
+    if smf.state.isCombatLog then
+      smf:ReleaseCombatLog()
+      C_Timer.After(0, ShowSelectedFrame)
+      return
+    end
 
     -- The size of the chat messages: the window kept the game's own size,
     -- often bigger. Saved for the game, so the tab menu can still change it
@@ -739,7 +748,7 @@ function UIManager:OnEnable()
   end
 
   -- Shows the messages of the tab the game has selected, and hides the others
-  local function ShowSelectedFrame()
+  function ShowSelectedFrame()
     local selected = FCFDock_GetSelectedWindow and FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK)
     if not selected then return end
     local function Sync(smf)
@@ -754,10 +763,35 @@ function UIManager:OnEnable()
     for _, smf in pairs(self.state.temporaryFrames) do Sync(smf) end
   end
 
+  -- The Combat Log left out of the chat last time: a window of its own again
+  -- on login, where it was (Glass took it into the chat when it started, and
+  -- it then sat over the other tabs' messages)
+  C_Timer.After(1, function ()
+    local combatLog = _G.ChatFrame2
+    local smf = FindFrame(combatLog)
+    if not (smf and smf.state and smf.state.isCombatLog) or smf.state.detached then return end
+    if combatLog.isDocked or select(9, GetChatWindowInfo(combatLog:GetID())) then return end
+    smf:ReleaseCombatLog()
+    if FCF_RestorePositionAndDimensions then FCF_RestorePositionAndDimensions(combatLog) end
+    local saved = Core.db.char.windowPositions and Core.db.char.windowPositions[combatLog:GetName()]
+    if saved then
+      local point, x, y = unpack(saved)
+      combatLog:ClearAllPoints()
+      combatLog:SetPoint(point, x * _G.GetScreenWidth(), y * _G.GetScreenHeight())
+    end
+    combatLog:Show()
+    ShowSelectedFrame()
+  end)
+
   self:SecureHook("FCF_DockFrame", function (chatFrame)
     RememberSeparate(chatFrame, false)
     local smf = FindFrame(chatFrame)
-    if smf and smf.state and smf.state.detached then
+    if smf and smf.state and smf.state.isCombatLog then
+      if smf.state.detached then
+        smf:TakeOverCombatLog()
+        C_Timer.After(0, ShowSelectedFrame)
+      end
+    elseif smf and smf.state and smf.state.detached then
       smf:TakeOverChatFrame()
       -- The game selects the window docked again, but Glass was still showing
       -- the tab that was open before (after the game is done with the dock)
@@ -1012,7 +1046,7 @@ function UIManager:OnEnable()
   local function HideBlizzardFrame(smf)
     local chatFrame = smf.chatFrame
     if smf.state and smf.state.detached then return end -- a separate window, leave it
-      if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
+    if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
       smf:HideChatFrame()
     end
   end
