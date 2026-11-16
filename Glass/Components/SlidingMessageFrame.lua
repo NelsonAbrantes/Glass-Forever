@@ -484,13 +484,26 @@ function SlidingMessageFrameMixin:PlaceCombatLog()
 end
 
 ---
--- Keeps the (hidden) default chat frame at its place in the Glass container
+-- Keeps the (hidden) default chat frame at its place in the Glass container.
+-- Anchored to the screen (UIParent) at the same spot, not to the Glass
+-- container: the game saves the chat's place in the Edit Mode layout as it's
+-- anchored, and saved relative to GlassFrame, the chat was nowhere to be
+-- found with Glass turned off.
 function SlidingMessageFrameMixin:PlaceChatFrame()
   if self.positioning then return end
   self.positioning = true
   pcall(function ()
-    self.chatFrame:ClearAllPoints()
-    self.chatFrame:SetPoint("TOPLEFT", self:GetParent(), "TOPLEFT", 0, -45)
+    local chatFrame, container = self.chatFrame, self:GetParent()
+    local left, top = container:GetLeft(), container:GetTop()
+    chatFrame:ClearAllPoints()
+    if left and top then
+      local scale = container:GetEffectiveScale() / chatFrame:GetEffectiveScale()
+      chatFrame:SetPoint("TOPLEFT", _G.UIParent, "BOTTOMLEFT", left * scale, top * scale - 45)
+    else
+      -- (not placed yet: for now, and again once it is)
+      chatFrame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -45)
+      self.placeAgain = true
+    end
   end)
   self.positioning = false
 end

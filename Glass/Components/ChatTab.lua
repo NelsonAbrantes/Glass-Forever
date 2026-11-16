@@ -561,14 +561,33 @@ function SelectedLine:Hide()
   self.tab = nil
 end
 
+-- A tab's left edge and width. A Battle.net friend's tab can have them
+-- secret (unreadable): then its width is the one Glass gave it, and its left
+-- edge the right edge of the tab it's placed after (the line stayed on the
+-- last tab it could read, off center)
+local function TabPlace(tab)
+  local left, width = Readable(tab:GetLeft()), Readable(tab:GetWidth())
+  width = width or Readable(tab.glassWidth)
+  if not left then
+    local ok, point, relative, relativePoint, x = pcall(tab.GetPoint, tab, 1)
+    if ok and Readable(point) and Readable(relativePoint) and type(relative) == "table" and relative.GetRight
+      and type(point) == "string" and point:find("LEFT") and type(relativePoint) == "string"
+      and relativePoint:find("RIGHT") then
+      local right = Readable(relative:GetRight())
+      if right then left = right + (Readable(x) or 0) end
+    end
+  end
+  return left, width
+end
+
 -- Puts the line on `tab`, sliding there if it was on another one. Called
 -- every frame for the selected tab: only does work while something changes.
 function SelectedLine:Follow(tab)
   if not self:Create() then return end
   local frame = self.frame
   local dock = frame:GetParent()
-  local dockLeft, tabLeft = Readable(dock:GetLeft()), Readable(tab:GetLeft())
-  local tabWidth = Readable(tab:GetWidth())
+  local dockLeft = Readable(dock:GetLeft())
+  local tabLeft, tabWidth = TabPlace(tab)
   if not dockLeft or not tabLeft or not tabWidth then return end
 
   local bar = self.mode == "bar"
@@ -1288,8 +1307,11 @@ function SelectedBox:Follow(tab)
   local frame = self.frame
   local dock = frame:GetParent()
   local dockLeft, dockBottom = Readable(dock:GetLeft()), Readable(dock:GetBottom())
-  local tabLeft, tabBottom = Readable(tab:GetLeft()), Readable(tab:GetBottom())
-  local tabWidth, tabHeight = Readable(tab:GetWidth()), Readable(tab:GetHeight())
+  -- (a Battle.net friend's tab may hide its sizes: see TabPlace; its height
+  -- and bottom then the bar's)
+  local tabLeft, tabWidth = TabPlace(tab)
+  local tabBottom = Readable(tab:GetBottom()) or dockBottom
+  local tabHeight = Readable(tab:GetHeight()) or Utils.TabBarHeight()
   if not dockLeft or not tabLeft or not dockBottom or not tabBottom or not tabWidth or not tabHeight then return end
 
   -- Where the tab's own background would be (2px in at the sides, 1px at

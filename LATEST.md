@@ -1,10 +1,13 @@
-# 1.1.4-forever (2026-11-15)
+# 1.1.5-forever (2026-11-16)
 
 What's new
 
-- The whisper reply box only takes your typing when you click it.
+- "Whisper" in a player's menu, or a click on a name in the chat, opens their whisper window.
+- Links in whisper windows show in their colors.
+- Shift-click links into a whisper window's reply box.
 
 Bug fixes
 
-- No more error when whispering in combat in a dungeon: the message goes to the chat box, ready to send.
-- Options that follow another setting are now named "Default".
+- The chat no longer disappears when Glass Forever is turned off.
+- The selected tab line stays centered on Battle.net whisper tabs.
+- Hovering a profession link no longer opens its window.

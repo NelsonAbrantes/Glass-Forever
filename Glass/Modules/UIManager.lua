@@ -533,6 +533,26 @@ function UIManager:OnEnable()
   self.container = CreateMainContainerFrame("GlassFrame", UIParent)
   self.container:SetPoint("TOPLEFT", self.moverFrame)
 
+  -- Layouts saved by older versions keep the chat's place relative to
+  -- GlassFrame (the chat was gone with Glass turned off): a few seconds in,
+  -- out of combat, the game saves the chat's place again, now on the screen
+  C_Timer.After(5, function ()
+    local EditMode, System = _G.C_EditMode, _G.Enum and _G.Enum.EditModeSystem
+    if not (EditMode and EditMode.GetLayouts and System and System.ChatFrame) or InCombatLockdown() then return end
+    local ok, layouts = pcall(EditMode.GetLayouts)
+    if not ok or type(layouts) ~= "table" then return end
+    local broken = false
+    for _, layout in ipairs(layouts.layouts or {}) do
+      for _, system in ipairs(layout.systems or {}) do
+        local anchor = system.system == System.ChatFrame and system.anchorInfo
+        if anchor and anchor.relativeTo == "GlassFrame" then broken = true end
+      end
+    end
+    if broken and _G.FCF_SavePositionAndDimensions then
+      pcall(_G.FCF_SavePositionAndDimensions, _G.ChatFrame1)
+    end
+  end)
+
   -- Chat dock
   self.dock = CreateChatDock(self.container)
 
@@ -992,7 +1012,7 @@ function UIManager:OnEnable()
   local function HideBlizzardFrame(smf)
     local chatFrame = smf.chatFrame
     if smf.state and smf.state.detached then return end -- a separate window, leave it
-    if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
+      if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
       smf:HideChatFrame()
     end
   end
@@ -1064,7 +1084,21 @@ function UIManager:OnEnable()
       self.lastSelected = selected
       tabsDue = true
     end
-    if tabsDue then self.tabsElapsed = 0 end
+    if tabsDue then
+      self.tabsElapsed = 0
+      -- The game's hidden chat windows follow the Glass chat when it moves
+      -- (they're anchored to the screen, see PlaceChatFrame)
+      local left, top = self.container:GetLeft(), self.container:GetTop()
+      if left ~= self.containerLeft or top ~= self.containerTop then
+        self.containerLeft, self.containerTop = left, top
+        for _, smf in pairs(self.state.frames) do
+          if smf.chatFrame and smf.state and not smf.state.isCombatLog and not smf.state.detached
+            and smf.PlaceChatFrame then
+            smf:PlaceChatFrame()
+          end
+        end
+      end
+    end
     if selected and tabsDue then
       for _, smf in pairs(self.state.frames) do
         if smf.chatFrame and smf.state and not smf.state.isCombatLog and not smf.state.detached then

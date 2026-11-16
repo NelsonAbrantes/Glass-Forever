@@ -2,6 +2,17 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.5-forever (2026-11-16)
+
+### Added
+- Whispering someone from the game (a name clicked in the chat, "Whisper" in a player's menu) opens their Glass whisper window, ready to type, in their class color (`Whispers.lua`).
+- Whisper windows: links in their colors (items by quality, quests by difficulty); Shift-click links go into the reply box being typed in (`Whispers.lua`).
+
+### Fixed
+- The game's hidden chat window is anchored to the screen, not to GlassFrame: the Edit Mode layout saved the chat relative to GlassFrame, so the chat was gone with Glass turned off. Layouts saved that way are repaired a few seconds after logging in (`SlidingMessageFrame.lua`, `UIManager.lua`).
+- The selected tab line (and box styles) follow Battle.net whisper tabs whose sizes the game hides (`ChatTab.lua`).
+- Hovering a profession link in a whisper window no longer opens its window; clicks pass the chat window to the game (`Whispers.lua`).
+
 ## 1.1.4-forever (2026-11-15)
 
 ### Changed

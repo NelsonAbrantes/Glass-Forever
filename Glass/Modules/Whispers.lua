@@ -379,10 +379,19 @@ local function NewLine(view)
     end
     -- A community invite: the Communities window (see Hyperlinks.lua)
     if Core:GetModule("Hyperlinks").OpenClubTicket(link) then return end
-    pcall(_G.SetItemRef, link, text, button)
+    -- (with the chat window, as the chat passes it: some links, like a
+    -- profession's, need it to open)
+    local ok, problem = pcall(_G.SetItemRef, link, text, button, _G.DEFAULT_CHAT_FRAME)
+    if not ok and Readable(problem) then
+      print("|cffdfba69Glass Forever|r: this link couldn't open here:", tostring(problem))
+    end
   end)
   line:SetScript("OnHyperlinkEnter", function (self, link)
-    if not Readable(link) then return end
+    if not Readable(link) or type(link) ~= "string" then return end
+    -- (only links with a tooltip: asked for a profession's, the game opens
+    -- the profession window)
+    local kind = link:match("^(%a+):")
+    if not (kind and TOOLTIP_LINKS[kind]) then return end
     GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
     if not pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Hide() end
   end)
@@ -898,6 +907,28 @@ local function SetupTitleMenu()
   end
 end
 
+-- Shift-click links (items, quests, professions...) go into the whisper
+-- window being typed in, as they go into the chat's box: the game only
+-- knows its own boxes, so its link insertion is followed and, while a reply
+-- box has the keys, the link is written there too
+local typingIn, lastLink, lastLinkAt
+local function InsertIntoReply(link)
+  if not (typingIn and typingIn:HasFocus() and type(link) == "string") then return end
+  -- (the game's two ways in can both run for one click: once)
+  local now = GetTime()
+  if link == lastLink and lastLinkAt == now then return end
+  lastLink, lastLinkAt = link, now
+  typingIn:Insert(link)
+end
+local linksHooked = false
+local function HookLinks()
+  if linksHooked then return end
+  linksHooked = true
+  local Util = _G.ChatFrameUtil
+  if Util and Util.InsertLink then hooksecurefunc(Util, "InsertLink", InsertIntoReply) end
+  if _G.ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertIntoReply) end
+end
+
 local function CreateWindow(conversation)
   windowCount = windowCount + 1
   local window = CreateFrame("Frame", "GlassWhisperWindow"..windowCount, UIParent)
@@ -994,8 +1025,15 @@ local function CreateWindow(conversation)
   local function UpdatePlaceholder()
     window.placeholder:SetShown(input:GetText() == "" and not input:HasFocus())
   end
-  input:SetScript("OnEditFocusGained", UpdatePlaceholder)
-  input:SetScript("OnEditFocusLost", UpdatePlaceholder)
+  input:SetScript("OnEditFocusGained", function (self)
+    typingIn = self
+    HookLinks()
+    UpdatePlaceholder()
+  end)
+  input:SetScript("OnEditFocusLost", function (self)
+    if typingIn == self then typingIn = nil end
+    UpdatePlaceholder()
+  end)
   input:SetScript("OnTextChanged", UpdatePlaceholder)
   input:SetScript("OnEscapePressed", function (self) self:ClearFocus() end)
   input:SetScript("OnEnterPressed", function (self)
@@ -1059,12 +1097,48 @@ local function TextColor(conversation, entry)
   return WhisperColor(conversation.bn, entry.out)
 end
 
+-- Links in their colors, as the chat shows them: an item in its quality's,
+-- a quest in its difficulty's (whispers bring them without a color, and the
+-- message's own color covered them). An item the game doesn't know yet is
+-- asked for: colored the next time the window fills.
+local function LinkColor(kind, data)
+  if kind == "item" then
+    local itemID = tonumber(data:match("^(%d+)"))
+    local Item = _G.C_Item
+    local quality = itemID and Item and Item.GetItemQualityByID and Item.GetItemQualityByID(itemID)
+    if quality == nil and itemID and Item and Item.RequestLoadItemDataByID then
+      pcall(Item.RequestLoadItemDataByID, itemID)
+    end
+    local color = quality and _G.ITEM_QUALITY_COLORS and _G.ITEM_QUALITY_COLORS[quality]
+    if color then return color.r, color.g, color.b end
+  elseif kind == "quest" then
+    local level = tonumber(data:match("^%d+:(%-?%d+)"))
+    local color = level and level > 0 and _G.GetQuestDifficultyColor and _G.GetQuestDifficultyColor(level)
+    if color then return color.r, color.g, color.b end
+    return 1, 0.82, 0
+  elseif kind == "spell" or kind == "enchant" or kind == "trade" then
+    return 0.44, 0.84, 1
+  elseif kind == "achievement" then
+    return 1, 1, 0
+  end
+end
+
+local function ColorLinks(text)
+  if not Readable(text) or type(text) ~= "string" or not text:find("|H", 1, true) then return text end
+  local ok, colored = pcall(string.gsub, text, "(|H(%a+):([^|]*)|h.-|h)", function (link, kind, data)
+    local r, g, b = LinkColor(kind, data)
+    if not r then return link end
+    return "|c"..Hex(r, g, b)..link.."|r"
+  end)
+  return ok and colored or text
+end
+
 -- animate: a new message (not the lines filled in again)
 local function AddToWindow(conversation, entry, animate)
   local window = conversation.window
   if not window then return end
   local r, g, b = TextColor(conversation, entry)
-  local message = { text = entry.text, r = r, g = g, b = b, side = entry.out and "right" or "left", animate = animate }
+  local message = { text = ColorLinks(entry.text), r = r, g = g, b = b, side = entry.out and "right" or "left", animate = animate }
   if Profile().whisperShowNames ~= false then
     message.name = conversation.short or "?"
     message.nameR, message.nameG, message.nameB = PersonColor(conversation, false)
@@ -1079,7 +1153,7 @@ local function AddToWindow(conversation, entry, animate)
   -- their class color, with the chat's timestamps
   if Profile().whisperLook == "chat" then
     message.side = "chat"
-    local text = entry.text
+    local text = ColorLinks(entry.text)
     if Readable(text) and type(text) == "string" then
       local name = "|c"..Hex(PersonColor(conversation, false)).."["..(conversation.short or "?").."]|r"
       if not conversation.bn and conversation.target then
@@ -1897,6 +1971,70 @@ local function AddSeparateWindowFilter()
   UpdateSeparateWindowFilter()
 end
 
+-- Whispering someone from the game (a name clicked in the chat, "Whisper"
+-- in a player's menu): their whisper window opens, ready to type, instead
+-- of the chat's box. The game opens its box first: it's closed again.
+-- Their class (for the name's color): from someone near you (your group,
+-- your target...) with that name, else from the last time you talked
+local CLASS_UNITS = { "target", "focus", "mouseover", "party1", "party2", "party3", "party4" }
+local function ClassOf(target, key)
+  local units = CLASS_UNITS
+  if IsInRaid and IsInRaid() then
+    units = {}
+    for i = 1, 40 do units[i] = "raid"..i end
+  end
+  local wanted = target:lower()
+  for _, unit in ipairs(units) do
+    if UnitExists(unit) and UnitIsPlayer(unit) then
+      local unitName, realm = UnitName(unit)
+      if Readable(unitName) and unitName then
+        local full = (realm and realm ~= "" and Readable(realm)) and (unitName.."-"..realm) or unitName
+        if full:lower() == wanted or unitName:lower() == wanted then
+          local _, class = UnitClass(unit)
+          if Readable(class) then return class end
+        end
+      end
+    end
+  end
+  local saved = Saved()[key]
+  return saved and saved.class or nil
+end
+
+local function StartWhisper(name)
+  if not enabled or not Readable(name) or type(name) ~= "string" or name == "" then return end
+  local target = WhisperTarget(name)
+  local short = Ambiguate and Ambiguate(target, "none") or target
+  local key = "w:"..target:lower()
+  local conversation = GetConversation(key, {
+    bn = false, target = target, name = short, short = short:match("^[^-]+") or short,
+    class = ClassOf(target, key),
+  })
+  if conversation.window then
+    conversation.window.title:SetText(Title(conversation))
+    conversation.window.title:SetTextColor(PersonColor(conversation, false))
+  end
+  local Util = _G.ChatFrameUtil
+  local Active = (Util and Util.GetActiveWindow) or _G.ChatEdit_GetActiveWindow
+  local box = Active and Active()
+  if box then
+    box:SetText("")
+    local Deactivate = (Util and Util.DeactivateChat) or _G.ChatEdit_DeactivateChat
+    if Deactivate then pcall(Deactivate, box) else box:ClearFocus() end
+  end
+  if not conversation.bubble then Open(conversation) end
+  Show(conversation, true)
+end
+
+local tellHooked = false
+local function HookTells()
+  if tellHooked then return end
+  tellHooked = true
+  local Util = _G.ChatFrameUtil
+  -- (both ways in: some menus call one, some the other; twice is harmless)
+  if Util and Util.SendTell then hooksecurefunc(Util, "SendTell", StartWhisper) end
+  if _G.ChatFrame_SendTell then hooksecurefunc("ChatFrame_SendTell", StartWhisper) end
+end
+
 local function SetEnabled(on)
   on = on and true or false
   SetGameOption(on)
@@ -1926,6 +2064,7 @@ function Whispers:OnEnable()
   end
   SetEnabled(Profile().whisperWindows ~= false)
   SetupTitleMenu()
+  HookTells()
   -- (a moment later: the Battle.net friends list and the chat are ready)
   C_Timer.After(3, function ()
     if enabled then RestoreOpen() end
