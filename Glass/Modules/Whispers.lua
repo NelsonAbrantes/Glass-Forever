@@ -1637,9 +1637,38 @@ function Whispers:SoundChoices()
   return list
 end
 
+-- "Default": the game's whisper sound. The game plays it from the chat
+-- window that shows the whisper, and only after 5 minutes without one in
+-- it; with the whisper windows, often it didn't play at all. Played here
+-- when the game didn't, in the same moment (its sounds are watched)
+local gameSoundAt = -1
+local function WatchGameSound()
+  if Whispers.soundWatched or not _G.hooksecurefunc then return end
+  Whispers.soundWatched = true
+  _G.hooksecurefunc("PlaySound", function (kit)
+    local kits = _G.SOUNDKIT
+    if kits and kit == kits.TELL_MESSAGE then gameSoundAt = GetTime() end
+  end)
+end
+-- (from the start: the game's chat may get a whisper before Glass does)
+WatchGameSound()
+
+local function GameSound(force)
+  local kit = _G.SOUNDKIT and _G.SOUNDKIT.TELL_MESSAGE
+  if not kit then return end
+  local now = GetTime()
+  -- (after the game's own chat had the whisper: the next frame)
+  C_Timer.After(0, function ()
+    if gameSoundAt >= now then return end
+    if not force and GetTime() - lastSound < SOUND_EVERY then return end
+    lastSound = GetTime()
+    pcall(_G.PlaySound, kit, "Master")
+  end)
+end
+
 function Whispers:PlaySound(force)
   local choice = Profile().whisperSound or "none"
-  if choice == "none" then return end
+  if choice == "none" then return GameSound(force) end
   local now = GetTime()
   if not force and now - lastSound < SOUND_EVERY then return end
   lastSound = now
@@ -2025,6 +2054,26 @@ local function StartWhisper(name)
   Show(conversation, true)
 end
 
+-- A name clicked in the chat: their class from the message it was in (the
+-- chat colors names that way), for someone not near you and never talked
+-- to. The game opens the whisper (above) inside this click: the window is
+-- there already, only its color is set here
+local function ClassFromLink(link)
+  if not enabled or type(link) ~= "string" or not Readable(link) then return end
+  local name, lineID = link:match("^player:([^:]+):(%d+)")
+  if not name then return end
+  local GetGUID = C_ChatInfo and C_ChatInfo.GetChatLineSenderGUID
+  local guid = GetGUID and GetGUID(tonumber(lineID))
+  if not guid or not Readable(guid) or guid == "" or not GetPlayerInfoByGUID then return end
+  local _, class = GetPlayerInfoByGUID(guid)
+  if not class or not Readable(class) then return end
+  local conversation = conversations["w:"..WhisperTarget(name):lower()]
+  if not conversation or conversation.class == class then return end
+  conversation.class = class
+  if conversation.saved then conversation.saved.class = class end
+  if conversation.window then conversation.window.title:SetTextColor(PersonColor(conversation, false)) end
+end
+
 local tellHooked = false
 local function HookTells()
   if tellHooked then return end
@@ -2033,6 +2082,7 @@ local function HookTells()
   -- (both ways in: some menus call one, some the other; twice is harmless)
   if Util and Util.SendTell then hooksecurefunc(Util, "SendTell", StartWhisper) end
   if _G.ChatFrame_SendTell then hooksecurefunc("ChatFrame_SendTell", StartWhisper) end
+  hooksecurefunc("SetItemRef", ClassFromLink)
 end
 
 local function SetEnabled(on)

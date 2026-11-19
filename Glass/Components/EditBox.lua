@@ -351,6 +351,32 @@ end
 
 -- Up: the line typed before; Down: the one after, and past the newest, what
 -- you were writing before going up
+-- Lines with a protected command (/target, /cast, /focus...) are skipped: a
+-- line put in the box by an addon can't do what the game protects
+-- (ADDON_ACTION_FORBIDDEN on Enter). Every other line comes back (/reload,
+-- /dance...). The game's own Alt + arrows still bring them all back.
+local PROTECTED = {
+  target = true, tar = true, focus = true, cast = true, use = true, castsequence = true,
+  castrandom = true, userandom = true, assist = true, startattack = true, stopattack = true,
+  cleartarget = true, clearfocus = true, targetenemy = true, targetfriend = true,
+  targetparty = true, targetraid = true, targetlasttarget = true, targetexact = true,
+  petattack = true, click = true, stopcasting = true, cancelaura = true, cancelform = true,
+  equip = true, equipslot = true, swapactionbar = true, changeactionbar = true,
+}
+local function Recallable(text)
+  if type(text) ~= "string" or text:sub(1, 1) ~= "/" then return true end
+  local command = text:match("^/(%S+)")
+  if not command then return true end
+  command = command:lower()
+  -- (the game knows its protected commands; the list above if it can't say)
+  local IsSecure = _G.IsSecureCmd
+  if IsSecure then
+    local ok, secure = pcall(IsSecure, "/"..command)
+    if ok then return not secure end
+  end
+  return not PROTECTED[command]
+end
+
 local function Browse(box, step)
   local lines = TypedLines()
   if #lines == 0 then return end
@@ -358,7 +384,11 @@ local function Browse(box, step)
     box.glassHistoryIndex = #lines + 1
     box.glassHistoryDraft = box:GetText()
   end
-  local index = math.max(1, math.min(#lines + 1, box.glassHistoryIndex + step))
+  local index = box.glassHistoryIndex
+  repeat
+    index = math.max(1, math.min(#lines + 1, index + step))
+  until index > #lines or Recallable(lines[index]) or index == 1
+  if index <= #lines and not Recallable(lines[index]) then return end
   if index == box.glassHistoryIndex then return end
   box.glassHistoryIndex = index
   box.glassBrowsing = true

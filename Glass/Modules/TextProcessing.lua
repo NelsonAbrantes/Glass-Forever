@@ -212,11 +212,17 @@ local RACE_ATLAS = {
 local RACE_ICON = { Skyborne = 132845 } -- races with no race picture: an icon instead
 local atlasMarkup = {} -- atlas -> markup, or false when the game doesn't have it
 
+-- How far down the icons go to sit level with the name: drawn in the line's
+-- middle, they stood a little higher than the letters
+local function IconDrop(size)
+  return -math.max(1, math.floor(size / 6 + 0.5))
+end
+
 local function AtlasIcon(atlas, size)
   local key = atlas..size
   if atlasMarkup[key] == nil then
     local info = _G.C_Texture and _G.C_Texture.GetAtlasInfo and _G.C_Texture.GetAtlasInfo(atlas)
-    atlasMarkup[key] = info and ("|A:"..atlas..":"..size..":"..size.."|a") or false
+    atlasMarkup[key] = info and ("|A:"..atlas..":"..size..":"..size..":0:"..IconDrop(size).."|a") or false
   end
   return atlasMarkup[key] or ""
 end
@@ -237,7 +243,7 @@ local function SenderIcons(lineID, size)
     if icon == "" then icon = AtlasIcon("raceicon-"..name, size) end
     -- Races the game has no race picture for (WoW Forever's Skyborne): an icon
     if icon == "" and RACE_ICON[race] then
-      icon = "|T"..RACE_ICON[race]..":"..size..":"..size..":0:0:64:64:5:59:5:59|t"
+      icon = "|T"..RACE_ICON[race]..":"..size..":"..size..":0:"..IconDrop(size)..":64:64:5:59:5:59|t"
     end
     icons = icons..icon
   end
