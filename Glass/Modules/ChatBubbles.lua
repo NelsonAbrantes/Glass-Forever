@@ -274,9 +274,11 @@ local function Layout(holder)
   local dark = Constants.COLORS.codGray
 
   Font(holder)
-  -- (the copy's words and width first: the name and the box go by them)
+  -- (the copy's words and width first: the name and the box go by them;
+  -- shown again: Glass look turned off hid it)
   PlaceCopy(holder)
   SyncCopy(holder)
+  holder.glassCopy:Show()
 
   -- Who's talking (Options: Name of who's talking), over the text: the
   -- background grows up to take it in
