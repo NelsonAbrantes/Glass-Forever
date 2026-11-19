@@ -622,6 +622,7 @@ function C:RefreshConfig()
   Core:Dispatch(UpdateConfig("frameHeight"))
   Core:Dispatch(UpdateConfig("frameWidth"))
   Core:Dispatch(UpdateConfig("framePosition"))
+  Core:Dispatch(UpdateConfig("bubbleStyle"))
 
   -- Edit box
   Core:Dispatch(UpdateConfig("editBoxFontSize"))

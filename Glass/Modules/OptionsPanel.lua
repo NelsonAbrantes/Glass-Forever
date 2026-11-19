@@ -255,6 +255,49 @@ local function BuildGeneral(category, layout)
   Header(layout, "Alerts")
   Checkbox(category, "alertStyle", "Glass look for game alerts", "Achievements, loot, money, new recipes and the game's other alerts get the Glass background, a gold line and the Glass font instead of their own art (the Battle.net alert always has it)")
 
+
+  Header(layout, "Chat bubbles")
+  Checkbox(category, "bubbleStyle", "Glass look", "The bubbles over characters' heads get the Glass look instead of the white box. In dungeons and raids the game doesn't let addons change them", "bubbleStyle")
+  local lookSetting = ProfileSetting(category, "bubbleLook", Settings.VarType.String, "Style", "bubbleLook")
+  Dropdown(category, lookSetting, function ()
+    return {
+      { "glass", "Glass" },
+      { "solid", "Solid" },
+      { "rounded", "Rounded" },
+      { "underline", "Underline" },
+    }
+  end, "Glass: dark background fading out at the sides. Solid: a dark box. Rounded: a dark box with round corners. Underline: no background, only the text and a line under it")
+  local lineColorSetting = ProfileSetting(category, "bubbleLineColor", Settings.VarType.String, "Line color", "bubbleLineColor")
+  Dropdown(category, lineColorSetting, function ()
+    return {
+      { "channel", "Channel color" },
+      { "gold", "Gold" },
+      { "white", "White" },
+      { "none", "None" },
+    }
+  end, "Color of the thin line on the bubble. Channel color: white for say, red for yell, blue for party...")
+  local linePositionSetting = ProfileSetting(category, "bubbleLinePosition", Settings.VarType.String, "Line position", "bubbleLinePosition")
+  Dropdown(category, linePositionSetting, function ()
+    return {
+      { "top", "Top" },
+      { "bottom", "Bottom" },
+      { "left", "Left" },
+    }
+  end, "Where the line goes. With the Underline style it's always under the text")
+  Checkbox(category, "bubbleTail", "Pointer", "A small point under the bubble, toward who's talking (not with the Underline style)", "bubbleTail")
+  Slider(category, "bubbleOpacity", "Background opacity", 0, 1, 0.05, "How dark the bubble's background is. Default: a little darker than the chat's", "bubbleOpacity", "Default")
+  Slider(category, "bubbleFontSize", "Text size", 0, 30, 1, "Size of the text in the bubbles. Default: the game's size", "bubbleFontSize", "Default")
+  Slider(category, "bubblePadding", "Bubble size", 0, 20, 1, "Room around the text: higher, a bigger bubble. Default: as close as it looks good", "bubblePadding", "Default")
+  Slider(category, "bubbleLift", "Height", 0, 80, 1,"How much higher over the character the bubble is than where the game puts it", "bubbleLift")
+  local textColorSetting = ProfileSetting(category, "bubbleTextColor", Settings.VarType.String, "Text color", "bubbleTextColor")
+  Dropdown(category, textColorSetting, function ()
+    return {
+      { "default", "Default" },
+      { "white", "White" },
+    }
+  end, "Color of the text in the bubbles. Default: the game's")
+  Checkbox(category, "bubbleShowName", "Name of who's talking", "The name of who's talking over the text, in their class color (gold for characters of the game)", "bubbleShowName")
+
   Header(layout, "Separate windows")
   Checkbox(category, "windowStyle", "Glass look", "Tabs dragged out of the chat become windows with the Glass look: no border, the Glass background while the mouse is over them, and messages that fade out. Off: they look like the default chat", "windowStyle")
   Checkbox(category, "windowMessageBackground", "Background on each message", "With the Glass look: each message gets its own background, fading out with it, like in the main chat, instead of one behind the whole window", "windowMessageBackground")
