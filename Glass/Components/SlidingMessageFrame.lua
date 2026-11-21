@@ -338,7 +338,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         end
 
         -- ...and the Glass look, with its fade and background settings
-        if self.state.detached and (key == "windowStyle" or key == "chatHoldTime"
+        if self.state.detached and (key == "windowStyle" or key == "chatHoldTime" or key == "messageFade"
           or key == "chatFadeOutDuration" or key == "chatBackgroundOpacity"
           or key == "windowMessageBackground" or key == "messageBackgroundFull"
           or key == "messageLinePadding") then
@@ -742,9 +742,10 @@ function SlidingMessageFrameMixin:ApplyWindowStyle()
   self:SpaceLines()
   self:UpdateLineBackgrounds()
 
-  -- Messages fade out like in Glass (the game's own fading, with Glass' timing)
+  -- Messages fade out like in Glass (the game's own fading, with Glass' timing),
+  -- or stay, with Fade out off (Messages options)
   if glass then
-    chatFrame:SetFading(true)
+    chatFrame:SetFading(Core.db.profile.messageFade ~= false)
     chatFrame:SetTimeVisible(Core.db.profile.chatHoldTime)
     chatFrame:SetFadeDuration(Core.db.profile.chatFadeOutDuration)
   end

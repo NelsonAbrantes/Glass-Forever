@@ -597,11 +597,98 @@ function C:OnEnable()
   Core:Subscribe(SAVE_FRAME_POSITION, function (position)
     Core.db.profile.positionAnchor = position
   end)
+
+  -- (the chat's frames exist once the UI is built: watched a moment later)
+  C_Timer.After(2, function () C:WatchChat() end)
+end
+
+----
+-- /glass report: for a bug report. A window with the text to copy: the
+-- game, Glass, the chat's frames as they are now, and the last times one of
+-- them was hidden or made invisible (by what code), so a player only has to
+-- type it when the chat goes wrong and paste what it shows.
+
+local REPORT_KEEP = 12 -- the last hides and fades kept (in memory only)
+local reportLog = {}
+
+local function Log(what)
+  local stack = debugstack(3, 4, 0) or ""
+  stack = stack:gsub("Interface/AddOns/", ""):gsub("%[string \"[^\"]*\"%]", "?"):gsub("\n+$", "")
+  table.insert(reportLog, ("%s %s\n    %s"):format(date("%H:%M:%S"), what, stack:gsub("\n", "\n    ")))
+  if #reportLog > REPORT_KEEP then table.remove(reportLog, 1) end
+end
+
+function C:WatchChat()
+  local frames = {
+    { "UIParent", _G.UIParent }, { "GlassFrame", _G.GlassFrame },
+    { "ChatFrame1", _G.ChatFrame1 }, { "ChatFrame1EditBox", _G.ChatFrame1EditBox },
+  }
+  for _, one in ipairs(frames) do
+    local name, frame = one[1], one[2]
+    if frame then
+      frame:HookScript("OnHide", function () Log(name.." hidden") end)
+      -- (only when it goes almost invisible: not every step of a fade)
+      hooksecurefunc(frame, "SetAlpha", function (_, alpha)
+        if type(alpha) == "number" and alpha < 0.05 then Log(name.." alpha "..alpha) end
+      end)
+    end
+  end
+end
+
+local function Yes(value) return value and "yes" or "no" end
+
+local function FrameLine(name, frame)
+  if not frame then return name..": missing" end
+  local parent = frame:GetParent()
+  return ("%s: shown %s, visible %s, alpha %.2f (on screen %.2f), parent %s"):format(name,
+    Yes(frame:IsShown()), Yes(frame:IsVisible()), frame:GetAlpha(), frame:GetEffectiveAlpha(),
+    parent and (parent:GetName() or "(no name)") or "none")
+end
+
+function C:Report()
+  local AddOns = _G.C_AddOns
+  local lines = {}
+  local function Add(line) table.insert(lines, line) end
+  local version, build = GetBuildInfo()
+  Add("Glass "..Core.Version..", game "..(version or "?").." ("..(build or "?")..")")
+  local gamepad = _G.C_GamePad and _G.C_GamePad.IsEnabled and _G.C_GamePad.IsEnabled()
+  Add(("Gamepad %s, flying %s, in combat %s, in instance %s"):format(Yes(gamepad),
+    Yes(UnitOnTaxi("player")), Yes(InCombatLockdown()), Yes(IsInInstance())))
+  Add("")
+  Add(FrameLine("UIParent", _G.UIParent))
+  Add(FrameLine("GlassFrame", _G.GlassFrame))
+  Add(FrameLine("ChatFrame1", _G.ChatFrame1))
+  local box = _G.ChatFrame1EditBox
+  local intro = box and box.glassIntro
+  Add(FrameLine("ChatFrame1EditBox", box)..(box and (", typing "..Yes(box:HasFocus())) or "")
+    ..(intro and (", fade in playing "..Yes(intro:IsPlaying())..", paused "..Yes(intro:IsPaused())) or ""))
+  Add(FrameLine("GeneralDockManager", _G.GeneralDockManager))
+  Add("")
+  Add("Last hidden or made invisible:")
+  if #reportLog == 0 then Add("  (nothing)") end
+  for _, entry in ipairs(reportLog) do Add(entry) end
+  Add("")
+  local loaded = {}
+  if AddOns and AddOns.GetNumAddOns then
+    for i = 1, AddOns.GetNumAddOns() do
+      if AddOns.IsAddOnLoaded(i) then table.insert(loaded, (AddOns.GetAddOnInfo(i))) end
+    end
+  end
+  Add("Addons ("..#loaded.."): "..table.concat(loaded, ", "))
+  Core:Dispatch(Constants.ACTIONS.OpenCopy({
+    title = "Glass Forever: Report",
+    text = table.concat(lines, "\n"),
+  }))
 end
 
 function C:OnSlashCommand(input)
   if input == "lock" then
     Core:Dispatch(UnlockMover())
+    return
+  end
+
+  if input == "report" then
+    self:Report()
     return
   end
 

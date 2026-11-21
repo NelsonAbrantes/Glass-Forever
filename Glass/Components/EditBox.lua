@@ -276,6 +276,8 @@ function EditBoxMixin:Init(parent)
   fadeIn:SetToAlpha(1)
   fadeIn:SetDuration(0.2)
   fadeIn:SetSmoothing("OUT")
+  -- (for /glass report: a fade stuck halfway would leave the box unseen)
+  self.glassIntro = introAg
 
   -- Workaround for editbox being open on login
   self.glassInitialized = false
