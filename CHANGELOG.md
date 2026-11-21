@@ -2,6 +2,18 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.7-forever (2026-11-21)
+
+### Added
+- `/glass report`: a window with the game and Glass versions, the chat's frames as they are, the last times one was hidden or made invisible (with the code that did it) and the addons loaded, ready to copy into a bug report (`Config.lua`, `EditBox.lua`).
+
+### Fixed
+- Separate windows follow the Fade out option: off, their messages stay (`SlidingMessageFrame.lua`).
+- The whisper sound plays when the game skips its own (`Whispers.lua`).
+- Whisper window titles take the class color from a clicked name (`Whispers.lua`).
+- Up/Down history skips only protected commands: no blocked action on /target, /reload comes back (`EditBox.lua`).
+- Class and race icons sit level with the name (`TextProcessing.lua`).
+
 ## 1.1.6-forever (2026-11-16)
 
 ### Fixed
