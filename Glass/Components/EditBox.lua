@@ -9,6 +9,7 @@ local UPDATE_CONFIG = Constants.EVENTS.UPDATE_CONFIG
 -- luacheck: push ignore 113
 local CreateColor = CreateColor
 local Mixin = Mixin
+local C_Timer = C_Timer
 -- luacheck: pop
 
 local ASSETS = "Interface\\Addons\\Glass\\Glass\\Assets\\Tabs\\" -- the edit box styles use the tab shapes
@@ -284,7 +285,13 @@ function EditBoxMixin:Init(parent)
   -- addons' (hooked earlier) stopped running when it was replaced
   getmetatable(self).__index.HookScript(self, "OnShow", function ()
     if self.glassInitialized then
-      introAg:Play()
+      -- (not started over while it plays, and never left halfway: with the
+      -- game's controller mode the box could stay invisible, its fade-in
+      -- stuck at the start. Stopped, the box shows as it is)
+      if not introAg:IsPlaying() then introAg:Play() end
+      C_Timer.After(0.5, function ()
+        if introAg:IsPlaying() then introAg:Stop() end
+      end)
     else
       self.glassInitialized = true
     end
