@@ -1980,7 +1980,11 @@ local function UpdateSeparateWindowFilter()
   local add = (util and util.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
   local remove = (util and util.RemoveMessageEventFilter) or _G.ChatFrame_RemoveMessageEventFilter
   if not add or not remove then return end
+  -- (and only while a separate window is open, like the emote filter: the
+  -- game's code after a filter could fail later in a dungeon)
+  local ui = Core:GetModule("UIManager", true)
   local want = enabled and not (_G.IsInInstance and _G.IsInInstance())
+    and ui and ui.HasSeparateWindow and ui:HasSeparateWindow()
   if want and not filterAdded then
     for event in pairs(EVENTS) do add(event, SeparateWindowFilter) end
     filterAdded = true
@@ -1996,6 +2000,11 @@ local function AddSeparateWindowFilter()
     filterWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
     filterWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     filterWatch:SetScript("OnEvent", UpdateSeparateWindowFilter)
+    local function Later() C_Timer.After(0.1, UpdateSeparateWindowFilter) end
+    Core:Subscribe(Constants.EVENTS.SEPARATE_WINDOWS, UpdateSeparateWindowFilter) -- (put back out at login)
+    for _, name in ipairs({ "FCF_UnDockFrame", "FCF_DockFrame", "FCF_Close" }) do
+      if _G[name] then hooksecurefunc(name, Later) end
+    end
   end
   UpdateSeparateWindowFilter()
 end

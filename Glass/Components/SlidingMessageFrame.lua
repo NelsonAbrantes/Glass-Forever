@@ -215,6 +215,7 @@ function SlidingMessageFrameMixin:Init(chatFrame)
   -- its messages up to date with the mouse, since hidden tabs skip the mouse
   -- enter/leave handlers below
   self:SetScript("OnShow", function ()
+    self:FadeTop() -- (moved while hidden)
     if self.state.mouseOver and Core.db.profile.chatShowOnMouseOver then
       for _, message in ipairs(self.state.messages) do
         message:Show()
@@ -225,12 +226,30 @@ function SlidingMessageFrameMixin:Init(chatFrame)
     end
   end)
 
+  -- Fade at the top: follows the scroll (once per frame of the pool)
+  if not self.glassTopHooked then
+    self.glassTopHooked = true
+    -- (after each SetVerticalScroll: the scroll frame's OnVerticalScroll
+    -- doesn't come for those)
+    -- (the scroll asked for: right after a big jump, the game still answers
+    -- with the old one until it has taken the new height in)
+    hooksecurefunc(self, "SetVerticalScroll", function (_, value)
+      self.glassScroll = value
+      self:FadeTop()
+    end)
+  end
+
   -- Mouse clickthrough
   self:EnableMouse(false)
 
   -- ScrollChild
   if self.slider == nil then
     self.slider = CreateFrame("Frame", nil, self)
+    -- (its height as set, for the fade at the top: the game gives the old one
+    -- until it has laid it out)
+    hooksecurefunc(self.slider, "SetHeight", function (_, height)
+      self.glassSliderHeight = height
+    end)
   end
   self.slider:SetHeight(self.config.height + self.config.overflowHeight)
   self.slider:SetWidth(self.config.width)
@@ -290,6 +309,10 @@ function SlidingMessageFrameMixin:Init(chatFrame)
         -- mouse entered the chat. Hidden tabs catch up in OnShow.
         if not self:IsShown() then return end
 
+        -- (once more as you look at it: right after logging in, the first
+        -- messages could come before the fade had what it needs)
+        self:FadeTop()
+
         if not self.state.scrollAtBottom then
           self.overlay:Show()
         end
@@ -332,13 +355,17 @@ function SlidingMessageFrameMixin:Init(chatFrame)
           end
         end
 
+        if key == "topFade" or key == "messageFontSize" then
+          self:FadeTop()
+        end
+
         -- Separate windows follow the Glass font too
         if key == "font" or key == "messageLeading" then
           self:ApplyGlassFont()
         end
 
         -- ...and the Glass look, with its fade and background settings
-        if self.state.detached and (key == "windowStyle" or key == "chatHoldTime"
+        if self.state.detached and (key == "windowStyle" or key == "chatHoldTime" or key == "messageFade"
           or key == "chatFadeOutDuration" or key == "chatBackgroundOpacity"
           or key == "windowMessageBackground" or key == "messageBackgroundFull"
           or key == "messageLinePadding") then
@@ -438,7 +465,8 @@ function SlidingMessageFrameMixin:TakeOverChatFrame()
   if not self:IsHooked(chatFrame, "Show") then
     self:SecureHook(chatFrame, "Show", function ()
       if self.state.detached then return end
-      self:HideChatFrame()
+      -- (a Details! window sits in it: shown, see UpdateEmbed)
+      if not self.state.embedHost then self:HideChatFrame() end
       self:Show()
     end)
   end
@@ -562,7 +590,12 @@ function SlidingMessageFrameMixin:PlaceChatFrame()
     local chatFrame, container = self.chatFrame, self:GetParent()
     local left, top = container:GetLeft(), container:GetTop()
     chatFrame:ClearAllPoints()
-    if left and top then
+    if self.state.embedHost then
+      -- Details! in it: over the Glass messages, their size
+      local y = Utils.TabBarAtBottom() and 0 or -(Utils.TabBarHeight() + 5)
+      chatFrame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, y)
+      chatFrame:SetSize(self.config.width, self.config.height)
+    elseif left and top then
       local scale = container:GetEffectiveScale() / chatFrame:GetEffectiveScale()
       chatFrame:SetPoint("TOPLEFT", _G.UIParent, "BOTTOMLEFT", left * scale, top * scale - 45)
     else
@@ -572,6 +605,21 @@ function SlidingMessageFrameMixin:PlaceChatFrame()
     end
   end)
   self.positioning = false
+end
+
+---
+-- Details! "Chat Tab Embed": its damage meter sits in a chat tab's window,
+-- which Glass otherwise keeps hidden. That tab's window is shown, with no
+-- messages of its own (Details takes them away), over the Glass messages
+-- area while the tab is selected (UIManager's ticker shows and hides it).
+function SlidingMessageFrameMixin:UpdateEmbed()
+  if not self.chatFrame or not self.state or self.state.isCombatLog or self.state.detached then return end
+  local Details = _G.Details
+  local embed = type(Details) == "table" and Details.chat_tab_embed
+  local host = embed and embed.enabled and Details.chat_tab_embed_onframe == self.chatFrame and true or false
+  if host == (self.state.embedHost or false) then return end
+  self.state.embedHost = host
+  self:PlaceChatFrame()
 end
 
 ---
@@ -742,9 +790,10 @@ function SlidingMessageFrameMixin:ApplyWindowStyle()
   self:SpaceLines()
   self:UpdateLineBackgrounds()
 
-  -- Messages fade out like in Glass (the game's own fading, with Glass' timing)
+  -- Messages fade out like in Glass (the game's own fading, with Glass' timing),
+  -- or stay, with Fade out off (Messages options)
   if glass then
-    chatFrame:SetFading(true)
+    chatFrame:SetFading(Core.db.profile.messageFade ~= false)
     chatFrame:SetTimeVisible(Core.db.profile.chatHoldTime)
     chatFrame:SetFadeDuration(Core.db.profile.chatFadeOutDuration)
   end
@@ -1188,6 +1237,9 @@ function SlidingMessageFrameMixin:CreateMessageFrame(frame, text, red, green, bl
   message.chatFrame = self.chatFrame
 
   message.text:SetTextColor(red, green, blue, 1)
+  -- (a line used again may still be faint from the top of the chat)
+  message.glassTopAlpha = 1
+  message.text:SetAlpha(1)
   -- The "Previous session" separator has a look of its own (MessageLine.lua)
   local separator = Core.Components.SeparatorText(text)
   local shown = separator or TP:ProcessText(text)
@@ -1396,6 +1448,63 @@ function SlidingMessageFrameMixin:Update(incoming, reverse)
   local historyLimit = 128
   while #self.state.messages > historyLimit do
     self.messageFramePool:Release(table.remove(self.state.messages, 1))
+  end
+
+  -- (the new ones can move the others without a scroll)
+  self:FadeTop()
+end
+
+----
+-- "Fade at the top" (Messages options): the messages fade out as they reach
+-- the top edge of the chat, instead of being cut off there, over about four
+-- lines. The backgrounds through a mask (MessageLine:SetTopMask), the text of
+-- each message by how far it is from the edge, along the same curve. Runs
+-- when the chat scrolls (also each step of a slide in), and only goes through
+-- the messages in sight: from the newest up to the first one past the edge.
+local TOP_FADE_LINES = 4
+local TOP_FADE_LINE_HEIGHT = 1.75 -- a line of text with its padding, in font sizes
+local TOP_FADE_LONG = 1 -- a long message is measured this many lines under its top
+
+-- Where each message is, counted from the heights Glass gave them, not asked
+-- of the game: right after a scroll, or for messages just added, the game
+-- still gives their old places (new ones came in unfaded at the top). The
+-- messages are stacked from the bottom of the scrolled frame (the slider),
+-- the newest at the bottom, and the chat shows it from the scroll value down.
+function SlidingMessageFrameMixin:FadeTop()
+  if self.state.isCombatLog then return end
+  local messages = self.state.messages
+  local on = Core.db.profile.topFade ~= false and not self.state.detached
+  local sliderHeight = on and self.slider and (self.glassSliderHeight or self.slider:GetHeight())
+  if not (sliderHeight and Readable(sliderHeight)) then on = false end
+  local row = (Core.db.profile.messageFontSize or 12) * TOP_FADE_LINE_HEIGHT
+  local zone = row * TOP_FADE_LINES
+  -- (the chat's top edge, in the slider: its distance from the slider's top)
+  local edge = on and (self.glassScroll or GetScroll(self)) or 0
+
+  local below = 0 -- the height of the newer messages, under this one
+  for i = #messages, 1, -1 do
+    local message = messages[i]
+    local alpha = 1
+    message:SetTopMask(on and self or nil, zone)
+    if on then
+      local height = message:LayoutHeight()
+      local bottom = sliderHeight - below -- (from the slider's top)
+      below = below + height
+      -- Past the edge, out of sight: so are all the older ones
+      if bottom <= edge then
+        message:SetTopAlpha(0)
+        break
+      end
+      -- Measured at its middle, or for a long message at its first lines: a
+      -- message fades out whole (the game can't fade a text from top to
+      -- bottom), and a long one stayed bright right under a faint line
+      local depth = bottom - height + math.min(height / 2, row * TOP_FADE_LONG) - edge
+      if depth < zone then
+        local t = math.max(0, depth / zone)
+        alpha = t * t * (3 - 2 * t) -- (eased in and out, like the mask)
+      end
+    end
+    message:SetTopAlpha(alpha)
   end
 end
 

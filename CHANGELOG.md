@@ -2,6 +2,29 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.8-forever (2026-11-23)
+
+### Added
+- Fade at the top (Options > Messages, off by default): the messages fade out smoothly as they reach the top edge of the chat, instead of being cut off (`SlidingMessageFrame.lua`, `MessageLine.lua`, `Assets/topFadeMask.tga`).
+- Details! "Chat Tab Embed": the meter shows in the Glass tab it's embedded in, and hides with it (`SlidingMessageFrame.lua`, `UIManager.lua`).
+
+### Fixed
+- No "string conversion on a secret value... tainted by Glass" error in dungeons: the message filters for separate windows run only while one is open (`TextProcessing.lua`, `Whispers.lua`).
+- The chat box's fade-in can't leave it invisible in the game's controller mode (`EditBox.lua`).
+- The chat box stays visible while typing when another addon fades it out (ForeverImmersion while mounted) (`EditBox.lua`).
+
+## 1.1.7-forever (2026-11-21)
+
+### Added
+- `/glass report`: a window with the game and Glass versions, the chat's frames as they are, the last times one was hidden or made invisible (with the code that did it) and the addons loaded, ready to copy into a bug report (`Config.lua`, `EditBox.lua`).
+
+### Fixed
+- Separate windows follow the Fade out option: off, their messages stay (`SlidingMessageFrame.lua`).
+- The whisper sound plays when the game skips its own (`Whispers.lua`).
+- Whisper window titles take the class color from a clicked name (`Whispers.lua`).
+- Up/Down history skips only protected commands: no blocked action on /target, /reload comes back (`EditBox.lua`).
+- Class and race icons sit level with the name (`TextProcessing.lua`).
+
 ## 1.1.6-forever (2026-11-16)
 
 ### Fixed

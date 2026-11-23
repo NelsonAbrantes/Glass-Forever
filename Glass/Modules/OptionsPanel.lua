@@ -374,6 +374,7 @@ local function BuildMessages(category, layout)
   Slider(category, "messageFontSize", "Font size", 6, 48, 1, nil, "messageFontSize")
   Slider(category, "chatBackgroundOpacity", "Background opacity", 0, 1, 0.05, nil, "chatBackgroundOpacity")
   Checkbox(category, "messageBackgroundFull", "Full-width background", "The background stays at full opacity to the end of each message, instead of fading out over the right half", "messageBackgroundFull")
+  Checkbox(category, "topFade", "Fade at the top", "The messages at the top of the chat fade out as they reach its edge, instead of being cut off", "topFade")
   Slider(category, "messageLeading", "Leading", 0, 10, 1, "Space between the lines of a message", "messageLeading")
   Slider(category, "messageLinePadding", "Line padding", 0, 2, 0.05, "Space around each message", "messageLinePadding")
 

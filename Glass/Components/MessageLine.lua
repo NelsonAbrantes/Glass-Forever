@@ -189,6 +189,50 @@ function MessageLineMixin:ApplyBackground()
 end
 
 ---
+-- "Fade at the top" (SlidingMessageFrame:FadeTop). The text by its opacity,
+-- the whole message at once: the game can't fade a text from top to bottom.
+function MessageLineMixin:SetTopAlpha(alpha)
+  if self.glassTopAlpha == alpha then return end
+  self.glassTopAlpha = alpha
+  self.text:SetAlpha(alpha)
+end
+
+-- The background through a mask over the top of the chat (owner): clear at
+-- its edge, solid "height" below it, so the backgrounds fade out smoothly,
+-- pixel by pixel. (Each message faded as a whole showed as bands.) Below the
+-- mask its last row goes on (solid), above it its first one (clear). nil
+-- takes it off.
+local TOP_MASK = "Interface\\AddOns\\Glass\\Glass\\Assets\\topFadeMask"
+
+function MessageLineMixin:SetTopMask(owner, height)
+  if not self.leftBg then return end
+  local textures = { self.leftBg, self.centerBg, self.rightBg }
+  if not owner then
+    if self.glassMasked then
+      self.glassMasked = false
+      for _, texture in ipairs(textures) do texture:RemoveMaskTexture(self.glassTopMask) end
+    end
+    return
+  end
+  local mask = self.glassTopMask
+  if not mask then
+    mask = self:CreateMaskTexture()
+    mask:SetTexture(TOP_MASK, "CLAMP", "CLAMP")
+    self.glassTopMask = mask
+  end
+  if self.glassMaskOwner ~= owner or self.glassMaskHeight ~= height then
+    self.glassMaskOwner, self.glassMaskHeight = owner, height
+    mask:ClearAllPoints()
+    mask:SetPoint("TOPLEFT", owner, "TOPLEFT")
+    mask:SetPoint("BOTTOMRIGHT", owner, "TOPRIGHT", 0, -height)
+  end
+  if not self.glassMasked then
+    self.glassMasked = true
+    for _, texture in ipairs(textures) do texture:AddMaskTexture(mask) end
+  end
+end
+
+---
 -- Update height based on text height
 function MessageLineMixin:UpdateFrame()
   local Ypadding = self.text:GetLineHeight() * Core.db.profile.messageLinePadding

@@ -12,6 +12,37 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.8-forever",
+    items = {[[
+What's new
+
+- Fade at the top: messages fade out at the top of the chat (Options > Messages).
+- Details! Chat Tab Embed: the meter in a chat tab.
+
+Bug fixes
+
+- No "secret string" error in dungeons.
+- The chat box shows again in controller mode.
+- The chat box stays visible while typing with ForeverImmersion.
+]]},
+  },
+  {
+    name = "1.1.7-forever",
+    items = {[[
+What's new
+
+- /glass report: copy it into a bug report when the chat goes wrong.
+
+Bug fixes
+
+- Separate windows follow the Fade out option.
+- The whisper sound plays every time.
+- Whisper window titles in the class color.
+- Up/Down history no longer blocks /target.
+- Class and race icons level with the name.
+]]},
+  },
+  {
     name = "1.1.6-forever",
     items = {[[
 Bug fixes
