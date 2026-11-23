@@ -12,6 +12,21 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.1.8-forever",
+    items = {[[
+What's new
+
+- Fade at the top: messages fade out at the top of the chat (Options > Messages).
+- Details! Chat Tab Embed: the meter in a chat tab.
+
+Bug fixes
+
+- No "secret string" error in dungeons.
+- The chat box shows again in controller mode.
+- The chat box stays visible while typing with ForeverImmersion.
+]]},
+  },
+  {
     name = "1.1.7-forever",
     items = {[[
 What's new

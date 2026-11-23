@@ -2,6 +2,17 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.1.8-forever (2026-11-23)
+
+### Added
+- Fade at the top (Options > Messages, off by default): the messages fade out smoothly as they reach the top edge of the chat, instead of being cut off (`SlidingMessageFrame.lua`, `MessageLine.lua`, `Assets/topFadeMask.tga`).
+- Details! "Chat Tab Embed": the meter shows in the Glass tab it's embedded in, and hides with it (`SlidingMessageFrame.lua`, `UIManager.lua`).
+
+### Fixed
+- No "string conversion on a secret value... tainted by Glass" error in dungeons: the message filters for separate windows run only while one is open (`TextProcessing.lua`, `Whispers.lua`).
+- The chat box's fade-in can't leave it invisible in the game's controller mode (`EditBox.lua`).
+- The chat box stays visible while typing when another addon fades it out (ForeverImmersion while mounted) (`EditBox.lua`).
+
 ## 1.1.7-forever (2026-11-21)
 
 ### Added
