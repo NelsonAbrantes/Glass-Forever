@@ -290,14 +290,34 @@ function EditBoxMixin:Init(parent)
       -- (not started over while it plays, and never left halfway: with the
       -- game's controller mode the box could stay invisible, its fade-in
       -- stuck at the start. Stopped, the box shows as it is)
+      -- (made invisible by another addon while it was closed: seen again
+      -- first, or the fade-in ends back on that)
+      if self:GetAlpha() < 1 then self:SetAlpha(1) end
       if not introAg:IsPlaying() then introAg:Play() end
       C_Timer.After(0.5, function ()
         if introAg:IsPlaying() then introAg:Stop() end
+        if self:HasFocus() and self:GetAlpha() < 1 then self:SetAlpha(1) end
       end)
     else
       self.glassInitialized = true
     end
   end)
+
+  -- Typing in it: never invisible. Addons that fade the interface away (as
+  -- ForeverImmersion does while mounted) took the box along, and you typed
+  -- without seeing it: while it has the focus, it's seen again
+  if not self:IsHooked(self, "SetAlpha") then
+    local restoring = false
+    self:SecureHook(self, "SetAlpha", function (_, alpha)
+      if restoring or not alpha or alpha >= 1 or not self:HasFocus() then return end
+      restoring = true
+      self:SetAlpha(1)
+      restoring = false
+    end)
+    getmetatable(self).__index.HookScript(self, "OnEditFocusGained", function ()
+      if self:GetAlpha() < 1 then self:SetAlpha(1) end
+    end)
+  end
 
   Core:Subscribe(UPDATE_CONFIG, function (key)
     if key == "font" or key == "editBoxFontSize" then
