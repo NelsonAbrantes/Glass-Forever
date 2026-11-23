@@ -50,6 +50,16 @@ function UIManager:IsSeparateWindow(chatFrame)
   return false
 end
 
+-- True if any chat window is out of the Glass chat right now
+function UIManager:HasSeparateWindow()
+  for _, list in ipairs({ self.state.frames, self.state.temporaryFrames }) do
+    for _, smf in pairs(list) do
+      if smf.state and smf.state.detached and not smf.state.isCombatLog then return true end
+    end
+  end
+  return false
+end
+
 ----
 -- The Battle.net alert (a friend coming online...) with the Glass look, like
 -- the chat it belongs to: the Glass fading background instead of the game's
@@ -553,6 +563,26 @@ function UIManager:OnEnable()
     end
   end)
 
+  -- Details! "Chat Tab Embed": the tab it sits in is followed (its window
+  -- shown over the Glass messages, see UpdateEmbed), as it embeds and lets go
+  local function UpdateEmbeds()
+    for _, smf in pairs(self.state.frames or {}) do
+      if smf.UpdateEmbed then smf:UpdateEmbed() end
+    end
+  end
+  local function WatchDetails()
+    local Details = _G.Details
+    local embed = type(Details) == "table" and Details.chat_embed
+    if not embed or self.detailsWatched then return end
+    self.detailsWatched = true
+    for _, name in ipairs({ "DoEmbed", "ReleaseEmbed", "SetTabSettings" }) do
+      if type(embed[name]) == "function" then hooksecurefunc(embed, name, function () C_Timer.After(0, UpdateEmbeds) end) end
+    end
+    UpdateEmbeds()
+  end
+  C_Timer.After(1, WatchDetails)
+  C_Timer.After(8, function () WatchDetails() UpdateEmbeds() end)
+
   -- Chat dock
   self.dock = CreateChatDock(self.container)
 
@@ -623,6 +653,7 @@ function UIManager:OnEnable()
         end
       end
     end
+    Core:Dispatch(Constants.EVENTS.SEPARATE_WINDOWS)
   end
 
   self.tickerFrame:RegisterEvent("UPDATE_CHAT_WINDOWS")
@@ -1046,6 +1077,16 @@ function UIManager:OnEnable()
   local function HideBlizzardFrame(smf)
     local chatFrame = smf.chatFrame
     if smf.state and smf.state.detached then return end -- a separate window, leave it
+    -- A Details! window in it (Chat Tab Embed): shown with its tab
+    if smf.state and smf.state.embedHost and chatFrame then
+      local want = smf:IsShown()
+      if want and not chatFrame:IsShown() then
+        chatFrame:Show()
+      elseif not want and chatFrame:IsShown() then
+        smf:HideChatFrame()
+      end
+      return
+    end
     if chatFrame and chatFrame:IsShown() and smf.HideChatFrame then
       smf:HideChatFrame()
     end

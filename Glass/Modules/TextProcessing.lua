@@ -444,13 +444,20 @@ function TP:OnEnable()
   local AddFilter = (util and util.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
   local RemoveFilter = (util and util.RemoveMessageEventFilter) or _G.ChatFrame_RemoveMessageEventFilter
   if not AddFilter or not RemoveFilter then return end
+  -- Also only while a separate window is open: even outside, the game's code
+  -- after the filter keeps things for the rest of the session (the number it
+  -- gives each kind of message, "party" and so on), and those, kept by Glass's
+  -- turn, made it fail later in a dungeon ("string conversion on a secret
+  -- value... tainted by Glass"). Without a separate window it isn't needed.
   local added = false
   local function Update()
-    local inInstance = _G.IsInInstance and _G.IsInInstance()
-    if inInstance and added then
+    local ui = Core:GetModule("UIManager", true)
+    local want = not (_G.IsInInstance and _G.IsInInstance())
+      and ui and ui.HasSeparateWindow and ui:HasSeparateWindow()
+    if not want and added then
       for _, event in ipairs(EMOTE_EVENTS) do RemoveFilter(event, SeparateWindowEmotes) end
       added = false
-    elseif not inInstance and not added then
+    elseif want and not added then
       for _, event in ipairs(EMOTE_EVENTS) do AddFilter(event, SeparateWindowEmotes) end
       added = true
     end
@@ -460,6 +467,12 @@ function TP:OnEnable()
   events:RegisterEvent("PLAYER_ENTERING_WORLD")
   events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   events:SetScript("OnEvent", Update)
+  -- (a window taken out, put back or closed: once the chat has caught up)
+  local function Later() C_Timer.After(0.1, Update) end
+  Core:Subscribe("Glass/SEPARATE_WINDOWS", Update) -- (put back out at login)
+  for _, name in ipairs({ "FCF_UnDockFrame", "FCF_DockFrame", "FCF_Close" }) do
+    if _G[name] then hooksecurefunc(name, Later) end
+  end
 end
 
 ---
