@@ -131,6 +131,7 @@ Core.defaults = {
     timestamps = "off", -- the time in front of messages: "off", "hm" (17:49) or "hms" (17:49:05)
     chatClassIcons = false, -- class icon in front of players' names
     chatRaceIcons = false, -- race icon in front of players' names
+    chatLevels = false, -- players' level in front of their name: "[60] [Aehya]"
     firstNamesOnly = false, -- "Aehya" for "Aehya Bfc"
     keepHistory = true,
     whisperWindows = true, -- whispers in their own windows (an envelope by the tab bar), not in the chat
