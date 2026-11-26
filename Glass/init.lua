@@ -32,6 +32,7 @@ Core.Version = "DEBUG"
 -- Modules
 Core:NewModule("Config", "AceConsole-3.0")
 Core:NewModule("Copy")
+Core:NewModule("ChatBubbles")
 Core:NewModule("SpamFilter")
 Core:NewModule("VersionCheck")
 Core:NewModule("Fonts")
@@ -56,6 +57,17 @@ Core.defaults = {
     windowStyle = true, -- separate (undocked) windows get the Glass look
     windowMessageBackground = false, -- separate windows: a background on each message instead of the whole window
     alertStyle = true, -- the game's alerts (achievements, loot...) get the Glass look
+    bubbleStyle = true, -- the chat bubbles over characters' heads get the Glass look
+    bubbleLook = "glass", -- "glass", "solid", "rounded" or "underline"
+    bubbleLineColor = "channel", -- "channel" (the message's), "gold", "white" or "none"
+    bubbleLinePosition = "top", -- "top", "bottom" or "left"
+    bubbleTail = false, -- a small point under the bubble, toward who's talking
+    bubbleOpacity = 0, -- 0: Default (from the chat's)
+    bubbleFontSize = 0, -- 0: Default (the game's)
+    bubbleLift = 20, -- how much higher over the character than the game puts it
+    bubbleTextColor = "default", -- "default" (the game's: the channel's color) or "white"
+    bubbleShowName = false, -- who's talking, over the text
+    bubblePadding = 0, -- room added around the text in the bubble (0: as made)
     windowOpenPosition = "above", -- where "Open in Separate Window" puts the window
     positionAnchor = {
       point = "BOTTOMLEFT",
@@ -119,6 +131,7 @@ Core.defaults = {
     timestamps = "off", -- the time in front of messages: "off", "hm" (17:49) or "hms" (17:49:05)
     chatClassIcons = false, -- class icon in front of players' names
     chatRaceIcons = false, -- race icon in front of players' names
+    chatLevels = false, -- players' level in front of their name: "[60] [Aehya]"
     firstNamesOnly = false, -- "Aehya" for "Aehya Bfc"
     keepHistory = true,
     whisperWindows = true, -- whispers in their own windows (an envelope by the tab bar), not in the chat

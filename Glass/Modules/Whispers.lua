@@ -396,6 +396,21 @@ local function NewLine(view)
     if not pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Hide() end
   end)
   line:SetScript("OnHyperlinkLeave", function () GameTooltip:Hide() end)
+  -- Right click on a message: "Copy", the copy window with its words (as
+  -- plain text: links as their names)
+  line:EnableMouse(true)
+  line:SetScript("OnMouseUp", function (self, button)
+    if button ~= "RightButton" or not _G.MenuUtil then return end
+    local raw = self.text:GetText()
+    if not (Readable(raw) and type(raw) == "string" and raw ~= "") then return end
+    _G.MenuUtil.CreateContextMenu(self, function (_, root)
+      root:CreateButton("Copy", function ()
+        Core:Dispatch(Constants.ACTIONS.OpenCopy({
+          title = "Glass Forever: Copy message", text = Utils.PlainText(raw) or raw, height = 160,
+        }))
+      end)
+    end)
+  end)
   -- A new message sent or received fades in while the messages glide up to
   -- make room (the view's slide). Played backwards, so it ends at full.
   line.appear = line:CreateAnimationGroup()

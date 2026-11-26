@@ -1,4 +1,4 @@
-local Core, _, Utils = unpack(select(2, ...))
+local Core, Constants, Utils = unpack(select(2, ...))
 local TP = Core:GetModule("TextProcessing")
 
 -- luacheck: push ignore 113
@@ -45,6 +45,8 @@ end
 ---
 -- Gets all inline textures found in the string and adjusts their yOffset
 local function textureProcessor(text)
+  -- (most messages have no icon: nothing made then)
+  if not strfind(text, "|T", 1, true) then return text end
   local cursor = 1
   local origLen = strlen(text)
 
@@ -70,6 +72,8 @@ end
 ---
 -- Adds Prat Timestamps if configured
 local function pratTimestampProcessor(text)
+  -- (without Prat: nothing, rather than an error caught for each message)
+  if not _G.Prat then return text end
   return _G.Prat.Addon:GetModule("Timestamps"):InsertTimeStamp(text)
 end
 
@@ -94,6 +98,8 @@ local function linkifySegment(segment)
 end
 
 local function urlProcessor(text)
+  -- (most messages have no address: nothing made then)
+  if not (strfind(text, "http", 1, true) or strfind(text, "www.", 1, true)) then return text end
   -- Only look at the text between existing links (items, players, etc.)
   local parts = {}
   local cursor = 1
@@ -149,14 +155,20 @@ local CHANNEL_NOTICES = {
   "CHAT_YOU_LEFT_NOTICE_BN", "CHAT_SUSPENDED_NOTICE_BN",
 }
 
+-- (the parts before the channel link, e.g. "Changed Channel: ": worked out
+-- once, not for each message)
+local noticePrefixes
 local function isChannelNotice(text)
-  for _, key in ipairs(CHANNEL_NOTICES) do
-    local format = _G[key]
-    -- The part before the channel link, e.g. "Changed Channel: "
-    local prefix = type(format) == "string" and format:match("^(.-)|H")
-    if prefix and prefix ~= "" and strfind(text, prefix, 1, true) then
-      return true
+  if not noticePrefixes then
+    noticePrefixes = {}
+    for _, key in ipairs(CHANNEL_NOTICES) do
+      local format = _G[key]
+      local prefix = type(format) == "string" and format:match("^(.-)|H")
+      if prefix and prefix ~= "" then noticePrefixes[#noticePrefixes + 1] = prefix end
     end
+  end
+  for _, prefix in ipairs(noticePrefixes) do
+    if strfind(text, prefix, 1, true) then return true end
   end
   return false
 end
@@ -253,17 +265,136 @@ local function SenderIcons(lineID, size)
   return icons ~= "" and (icons.." ") or ""
 end
 
+---
+-- Players' levels (Messages > Levels): "[60] [Aehya]". The game doesn't say a
+-- chat sender's level, so the levels are the ones Glass has seen: your
+-- group, guild and friends, your target, the mouse over a player, the
+-- nameplates and /who. A player not seen yet has no level. Kept for the
+-- session only, gathered on the game's events (nothing runs on its own).
+local levels = {} -- "Name" and "Name-Realm" -> level
+
+local function Clean(value)
+  return type(value) == "string" and not (issecretvalue and issecretvalue(value)) and value ~= ""
+end
+
+local function Remember(name, level, realm)
+  if not Clean(name) or type(level) ~= "number" or (issecretvalue and issecretvalue(level)) or level <= 0 then return end
+  if Clean(realm) then name = name.."-"..realm end
+  levels[name] = level
+  -- (also by the name alone: the chat leaves out your own realm)
+  local short = name:match("^([^%-]+)%-")
+  if short then levels[short] = level end
+end
+
+local function RememberUnit(unit)
+  if not (_G.UnitExists(unit) and _G.UnitIsPlayer(unit)) then return end
+  local ok, name, realm = pcall(_G.UnitName, unit)
+  if not ok then return end
+  local ok2, level = pcall(_G.UnitLevel, unit)
+  if ok2 then Remember(name, level, realm) end
+end
+
+local function RememberGroup()
+  RememberUnit("player")
+  local raid = _G.IsInRaid()
+  local count = raid and _G.GetNumGroupMembers() or _G.GetNumSubgroupMembers()
+  for i = 1, count do RememberUnit((raid and "raid" or "party")..i) end
+end
+
+-- (a big guild's list comes often and long: read at most every 30 seconds)
+local guildRead = 0
+local function RememberGuild()
+  if not (_G.IsInGuild() and _G.GetGuildRosterInfo) then return end
+  local now = _G.GetTime()
+  if now - guildRead < 30 then return end
+  -- (the list not there yet, right after logging in: read when it comes)
+  if _G.GetNumGuildMembers() == 0 then return end
+  guildRead = now
+  for i = 1, _G.GetNumGuildMembers() do
+    local name, _, _, level = _G.GetGuildRosterInfo(i)
+    Remember(name, level)
+  end
+end
+
+local function RememberFriends()
+  local list = _G.C_FriendList
+  if not (list and list.GetNumFriends) then return end
+  for i = 1, list.GetNumFriends() do
+    local info = list.GetFriendInfoByIndex(i)
+    if info and info.connected then Remember(info.name, info.level) end
+  end
+end
+
+local function RememberWho()
+  local list = _G.C_FriendList
+  if not (list and list.GetNumWhoResults) then return end
+  for i = 1, list.GetNumWhoResults() do
+    local info = list.GetWhoInfo(i)
+    if info then Remember(info.fullName, info.level) end
+  end
+end
+
+local LEVEL_EVENTS = {
+  PLAYER_ENTERING_WORLD = RememberGroup,
+  GROUP_ROSTER_UPDATE = RememberGroup,
+  PLAYER_LEVEL_UP = RememberGroup,
+  GUILD_ROSTER_UPDATE = RememberGuild,
+  FRIENDLIST_UPDATE = RememberFriends,
+  WHO_LIST_UPDATE = RememberWho,
+  PLAYER_TARGET_CHANGED = function () RememberUnit("target") end,
+  UPDATE_MOUSEOVER_UNIT = function () RememberUnit("mouseover") end,
+  NAME_PLATE_UNIT_ADDED = function (unit) RememberUnit(unit) end,
+  UNIT_LEVEL = function (unit) RememberUnit(unit) end,
+}
+
+local levelEvents
+local function WatchLevels()
+  local want = Core.db.profile.chatLevels
+  if want and not levelEvents then
+    levelEvents = CreateFrame("Frame")
+    levelEvents:SetScript("OnEvent", function (_, event, unit)
+      pcall(LEVEL_EVENTS[event], unit)
+    end)
+    for event in pairs(LEVEL_EVENTS) do pcall(levelEvents.RegisterEvent, levelEvents, event) end
+    -- (what's already there: your group, and the guild's list, asked for)
+    pcall(RememberGroup)
+    pcall(RememberGuild)
+    pcall(RememberFriends)
+    if _G.C_GuildInfo and _G.C_GuildInfo.GuildRoster and _G.IsInGuild() then _G.C_GuildInfo.GuildRoster() end
+  elseif not want and levelEvents then
+    levelEvents:UnregisterAllEvents()
+    levelEvents = nil
+  end
+end
+TP.WatchLevels = WatchLevels
+
+-- "[60]", in the color of how hard that level is for you
+local function LevelText(data)
+  local name = data:match("^([^:]+)")
+  local level = name and (levels[name] or levels[name:match("^([^%-]+)") or name])
+  if not level then return nil end
+  local color = _G.GetQuestDifficultyColor and _G.GetQuestDifficultyColor(level)
+  if color then
+    return string.format("|cff%02x%02x%02x[%d]|r", color.r * 255, color.g * 255, color.b * 255, level)
+  end
+  return "["..level.."]"
+end
+
 local function nameProcessor(text)
   local profile = Core.db.profile
   local icons = profile.chatClassIcons or profile.chatRaceIcons
-  if not (icons or profile.firstNamesOnly) or not strfind(text, "|Hplayer:", 1, true) then return text end
+  local withLevels = profile.chatLevels
+  if not (icons or withLevels or profile.firstNamesOnly) or not strfind(text, "|Hplayer:", 1, true) then return text end
   local size = math.floor((profile.messageFontSize or 14) + 0.5)
   return (text:gsub("(|Hplayer:([^|]*)|h)(.-)(|h)", function (open, data, shown, close)
     if profile.firstNamesOnly then
       -- The first word of the name, its color codes kept
       shown = shown:gsub("^(.-%a)%s+[^%s|%]]+", "%1", 1)
     end
+    -- the level in its own brackets, like the channels: "[60] [Aehya]"
+    local level = withLevels and LevelText(data)
     local prefix = icons and SenderIcons(data:match("^[^:]*:(%d+)"), size) or ""
+    if level then prefix = level.." "..prefix end
     return prefix..open..shown..close
   end))
 end
@@ -443,6 +574,11 @@ function TP:OnEnable()
   local util = _G.ChatFrameUtil
   local AddFilter = (util and util.AddMessageEventFilter) or _G.ChatFrame_AddMessageEventFilter
   local RemoveFilter = (util and util.RemoveMessageEventFilter) or _G.ChatFrame_RemoveMessageEventFilter
+  -- Players' levels: gathered only while the option is on
+  WatchLevels()
+  Core:Subscribe(Constants.EVENTS.UPDATE_CONFIG, function (key)
+    if key == "chatLevels" then WatchLevels() end
+  end)
   if not AddFilter or not RemoveFilter then return end
   -- Also only while a separate window is open: even outside, the game's code
   -- after the filter keeps things for the rest of the session (the number it

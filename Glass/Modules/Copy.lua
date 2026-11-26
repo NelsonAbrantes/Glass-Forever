@@ -217,6 +217,26 @@ function Copy:OnEnable()
     local smf = owner and owner.slidingMessageFrame
     if not smf or not smf.state or smf.state.isCombatLog then return end
 
+    -- A separate window: "Lock Window" when the game's menu leaves it out (a
+    -- player's menu had none, with a controller); locked, the window can't
+    -- be moved or resized, and its size handle goes
+    local chatFrame = smf.chatFrame
+    local MenuUtil = _G.MenuUtil
+    if smf.state.detached and chatFrame and not chatFrame.isDocked and _G.FCF_SetLocked
+      and MenuUtil and MenuUtil.GetElementText and rootDescription.EnumerateElementDescriptions then
+      local has = false
+      for _, description in rootDescription:EnumerateElementDescriptions() do
+        local text = MenuUtil.GetElementText(description)
+        if text and (text == _G.LOCK_WINDOW or text == _G.UNLOCK_WINDOW) then has = true end
+      end
+      if not has then
+        rootDescription:CreateButton(chatFrame.isLocked and (_G.UNLOCK_WINDOW or "Unlock Window")
+          or (_G.LOCK_WINDOW or "Lock Window"), function ()
+          _G.FCF_SetLocked(chatFrame, not chatFrame.isLocked)
+        end)
+      end
+    end
+
     rootDescription:CreateButton("Search messages", function ()
       OpenSearch(smf, owner.GetText and owner:GetText() or nil)
     end)

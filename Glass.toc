@@ -49,6 +49,7 @@ Glass\Components\SlidingMessageFrame.lua
 
 # Modules
 Glass\Modules\Config.lua
+Glass\Modules\ChatBubbles.lua
 Glass\Modules\Copy.lua
 Glass\Modules\DefaultTabs.lua
 Glass\Modules\Fonts.lua
