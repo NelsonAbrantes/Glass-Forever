@@ -29,8 +29,9 @@ end
 local ASSETS = "Interface\\AddOns\\Glass\\Glass\\Assets\\"
 local ROUNDED_TEXTURE = ASSETS.."Buttons\\whisperBubble" -- the whisper windows' rounded box
 local TAIL_TEXTURE = ASSETS.."bubbleTail"
+local FADE_TEXTURE = ASSETS.."bubbleFade" -- clear to full on a smooth curve (a straight fade showed where it met the middle)
 
-local BUBBLE_FADE = 18 -- Glass style: how far the background fades out, left and right
+local BUBBLE_FADE = 24 -- Glass style: how far the background fades out, left and right
 local LINE_ALPHA = 0.55 -- the line along an edge, same as the alerts'
 local BAR_ALPHA = 0.9 -- the line on the left (a bar), stronger: it's short
 local BAR_WIDTH = 2
@@ -320,6 +321,13 @@ local function Layout(holder)
   for _, texture in ipairs({ holder.leftBg, holder.centerBg, holder.rightBg }) do texture:SetShown(glass) end
   if glass then
     Core.Components.GradientBackgroundMixin.SetGradientBackground(holder, BUBBLE_FADE, BUBBLE_FADE, dark, opacity)
+    -- (the ends: the smooth fade, the right one turned around)
+    for i, edge in ipairs({ holder.leftBg, holder.rightBg }) do
+      edge:SetTexture(FADE_TEXTURE)
+      edge:SetTexCoord(i == 1 and 0 or 1, i == 1 and 1 or 0, 0, 1)
+      edge:SetGradient("HORIZONTAL", _G.CreateColor(1, 1, 1, 1), _G.CreateColor(1, 1, 1, 1))
+      edge:SetVertexColor(dark.r, dark.g, dark.b, opacity)
+    end
     for _, texture in ipairs({ holder.leftBg, holder.rightBg }) do texture:ClearAllPoints() end
     At(holder, holder.leftBg, "TOPLEFT", "TOPLEFT")
     At(holder, holder.leftBg, "BOTTOMLEFT", "BOTTOMLEFT")
@@ -512,7 +520,32 @@ function ChatBubbles:OnEnable()
     self:Show()
   end)
 
+  -- In dungeons and raids the bubbles are locked, but their letters come from
+  -- the game's font for them (ChatBubbleFont), which addons can change: the
+  -- Glass font and the size chosen there. Only there: outside, the Glass
+  -- copy of the text is what shows, sized from the game's own text.
+  local bubbleFont = _G.ChatBubbleFont
+  local gameFont = bubbleFont and { bubbleFont:GetFont() }
+  local function InstanceFont()
+    if not (bubbleFont and gameFont and gameFont[1]) then return end
+    local inInstance = _G.IsInInstance and _G.IsInInstance()
+    if Profile().bubbleStyle and inInstance then
+      local size = Profile().bubbleFontSize or 0
+      if size <= 0 then size = gameFont[2] end
+      bubbleFont:SetFont(FontFile() or gameFont[1], size, Profile().fontFlags or "")
+      bubbleFont.glassSet = true
+    elseif bubbleFont.glassSet then
+      bubbleFont:SetFont(gameFont[1], gameFont[2], gameFont[3] or "")
+      bubbleFont.glassSet = nil
+    end
+  end
+  local zones = CreateFrame("Frame")
+  zones:RegisterEvent("PLAYER_ENTERING_WORLD")
+  zones:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  zones:SetScript("OnEvent", InstanceFont)
+
   local function Apply()
+    InstanceFont()
     if Profile().bubbleStyle then
       for _, event in ipairs(BUBBLE_EVENTS) do scanner:RegisterEvent(event) end
       StyleAll()
@@ -530,6 +563,7 @@ function ChatBubbles:OnEnable()
       Apply()
     elseif key == "chatBackgroundOpacity" or key == "font" or key == "fontFlags"
       or (type(key) == "string" and key:find("^bubble")) then
+      InstanceFont()
       for holder in pairs(styled) do Layout(holder) end
     end
   end)
