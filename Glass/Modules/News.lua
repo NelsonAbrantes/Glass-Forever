@@ -12,6 +12,21 @@ local OPEN_NEWS = Constants.EVENTS.OPEN_NEWS
 -- luacheck: push ignore 631
 local CHANGELOG = {
   {
+    name = "1.2.0-forever",
+    items = {[[
+What's new
+
+- Chat bubbles with the Glass look: Glass, Solid, Rounded and Underline styles.
+- Levels: a player's level before their name (Options > Messages).
+- Copy a whisper message with a right click.
+- Lock Window in a separate window's menu.
+
+Bug fixes
+
+- Lighter chat: less work for each message.
+]]},
+  },
+  {
     name = "1.1.8-forever",
     items = {[[
 What's new

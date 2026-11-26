@@ -1,12 +1,12 @@
-# 1.1.8-forever (2026-11-23)
+# 1.2.0-forever (2026-11-26)
 
 What's new
 
-- Fade at the top: messages fade out at the top of the chat (Options > Messages).
-- Details! Chat Tab Embed: the meter in a chat tab.
+- Chat bubbles with the Glass look: Glass, Solid, Rounded and Underline styles.
+- Levels: a player's level before their name (Options > Messages).
+- Copy a whisper message with a right click.
+- Lock Window in a separate window's menu.
 
 Bug fixes
 
-- No "secret string" error in dungeons.
-- The chat box shows again in controller mode.
-- The chat box stays visible while typing with ForeverImmersion.
+- Lighter chat: less work for each message.

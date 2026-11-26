@@ -9,7 +9,7 @@ Made and tested for WoW: Forever. Bug reports are welcome in [Issues](https://gi
 **Chat**
 - Messages slide in and fade out when you're not using the chat; they come back on mouse over.
 - Emotes: `:)` `:D` `<3` and 20 more show as small faces, in the Glass gold or classic yellow.
-- Timestamps, class and race icons, and first names only, each one an option.
+- Timestamps, class and race icons, players' levels and first names only, each one an option.
 - Chat history: the last messages of each tab come back after logging out or `/reload`.
 - Search a tab's messages, and copy chat text, from the tab's menu.
 - Arrow keys history: Up and Down in the chat box go through what you typed.
@@ -30,6 +30,7 @@ Made and tested for WoW: Forever. Bug reports are welcome in [Issues](https://gi
 - Separate chat windows with the Glass look: "Open in Separate Window" when you right click a channel.
 - Edit box styles: Minimal, Solid and Framed, with an optional emote button.
 - Chat buttons (friends, channels, voice, emotes) with icons in the Glass style.
+- Chat bubbles with the Glass look: Glass, Solid, Rounded and Underline styles.
 
 **Everything else**
 - Options in the game's Options window (Options > AddOns > Glass Forever) or `/glass`.

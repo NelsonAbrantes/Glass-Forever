@@ -2,6 +2,16 @@
 
 Versions are named `X.Y.Z-forever`. The fork uses its own numbering: `0.x` were the beta versions, `1.0.0-forever` is the first stable release.
 
+## 1.2.0-forever (2026-11-26)
+
+### Added
+- Chat bubbles (Options, on by default): Glass, Solid, Rounded and Underline looks, line color and position, pointer, background opacity, text size and color, bubble size, height and the speaker's name; in dungeons and raids, where bubbles are locked, the Glass font and size (`ChatBubbles.lua`, `Assets/bubbleTail.tga`, `Assets/bubbleFade.tga`).
+- Levels (Options > Messages, off by default): a player's level before their name, "[60] [Aehya]", in difficulty color, from levels seen in the group, guild, friends, target, mouseover, nameplates and /who (`TextProcessing.lua`).
+- Whisper windows: right click a message to copy it (`Whispers.lua`).
+- "Lock Window" in a separate window's menu when the game's menu leaves it out (`Copy.lua`).
+
+### Changed
+- Less work per message: texture, link, Prat timestamp and channel notice checks are skipped when the message can't need them (`TextProcessing.lua`).
 ## 1.1.8-forever (2026-11-23)
 
 ### Added
